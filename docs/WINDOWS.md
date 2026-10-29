@@ -1,6 +1,6 @@
 # Sourcify Windows — experimentell 1.2.0
 
-[Windows-Release und Installer](https://github.com/MamaxLEONBot/Sourcify/releases/tag/windows-v1.2.0-experimental.1)
+[Windows-Release und Installer](https://github.com/MMXGmodz/Sourcify/releases/tag/windows-v1.2.0-experimental.1)
 
 Dieser Stand wurde aus den vorhandenen Dateien vom 5. Oktober 2026 wiederhergestellt. Der Installer wird unverändert übernommen; dies ist kein neu gebauter Windows-Release und keine Übernahme aller neuen Android-Änderungen.
 

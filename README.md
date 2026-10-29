@@ -2,7 +2,7 @@
 
 Sourcify ist ein unabhängiger Musikplayer für Android auf Basis von [Metrolist](https://github.com/MetrolistGroup/Metrolist). Der aktuelle Stand erweitert den Player um Canvas-Videos, Lyrics, Künstlerinfos und Empfehlungen.
 
-[Releases und APK](https://github.com/MamaxLEONBot/Sourcify/releases) · [Android bauen](docs/ANDROID.md) · [Projektstatus](docs/PROJECT_STATUS.md) · [Changelog](changelog.md)
+[Releases und APK](https://github.com/MMXGmodz/Sourcify/releases) · [Android bauen](docs/ANDROID.md) · [Projektstatus](docs/PROJECT_STATUS.md) · [Changelog](changelog.md)
 
 ## Download und Installation
 
@@ -52,7 +52,7 @@ Der lokale Standard-Build verwendet `io.sourcify.player`. Für ein Update der ve
 
 ## Experimentelle Windows-Version
 
-[Windows 1.2.0 herunterladen](https://github.com/MamaxLEONBot/Sourcify/releases/tag/windows-v1.2.0-experimental.1) · [Anleitung und Grenzen](docs/WINDOWS.md)
+[Windows 1.2.0 herunterladen](https://github.com/MMXGmodz/Sourcify/releases/tag/windows-v1.2.0-experimental.1) · [Anleitung und Grenzen](docs/WINDOWS.md)
 
 Der vorhandene Windows-Installer und sein Quellcode sind als separater experimenteller Stand erhalten. Die Windows-Quellen liegen unter `platforms/windows/`; sie teilen noch nicht automatisch alle aktuellen Android-Funktionen.
 
