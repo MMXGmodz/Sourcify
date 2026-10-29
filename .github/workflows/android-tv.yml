@@ -28,6 +28,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Install Android SDK
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;37.0.0" "build-tools;36.0.0"'
+      - name: Generate temporary CI-only signing key
+        run: |
+          keytool -genkeypair -noprompt -keystore "$RUNNER_TEMP/sourcify-ci.jks" -storepass android -keypass android -alias androiddebugkey -dname "CN=Sourcify CI" -keyalg RSA -keysize 2048 -validity 7
+          echo "METROLIST_DEBUG_KEYSTORE_PATH=$RUNNER_TEMP/sourcify-ci.jks" >> "$GITHUB_ENV"
       - name: Build and test TV flavor
         run: ./gradlew --no-configuration-cache --max-workers=1 '-Dorg.gradle.jvmargs=-Xmx2048m -XX:+UseParallelGC -Dkotlin.daemon.jvm.options=-Xmx2048m' :app:assembleTvDebug :app:testTvDebugUnitTest
       - name: Upload test reports
