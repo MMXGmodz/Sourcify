@@ -52,7 +52,7 @@ Der lokale Standard-Build verwendet `io.sourcify.player`. Für ein Update der ve
 
 ## Experimentelle Windows-Version
 
-[Windows 1.2.0 herunterladen](https://github.com/MMXGmodz/Sourcify/releases/tag/windows-v1.2.0-experimental.1) · [Anleitung und Grenzen](docs/WINDOWS.md)
+[Windows 1.2.0 herunterladen](https://github.com/MMXGmodz/Sourcify/releases/tag/windows-v1.2.0-experimental.3) · [Anleitung und Grenzen](docs/WINDOWS.md)
 
 Der vorhandene Windows-Installer und sein Quellcode sind als separater experimenteller Stand erhalten. Die Windows-Quellen liegen unter `platforms/windows/`; sie teilen noch nicht automatisch alle aktuellen Android-Funktionen.
 
