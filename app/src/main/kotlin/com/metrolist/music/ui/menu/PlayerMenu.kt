@@ -114,6 +114,10 @@ fun PlayerMenu(
     onDismiss: () -> Unit,
 ) {
     mediaMetadata ?: return
+    if (com.metrolist.music.utils.LocalAudioStore.isLocalId(mediaMetadata.id)) {
+        LocalAudioMenu(mediaMetadata, onDismiss, onShowDetailsDialog)
+        return
+    }
     val navController = LocalNavController.current
     val context = LocalContext.current
     val database = LocalDatabase.current

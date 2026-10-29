@@ -47,6 +47,7 @@ fun CanvasSettings(navController: NavController) {
         ?: remember { mutableStateOf(null) }
     val selection = rememberCanvasSelection(metadata?.id)
     val (enabled, setEnabled) = rememberPreference(CanvasEnabledKey, true)
+    val (wifiOnly, setWifiOnly) = rememberPreference(CanvasWifiOnlyKey, false)
     val (automatic, setAutomatic) = rememberPreference(AutomaticCanvasKey, true)
     val (brightness, setBrightness) = rememberPreference(CanvasBrightnessKey, 0.65f)
     val (zoom, setZoom) = rememberPreference(CanvasZoomKey, 1.35f)
@@ -95,6 +96,9 @@ fun CanvasSettings(navController: NavController) {
                     Material3SettingsItem(icon = painterResource(R.drawable.slow_motion_video), title = { Text(stringResource(R.string.sourcify_canvas)) },
                         description = { Text(stringResource(R.string.sourcify_canvas_description)) },
                         trailingContent = { Switch(enabled, setEnabled) }, onClick = { setEnabled(!enabled) }),
+                    Material3SettingsItem(icon = painterResource(R.drawable.offline), title = { Text(stringResource(R.string.canvas_wifi_only)) },
+                        description = { Text(stringResource(R.string.canvas_wifi_only_description)) },
+                        trailingContent = { Switch(wifiOnly, setWifiOnly) }, onClick = { setWifiOnly(!wifiOnly) }),
                     Material3SettingsItem(icon = painterResource(R.drawable.search), title = { Text(stringResource(R.string.sourcify_canvas_automatic)) },
                         description = { Text(stringResource(R.string.sourcify_canvas_automatic_description)) },
                         trailingContent = { Switch(automatic, setAutomatic) }, onClick = { setAutomatic(!automatic) }),
@@ -130,7 +134,9 @@ fun CanvasSettings(navController: NavController) {
                             busy = true; error = false; results = emptyList(); searched = false
                             try {
                                 results = withContext(Dispatchers.IO) {
-                                    withTimeout(20_000) { YouTube.search(searchQuery, YouTube.SearchFilter.FILTER_VIDEO).getOrThrow().items.filterIsInstance<SongItem>().take(20) }
+                                    withTimeout(20_000) {
+                                        check(CanvasNetworkPolicy.get(context).mayLoadRemote())
+                                        YouTube.search(searchQuery, YouTube.SearchFilter.FILTER_VIDEO).getOrThrow().items.filterIsInstance<SongItem>().take(20) }
                                 }
                                 searched = true
                             } catch (e: kotlinx.coroutines.TimeoutCancellationException) { error = true }
@@ -149,6 +155,7 @@ fun CanvasSettings(navController: NavController) {
                                     try {
                                         edit = withContext(Dispatchers.IO) {
                                             withTimeout(25_000) {
+                                                check(CanvasNetworkPolicy.get(context).mayLoadRemote())
                                                 val source = requireNotNull(resolveSelectedCanvasVideo(video.id))
                                                 val duration = requireNotNull(source.stream?.mediaMetadata?.durationSeconds?.times(1_000)).also { require(it > 0) }
                                                 CanvasEdit(songId, source, duration, video.id)

@@ -80,10 +80,7 @@ import androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
-import androidx.media3.extractor.ExtractorsFactory
-import androidx.media3.extractor.mkv.MatroskaExtractor
-import androidx.media3.extractor.mp4.FragmentedMp4Extractor
-import androidx.media3.extractor.mp4.Mp4Extractor
+import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaController
@@ -210,6 +207,7 @@ import com.metrolist.music.utils.CoilBitmapLoader
 import com.metrolist.music.utils.NetworkConnectivityObserver
 import com.metrolist.music.utils.ScrobbleManager
 import com.metrolist.music.utils.SyncUtils
+import com.metrolist.music.utils.LocalAudioStore
 import com.metrolist.music.utils.getArtistSeparator
 import com.metrolist.music.utils.joinToArtistString
 import com.metrolist.music.utils.InnerTubeXPlayer
@@ -815,24 +813,23 @@ class MusicService :
                     Timber.tag(TAG).i("QUALITY CHANGED: $oldQuality -> $newQuality")
 
                     val mediaId = player.currentMediaItem?.mediaId ?: return@collect
+                    if (isLocalAudioMediaId(mediaId)) return@collect
                     val currentPosition = player.currentPosition
                     val wasPlaying = player.isPlaying
                     val currentIndex = player.currentMediaItemIndex
 
-                    Timber.tag(TAG).i("RELOADING STREAM: $mediaId at position ${currentPosition}ms")
-
-                    songUrlCache.invalidate(mediaId)
-
-                    // CRITICAL: Clear caches synchronously to prevent format parsing errors
-                    runBlocking(Dispatchers.IO) {
+                    val shouldReload = runBlocking(Dispatchers.IO) {
                         try {
-                            playerCache.removeResource(mediaId)
-                            downloadCache.removeResource(mediaId)
-                            Timber.tag(TAG).d("Cleared player and download cache for $mediaId")
+                            prepareAudioQualityChange(mediaId, playerCache, downloadCache)
                         } catch (e: Exception) {
-                            Timber.tag(TAG).e(e, "Failed to clear cache for $mediaId")
+                            Timber.tag(TAG).e(e, "Failed to prepare quality change for $mediaId")
+                            false
                         }
                     }
+                    if (!shouldReload) return@collect
+
+                    Timber.tag(TAG).i("RELOADING STREAM: $mediaId at position ${currentPosition}ms")
+                    songUrlCache.invalidate(mediaId)
 
                     // Set bypass flag so resolver skips cache checks
                     bypassCacheForQualityChange.add(mediaId)
@@ -1647,6 +1644,7 @@ class MusicService :
         mediaId: String,
         playbackData: InnerTubeXPlayer.PlaybackData? = null,
     ) {
+        if (isLocalAudioMediaId(mediaId)) return
         val song = database.song(mediaId).first()
         val mediaMetadata =
             withContext(Dispatchers.Main) {
@@ -1740,6 +1738,7 @@ class MusicService :
      * No-op if already marked downloaded, or if the file's content length is unknown.
      */
     private suspend fun markCachedIfFullyDownloaded(mediaId: String) {
+        if (isLocalAudioMediaId(mediaId)) return
         val song = database.song(mediaId).first() ?: return
         if (song.song.dateDownload != null || song.song.isDownloaded) return
         val contentLength =
@@ -1846,6 +1845,7 @@ class MusicService :
         }
 
         val currentMediaMetadata = player.currentMetadata ?: return
+        if (isLocalAudioMediaId(currentMediaMetadata.id)) return
 
         val currentIndex = player.currentMediaItemIndex
         val currentMediaId = currentMediaMetadata.id
@@ -1935,6 +1935,10 @@ class MusicService :
     }
 
     fun getAutomix(playlistId: String) {
+        if (isLocalAudioMediaId(player.currentMediaItem?.mediaId)) {
+            automixItems.value = emptyList()
+            return
+        }
         if (dataStore.get(SimilarContent, true) &&
             !(dataStore.get(DisableLoadMoreWhenRepeatAllKey, false) && player.repeatMode == REPEAT_MODE_ALL)
         ) {
@@ -2149,15 +2153,16 @@ class MusicService :
         scope.launch {
             val songToToggle = currentSong.first()
             songToToggle?.let {
+                val isLocal = isLocalAudioMediaId(it.id)
                 val isInLibrary = it.song.inLibrary != null
                 val token = if (isInLibrary) it.song.libraryRemoveToken else it.song.libraryAddToken
 
-                token?.let { feedbackToken ->
+                token?.takeUnless { isLocal }?.let { feedbackToken ->
                     YouTube.feedback(listOf(feedbackToken))
                 }
 
                 database.query {
-                    update(it.song.toggleLibrary())
+                    update(it.song.toggleLibrary(syncToYouTube = !isLocal))
                 }
                 currentMediaMetadata.value = player.currentMetadata
             }
@@ -2183,9 +2188,11 @@ class MusicService :
 
                 database.query {
                     update(song)
-                    syncUtils.likeSong(song)
+                    if (!isLocalAudioMediaId(song.id)) syncUtils.likeSong(song)
 
-                    if (dataStore.get(AutoDownloadOnLikeKey, false) && song.liked) {
+                    if (!isLocalAudioMediaId(song.id) &&
+                        dataStore.get(AutoDownloadOnLikeKey, false) && song.liked
+                    ) {
                         downloadUtil.download(song.id)
                     }
                 }
@@ -2530,6 +2537,10 @@ class MusicService :
         previousEpisodePosition = 0L
 
         val newMetadata = mediaItem?.metadata
+        if (isLocalAudioMediaId(mediaItem?.mediaId) && listenTogetherManager.isInRoom) {
+            listenTogetherManager.leaveRoom()
+            android.widget.Toast.makeText(this, R.string.local_audio_network_notice, android.widget.Toast.LENGTH_LONG).show()
+        }
         if (newMetadata?.isEpisode == true) {
             previousEpisodeId = newMetadata.id
             scope.launch {
@@ -2559,9 +2570,12 @@ class MusicService :
         }
 
         // Skip if this change was triggered by Cast sync (to prevent loops)
+        if (isLocalAudioMediaId(mediaItem?.mediaId) && castConnectionHandler?.isCasting?.value == true) {
+            castConnectionHandler?.disconnect()
+        }
         if (castConnectionHandler?.isCasting?.value == true &&
             castConnectionHandler?.isSyncingFromCast != true &&
-            mediaItem != null
+            mediaItem != null && !isLocalAudioMediaId(mediaItem.mediaId)
         ) {
             val metadata = mediaItem.metadata
             if (metadata != null) {
@@ -2575,6 +2589,7 @@ class MusicService :
         }
 
         if (cachedAutoLoadMore &&
+            !isLocalAudioMediaId(mediaItem?.mediaId) &&
             reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT &&
             player.mediaItemCount - player.currentMediaItemIndex <= 5 &&
             currentQueue.hasNextPage() &&
@@ -2710,6 +2725,7 @@ class MusicService :
                 player.playWhenReady &&
                 player.currentPosition < INITIAL_BUFFER_RECOVERY_POSITION_MS &&
                 mediaId != null &&
+                !isLocalAudioMediaId(mediaId) &&
                 initialBufferRecoveryAttemptedMediaId != mediaId
 
         if (!shouldWatch) {
@@ -3026,6 +3042,13 @@ class MusicService :
             .tag(TAG)
             .w(error, "Player error occurred for $mediaId: errorCode=${error.errorCode}, message=${error.message}")
         reportException(error)
+
+        if (isLocalAudioMediaId(mediaId)) {
+            waitingForNetworkConnection.value = false
+            retryJob?.cancel()
+            stopOnError()
+            return
+        }
 
         if (mediaId != null && hasExceededRetryLimit(mediaId)) {
             Timber.tag(TAG).w("Song $mediaId has exceeded retry limit, skipping")
@@ -3548,6 +3571,10 @@ class MusicService :
         if (!discordRpcEnabled) return
 
         val songId = player.currentMetadata?.id
+        if (isLocalAudioMediaId(songId)) {
+            DiscordRpcManager.clear()
+            return
+        }
         if (songId == null) {
             Timber.tag("DiscordSvc").d("syncDiscordState: no song, clearing presence")
             DiscordRpcManager.clear()
@@ -3591,6 +3618,7 @@ class MusicService :
     }
 
     private suspend fun updateDiscordRPC(song: Song, isPlaying: Boolean) {
+        if (isLocalAudioMediaId(song.id)) return
         if (!DiscordRpcManager.isReady()) {
             Timber.tag("DiscordSvc").w("updateDiscordRPC: skipping — not ready")
             return
@@ -3781,7 +3809,7 @@ class MusicService :
         normalizationProcessor: VolumeNormalizationAudioProcessor,
         playerProvider: () -> ExoPlayer?,
     ): DataSource.Factory {
-        return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
+        val streamFactory = ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
             val storedFormat = runBlocking(Dispatchers.IO) { database.format(mediaId).first() }
             applyAudioNormalizationBeforePlayback(
@@ -3954,6 +3982,16 @@ class MusicService :
                 )
             }
         }
+        return LocalAudioDataSourceFactory(streamFactory) { mediaId ->
+            applyAudioNormalizationBeforePlayback(
+                processor = normalizationProcessor,
+                playerProvider = playerProvider,
+                mediaId = mediaId,
+                loudnessDb = null,
+                perceptualLoudnessDb = null,
+            )
+            LocalAudioStore.get(this).fileForId(mediaId)
+        }
     }
 
     private fun createMediaSourceFactory(
@@ -3962,9 +4000,7 @@ class MusicService :
     ) =
         DefaultMediaSourceFactory(
             createDataSourceFactory(normalizationProcessor, playerProvider),
-            ExtractorsFactory {
-                arrayOf(MatroskaExtractor(), FragmentedMp4Extractor(), Mp4Extractor())
-            },
+            DefaultExtractorsFactory(),
         )
 
     private fun createRenderersFactory(
@@ -4063,7 +4099,7 @@ class MusicService :
             }
         }
 
-        if (playbackStats.totalPlayTimeMs >= historyDurationMs) {
+        if (!isLocalAudioMediaId(mediaItem.mediaId) && playbackStats.totalPlayTimeMs >= historyDurationMs) {
             scope.launch(Dispatchers.IO) {
                 val playbackUrl =
                     playbackUrlCache[cacheKey(mediaItem.mediaId)]
@@ -4747,6 +4783,7 @@ class MusicService :
      */
     suspend fun getStreamUrl(mediaId: String): String? =
         withContext(Dispatchers.IO) {
+            if (isLocalAudioMediaId(mediaId)) return@withContext null
             try {
                 val song = database.songEntity(mediaId)
                 val playbackData =

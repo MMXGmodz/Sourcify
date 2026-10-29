@@ -1,5 +1,17 @@
 # Sourcify changelog
 
+## 13.7.2 — 29. Oktober 2026 — Vorabversion
+
+- Lokale Audiodateien mit Originalbytes importieren und ohne Netzwerk im gemeinsamen Player abspielen: FLAC, PCM WAV sowie unterstütztes MP3/AAC/Ogg/Opus. Keine FLAC-Umwandlung von YouTube-Streams.
+- Vom Dateianbieter unabhängige lokale Kopien, Metadaten und eingebettete Cover im privaten App-Speicher. Entfernen löscht nur die Sourcify-Kopie.
+- Audioquelle, tatsächliche Codierung, Abtastrate und verfügbare Formatdaten in den Player-Details; lokale Dateien gehen nicht an YouTube, Cast oder Listen Together.
+- MusicBrainz-Fallback für fehlende Credit-Gruppen im geöffneten vollständigen Songinfo-Sheet, mit eindeutigem Titel-/Künstler-/Dauer-Abgleich, Quelle, Cache und Abrufbegrenzung.
+- Download-Cover bleiben erhalten, auch wenn der normale Coil-Bildcache deaktiviert oder geleert wird; Größenvarianten teilen das gespeicherte Bild. Bereits geladene Songs ergänzen ihre Cover bei Internetzugang.
+- Qualitätsänderungen entfernen keine gespeicherten oder laufenden Audio-Downloads mehr.
+- Optional Canvas nur über ungetaktetes WLAN/LAN; selbst ausgewählte lokale Videos bleiben nutzbar.
+
+Build, automatisierte Prüfungen und Grenzen stehen im Release-Bericht; Smartphone-/TV-Hardwaretests bleiben offen.
+
 ## 13.7.1 — 29. Oktober 2026 — Vorabversion
 
 - Canvas scrollt mit dem oberen Player-Bereich weg und geht nach unten vollständig in Schwarz über.

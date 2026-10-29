@@ -33,6 +33,8 @@ import com.metrolist.music.di.ApplicationScope
 import com.metrolist.music.extensions.toEnum
 import com.metrolist.music.extensions.toInetSocketAddress
 import com.metrolist.music.utils.CrashHandler
+import com.metrolist.music.utils.DownloadArtworkInterceptor
+import com.metrolist.music.utils.DownloadArtworkStore
 import com.metrolist.music.utils.ArtistNameAliases
 import com.metrolist.music.utils.InnerTubeXPlayer
 import com.metrolist.music.utils.dataStore
@@ -302,6 +304,9 @@ class App :
         return ImageLoader
             .Builder(this)
             .apply {
+                components {
+                    add(DownloadArtworkInterceptor(DownloadArtworkStore.getInstance(filesDir)))
+                }
                 crossfade(true)
                 allowHardware(Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
                 // Memory cache for fast image loading (prevents network requests on recomposition)

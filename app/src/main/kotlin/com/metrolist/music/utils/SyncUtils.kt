@@ -456,6 +456,7 @@ class SyncUtils @Inject constructor(
     }
 
     fun likeSong(s: SongEntity) {
+        if (s.isLocal || s.id.startsWith("local:")) return
         enqueue(SyncOperation.LikeSong(s))
     }
 
@@ -680,6 +681,7 @@ class SyncUtils @Inject constructor(
     }
 
     private suspend fun executeLikeSong(s: SongEntity) = withContext(Dispatchers.IO) {
+        if (s.isLocal || s.id.startsWith("local:")) return@withContext
         if (!isLoggedIn()) {
             Timber.w("Skipping likeSong - user not logged in")
             return@withContext
@@ -1667,12 +1669,13 @@ class SyncUtils @Inject constructor(
         playlistId: String,
         songIds: List<String>,
     ) {
-        if (songIds.isEmpty()) return
+        val remoteSongIds = songIds.filterNot { it.startsWith("local:") }
+        if (remoteSongIds.isEmpty()) return
         markPlaylistModifying(playlistId)
         syncScope.launch {
             try {
                 val confirmed = mutableListOf<String>()
-                songIds.forEach { songId ->
+                remoteSongIds.forEach { songId ->
                     try {
                         runQueuedPlaylistEdit {
                             YouTube.addToPlaylist(browseId, songId).getOrThrow()

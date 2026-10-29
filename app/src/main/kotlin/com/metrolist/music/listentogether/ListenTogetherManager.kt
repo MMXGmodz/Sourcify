@@ -1776,6 +1776,10 @@ class ListenTogetherManager
          * Create a new room
          */
         fun createRoom(username: String) {
+            if (playerConnection?.player?.currentMediaItem?.mediaId?.startsWith("local:") == true) {
+                android.widget.Toast.makeText(context, com.metrolist.music.R.string.local_audio_network_notice, android.widget.Toast.LENGTH_LONG).show()
+                return
+            }
             playerConnection?.service?.jam?.stop()
             Timber.tag(TAG).d("Creating room with username: $username")
             client.createRoom(username)

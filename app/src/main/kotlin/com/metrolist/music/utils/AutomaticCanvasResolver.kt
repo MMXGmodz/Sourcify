@@ -5,6 +5,8 @@ import android.util.LruCache
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
@@ -86,7 +88,7 @@ internal class AutomaticCanvasResolver(
     private val mutex = Mutex()
 
     suspend fun resolve(song: MediaMetadata): CanvasVideoSource? = mutex.withLock {
-        if (song.isEpisode) return@withLock null
+        if (song.isEpisode || LocalAudioStore.isLocalId(song.id)) return@withLock null
         cache.get(song.id)?.takeIf { it.expiresAt > now() }?.let { return@withLock it.source }
         val source = withTimeoutOrNull(30_000) {
             val videos = if (song.isVideoSong) emptyList() else try {
@@ -126,7 +128,8 @@ private val sharedCanvasResolver by lazy { AutomaticCanvasResolver() }
 internal fun rememberAutomaticCanvas(song: MediaMetadata?, enabled: Boolean): CanvasVideoSource? {
     val resolver = sharedCanvasResolver
     val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
-    val active = enabled && lifecycleState.isAtLeast(Lifecycle.State.RESUMED)
+    val remoteAllowed by CanvasNetworkPolicy.get(LocalContext.current).remoteAllowed.collectAsStateWithLifecycle()
+    val active = enabled && remoteAllowed && lifecycleState.isAtLeast(Lifecycle.State.RESUMED)
     val result by produceState<Pair<String, CanvasVideoSource?>?>(null, song?.id, active) {
         value = null
         if (song != null && active) {
@@ -140,7 +143,9 @@ internal fun rememberAutomaticCanvas(song: MediaMetadata?, enabled: Boolean): Ca
 @Composable
 internal fun rememberSelectedCanvas(selection: CanvasSelection?, enabled: Boolean): CanvasVideoSource? {
     val state by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
-    val active = enabled && state.isAtLeast(Lifecycle.State.RESUMED)
+    val remoteAllowed by CanvasNetworkPolicy.get(LocalContext.current).remoteAllowed.collectAsStateWithLifecycle()
+    val ownVideo = selection?.uri?.scheme in listOf("content", "file")
+    val active = enabled && (ownVideo || remoteAllowed) && state.isAtLeast(Lifecycle.State.RESUMED)
     val source by produceState<Pair<CanvasSelection, CanvasVideoSource?>?>(null, selection, active) {
         value = null
         if (active && selection != null) {

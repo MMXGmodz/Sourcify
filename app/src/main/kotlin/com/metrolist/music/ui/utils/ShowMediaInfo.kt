@@ -56,6 +56,11 @@ import com.metrolist.music.ui.component.shimmer.TextPlaceholder
 import com.metrolist.music.utils.ArtistNameAliases
 import com.metrolist.music.utils.rememberEnumPreference
 import androidx.compose.ui.platform.LocalLocale
+import com.metrolist.music.utils.LocalAudioStore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.CancellationException
 
 @Composable
 fun getLoudnessLevelLabel(loudnessLevel: LoudnessLevel): String {
@@ -73,10 +78,15 @@ fun ShowMediaInfo(videoId: String) {
 
     val windowInsets = WindowInsets.systemBars
 
-    var info by remember {
+    var loading by remember(videoId) { mutableStateOf(true) }
+    var info by remember(videoId) {
         mutableStateOf<MediaInfo?>(null)
     }
 
+    val context = LocalContext.current
+    val localTracks by remember(context) { LocalAudioStore.get(context) }.tracks.collectAsState()
+    val localTrack = localTracks.firstOrNull { it.id == videoId }
+    val isLocal = LocalAudioStore.isLocalId(videoId)
     val database = LocalDatabase.current
     var song by remember { mutableStateOf<Song?>(null) }
 
@@ -84,7 +94,6 @@ fun ShowMediaInfo(videoId: String) {
 
     val playerConnection = LocalPlayerConnection.current
     val currentStreamClient by playerConnection?.currentStreamClient?.collectAsState() ?: remember { mutableStateOf(null) }
-    val context = LocalContext.current
     val artistNameAliases = LocalArtistNameAliases.current
 
     val loudnessLevel by rememberEnumPreference(
@@ -95,7 +104,12 @@ fun ShowMediaInfo(videoId: String) {
     val targetLufs: Float = loudnessLevel.targetLufs
 
     LaunchedEffect(Unit, videoId) {
-        info = YouTube.getMediaInfo(videoId).getOrNull()
+        loading = true
+        try {
+            if (!isLocal) info = withContext(Dispatchers.IO) { withTimeoutOrNull(12_000) { YouTube.getMediaInfo(videoId).getOrNull() } }
+        } catch (e: CancellationException) { throw e }
+        catch (_: Exception) { info = null }
+        finally { loading = false }
     }
 
     LaunchedEffect(Unit, videoId) {
@@ -120,15 +134,16 @@ fun ShowMediaInfo(videoId: String) {
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        if (info != null) {
+        item { AudioSourceDetails(videoId) }
+        if (info != null || song != null || localTrack != null) {
             item(contentType = "MediaDetails") {
                 Column {
                     val baseList = listOf(
-                        stringResource(R.string.song_title) to (info?.title ?: song?.title),
+                        stringResource(R.string.song_title) to (song?.title ?: localTrack?.title ?: info?.title),
                         stringResource(R.string.song_artists) to (
                             song?.artists?.joinToString {
                                 ArtistNameAliases.resolve(artistNameAliases, it.id, it.name)
-                            } ?: info?.author?.let {
+                            } ?: localTrack?.artist ?: info?.author?.let {
                                 ArtistNameAliases.resolve(artistNameAliases, null, it)
                             }
                         ),
@@ -248,6 +263,8 @@ fun ShowMediaInfo(videoId: String) {
                     )
                 }
             }
+        } else if (!loading) {
+            item { Text(stringResource(R.string.player_context_error), Modifier.padding(16.dp)) }
         } else {
             item(contentType = "MediaInfoLoader") {
                 ShimmerHost {

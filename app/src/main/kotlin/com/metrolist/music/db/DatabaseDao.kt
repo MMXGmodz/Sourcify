@@ -1952,7 +1952,7 @@ interface DatabaseDao {
     @Delete
     fun delete(songArtistMap: SongArtistMap)
 
-    @Query("DELETE FROM song WHERE isDownloaded = 0 AND dateDownload IS NULL")
+    @Query("DELETE FROM song WHERE isDownloaded = 0 AND dateDownload IS NULL AND isLocal = 0")
     fun deleteSongsNotDownloaded()
 
     @Query("UPDATE artist SET bookmarkedAt = NULL")

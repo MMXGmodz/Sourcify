@@ -49,6 +49,9 @@ fun RenameSongAction(metadata: MediaMetadata, onDismiss: () -> Unit) {
                 saving = true
                 try {
                     val song = database.renameSong(metadata, title)
+                    if (com.metrolist.music.utils.LocalAudioStore.isLocalId(metadata.id)) {
+                        com.metrolist.music.utils.LocalAudioStore.get(context).rename(metadata.id, title)
+                    }
                     playerConnection?.refreshSongMetadata(song)
                     showDialog = false
                     onDismiss()

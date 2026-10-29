@@ -56,6 +56,7 @@ fun PlaybackError(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val streamClient by playerConnection.currentStreamClient.collectAsState()
     val isOnline by playerConnection.service.connectivityObserver.networkStatus.collectAsState()
+    val isLocal = mediaMetadata?.id?.startsWith("local:") == true
     val causes = remember(error) { error.causeChain() }
     val rawErrorMessages =
         remember(causes) {
@@ -83,7 +84,7 @@ fun PlaybackError(
         }
     val errorMessage =
         playbackErrorMessages(
-            isOnline = isOnline,
+            isOnline = isOnline || isLocal,
             offlineMessage = stringResource(R.string.error_offline_playback),
             guidance = guidance,
             rawErrorMessages = rawErrorMessages,
@@ -122,7 +123,7 @@ fun PlaybackError(
 
         Text(
             text = stringResource(
-                if (isOnline) R.string.error_playback_failed else R.string.error_no_internet_connection,
+                if (isOnline || isLocal) R.string.error_playback_failed else R.string.error_no_internet_connection,
             ),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.error,
@@ -242,7 +243,7 @@ private fun buildPlaybackErrorReport(
         appendLine("Title: ${mediaMetadata?.title ?: "Unknown"}")
         appendLine("Artists: ${mediaMetadata?.artists?.joinToString(", ") { it.name } ?: "Unknown"}")
         appendLine("ID: ${mediaMetadata?.id ?: "Unknown"}")
-        appendLine("Link: ${mediaMetadata?.id?.let { "https://music.youtube.com/watch?v=$it" } ?: "Unknown"}")
+        appendLine("Link: ${mediaMetadata?.id?.takeUnless { it.startsWith("local:") }?.let { "https://music.youtube.com/watch?v=$it" } ?: "Unknown"}")
         appendLine("Stream client: ${streamClient ?: "Not resolved"}")
         appendLine()
         appendLine("Error")

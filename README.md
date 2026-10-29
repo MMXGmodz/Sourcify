@@ -10,7 +10,7 @@ Sourcify ist ein unabhängiger Musikplayer für Android auf Basis von [Metrolist
 2. Auf Android öffnen und bei Bedarf die Installation aus dieser Quelle erlauben.
 3. Die APK über die zuletzt in diesem Projekt gelieferte Installation installieren; eine Deinstallation ist dafür nicht nötig.
 
-Android 8.0 oder neuer wird vorausgesetzt. Version **13.7.1** ist eine **Vorabversion**: Build und automatisierte Tests wurden geprüft, ein abschließender Gerätetest steht aus. Die veröffentlichte APK verwendet vorerst den FOSS-Debug-Build mit dem bisherigen Signierschlüssel.
+Android 8.0 oder neuer wird vorausgesetzt. Version **13.7.2** ist eine **Vorabversion**: Build und automatisierte Tests wurden geprüft, ein abschließender Gerätetest steht aus. Die veröffentlichte APK verwendet vorerst den FOSS-Debug-Build mit dem bisherigen Signierschlüssel.
 
 Die sichtbare App heißt **Sourcify**. Die Paketkennung der veröffentlichten APK bleibt `io.sourcify.player.uitest`, damit bestehende Installationen und ihre Daten beim Update erhalten bleiben. Andere Paketkennungen oder Signierschlüssel sind getrennte Installationen.
 
@@ -18,13 +18,17 @@ Die sichtbare App heißt **Sourcify**. Die Paketkennung der veröffentlichten AP
 
 - Suche, Bibliothek, Favoriten, Playlists, Queue, Downloads und Cache aus der vorhandenen App.
 - Lokales Umbenennen von Songs.
+- [Eigene Audiodateien importieren](docs/AUDIO.md): FLAC und PCM WAV unverändert offline abspielen, dazu MP3, AAC und Ogg/Opus nach Geräteunterstützung.
+- Audioquellen-/Qualitätsanzeige und optionale zusätzliche MusicBrainz-Credits.
+- Download-Cover unabhängig vom normalen Bildcache; Altbestand wird beim nächsten Online-Start ergänzt.
+- Canvas optional nur in ungetaktetem WLAN/LAN.
 - Player mit scrollbar angeordneten Lyrics, Künstlerinfos, Entdecken-Karten und Songcredits.
 - Canvas aus Videosuche oder Gerätespeicher mit einem Ausschnitt von bis zu acht Sekunden, Helligkeit, Zoom und eigenem Cache.
 - Canvas bleibt im oberen Player-Bereich, scrollt mit ihm weg und geht nach unten weich in Schwarz über.
 - Empfehlungen für Künstler oder Songs öffnen eine Liste zur Auswahl; der Ausgangstitel wird ausgeschlossen.
 - Coverfarben für Hintergründe und Übergänge sowie eine einklappende Playlist-Kopfleiste mit angeheftetem Play-Knopf.
 
-YouTube-Music-Daten bestimmen die verfügbaren Streams, Empfehlungen und Metadaten. Credits werden nur angezeigt, wenn die Quelle entsprechende Angaben liefert. Sourcify lädt keine offiziellen Spotify-Canvas-Dateien.
+YouTube-Music-Daten bestimmen die verfügbaren Streams, Empfehlungen und Metadaten. Zusätzliche Credits werden beim Öffnen der Songinfos vorsichtig mit MusicBrainz abgeglichen; unsichere Treffer bleiben leer. Sourcify lädt keine offiziellen Spotify-Canvas-Dateien.
 
 ## Projektstruktur
 

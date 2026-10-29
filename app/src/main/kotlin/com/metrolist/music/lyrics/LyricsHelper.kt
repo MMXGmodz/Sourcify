@@ -69,7 +69,8 @@ constructor(
 
         val result = withTimeoutOrNull(MAX_LYRICS_FETCH_MS) {
             val cleanedTitle = LyricsUtils.cleanTitleForSearch(mediaMetadata.title)
-            val enabledProviders = orderedProviders.filter { it.isEnabled(context) }
+            val enabledProviders = orderedProviders.filter { it.isEnabled(context) &&
+                (!mediaMetadata.id.startsWith("local:") || !it.name.startsWith("YouTube")) }
 
             Timber.tag("LyricsHelper").d("Starting sequential fetch for: $cleanedTitle by ${mediaMetadata.artists.joinToString { it.name }}")
             Timber.tag("LyricsHelper").d("Enabled providers in order: ${enabledProviders.joinToString { it.name }}")
@@ -141,7 +142,8 @@ constructor(
             val allProviders = context.dataStore.data
                 .map { preferences -> resolveLyricsProviders(preferences) }
                 .first()
-            val enabledProviders = allProviders.filter { it.isEnabled(context) }
+            val enabledProviders = allProviders.filter { it.isEnabled(context) &&
+                (!mediaId.startsWith("local:") || !it.name.startsWith("YouTube")) }
 
             val otherProviders = enabledProviders.filter { it.name != "LyricsPlus" }
             val lyricsPlusProvider = enabledProviders.find { it.name == "LyricsPlus" }

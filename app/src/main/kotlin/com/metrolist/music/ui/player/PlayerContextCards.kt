@@ -39,6 +39,7 @@ private val ContextCardColor = Color(0xFF282828)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerContextCards(song: MediaMetadata, onNavigate: (String) -> Unit) {
+    if (com.metrolist.music.utils.LocalAudioStore.isLocalId(song.id)) return
     val context = LocalContext.current
     val database = LocalDatabase.current
     if (LocalPlayerConnection.current == null) return
@@ -114,10 +115,25 @@ fun PlayerContextCards(song: MediaMetadata, onNavigate: (String) -> Unit) {
         confirmButton = { TextButton(onClick = { showBiography = false }) { Text(stringResource(android.R.string.ok)) } })
     if (showCredits) ModalBottomSheet(onDismissRequest = { showCredits = false },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Color(0xFF202020), contentColor = Color.White) {
-        SongCreditsContent(song, credits, followed, artistId != null && artist != null && !following, follow) {
-            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://music.youtube.com/watch?v=${Uri.encode(song.id)}"))) }
+        var creditsAttempt by remember(song.id) { mutableIntStateOf(0) }
+        val creditsKey = remember(song.title, song.artists, song.duration) {
+            MusicBrainzSongKey(song.title, song.artists.map { it.name }, song.duration)
+        }
+        val needsMoreCredits = !song.isEpisode && CreditGroup.entries.any { group -> credits.entries.none { it.group == group } }
+        val extraCredits by produceState<MusicBrainzCreditsResult?>(null, creditsKey, needsMoreCredits, creditsAttempt) {
+            value = null
+            if (needsMoreCredits) value = MusicBrainzCreditsRepository.shared.load(creditsKey, force = creditsAttempt > 0)
+        }
+        val completeCredits = remember(credits, extraCredits) { mergeMusicBrainzCredits(credits, extraCredits) }
+        fun openSource(url: String) {
+            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
                 .onFailure { Toast.makeText(context, R.string.player_context_error, Toast.LENGTH_LONG).show() }
         }
+        SongCreditsContent(song, completeCredits, followed, artistId != null && artist != null && !following, follow,
+            onSource = { openSource("https://music.youtube.com/watch?v=${Uri.encode(song.id)}") },
+            musicBrainz = extraCredits, loadingMusicBrainz = needsMoreCredits && extraCredits == null,
+            onRetryMusicBrainz = { creditsAttempt++ },
+            onMusicBrainzSource = { (extraCredits as? MusicBrainzCreditsResult.Found)?.sourceUrl?.let(::openSource) })
     }
 }
 
@@ -206,7 +222,8 @@ private fun CreditRow(name: String, role: String) {
 
 @Composable
 internal fun SongCreditsContent(song: MediaMetadata, credits: SongCredits, followed: Boolean, canFollow: Boolean,
-    onFollow: () -> Unit, onSource: () -> Unit) {
+    onFollow: () -> Unit, onSource: () -> Unit, musicBrainz: MusicBrainzCreditsResult? = null,
+    loadingMusicBrainz: Boolean = false, onRetryMusicBrainz: () -> Unit = {}, onMusicBrainzSource: () -> Unit = {}) {
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp).padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(song.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
@@ -229,6 +246,20 @@ internal fun SongCreditsContent(song: MediaMetadata, credits: SongCredits, follo
         Text(stringResource(R.string.player_credits_sources), style = MaterialTheme.typography.headlineSmall, color = Color.White, fontWeight = FontWeight.Bold)
         Text("YouTube Music", color = Color.White)
         credits.sources.forEach { Text(it, color = Color.White.copy(alpha = 0.7f)) }
+        when {
+            loadingMusicBrainz -> {
+                LinearProgressIndicator(Modifier.fillMaxWidth())
+                Text(stringResource(R.string.musicbrainz_credits_loading), color = Color.White.copy(alpha = 0.7f))
+            }
+            musicBrainz is MusicBrainzCreditsResult.Found -> {
+                TextButton(onClick = onMusicBrainzSource) { Text(stringResource(R.string.musicbrainz_credits_source)) }
+                if (musicBrainz.credits.entries.isEmpty()) Text(stringResource(R.string.musicbrainz_credits_empty), color = Color.White.copy(alpha = 0.7f))
+            }
+            musicBrainz != null -> {
+                Text(stringResource(if (musicBrainz == MusicBrainzCreditsResult.Error) R.string.musicbrainz_credits_error else R.string.musicbrainz_credits_unavailable), color = Color.White.copy(alpha = 0.7f))
+                TextButton(onClick = onRetryMusicBrainz) { Text(stringResource(R.string.musicbrainz_credits_retry)) }
+            }
+        }
         OutlinedButton(border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.45f)), onClick = onSource, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text(stringResource(R.string.player_open_source), color = Color.White) }
     }
 }

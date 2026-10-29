@@ -82,7 +82,7 @@ data class SongEntity(
             likedDate = if (!liked) LocalDateTime.now() else null,
             inLibrary = if (!liked) inLibrary ?: LocalDateTime.now() else inLibrary,
         ).also {
-            if (syncToYouTube) {
+            if (syncToYouTube && !isLocal && !id.startsWith("local:")) {
                 CoroutineScope(Dispatchers.IO).launch {
                     YouTube.likeVideo(id, !liked)
                 }
@@ -95,7 +95,7 @@ data class SongEntity(
             inLibrary = if (inLibrary == null) LocalDateTime.now() else null,
             likedDate = if (inLibrary == null) likedDate else null,
         ).also {
-            if (syncToYouTube) {
+            if (syncToYouTube && !isLocal && !id.startsWith("local:")) {
                 CoroutineScope(Dispatchers.IO).launch {
                     // Use the new reliable method that fetches fresh tokens
                     val addToLibrary = inLibrary == null

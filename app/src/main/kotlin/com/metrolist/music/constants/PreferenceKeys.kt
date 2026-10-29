@@ -435,6 +435,7 @@ val HistoryDuration = floatPreferencesKey("historyDuration")
 
 val PlayerButtonsStyleKey = stringPreferencesKey("player_buttons_style")
 val PlayerBackgroundStyleKey = stringPreferencesKey("playerBackgroundStyle")
+val CanvasWifiOnlyKey = booleanPreferencesKey("sourcifyCanvasWifiOnly")
 val CanvasEnabledKey = booleanPreferencesKey("sourcifyCanvasEnabled")
 val AutomaticCanvasKey = booleanPreferencesKey("sourcifyAutomaticCanvas")
 val CanvasZoomKey = floatPreferencesKey("sourcifyCanvasZoom")

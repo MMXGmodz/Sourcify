@@ -279,6 +279,10 @@ fun NavGraphBuilder.navigationBuilder(
         OnlinePodcastScreen(navController, scrollBehavior)
     }
 
+    composable("local_audio") {
+        com.metrolist.music.ui.screens.library.LocalAudioScreen(navController)
+    }
+
     composable(
         route = "local_playlist/{playlistId}",
         arguments =

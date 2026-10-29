@@ -4,11 +4,12 @@ Stand: 29. Oktober 2026.
 
 | Bereich | Status dieses Quellcodes |
 | --- | --- |
-| Android TV | Separate Vorschau mit eigenem Launcher und Remote-UI; 232 TV-Tests bestanden, TV-Hardwaretest offen |
+| Android TV | Separate Vorschau mit eigenem Launcher und Remote-UI; gemeinsamer Audiocode automatisiert geprüft, TV-Hardwaretest offen |
 | Android-App | Build und automatisierte Tests vorhanden; Gerätetest der aktuellen Änderungen ausstehend |
 | Canvas / Player / Lyrics | Implementiert; aktuelle Android-Änderungen im Changelog |
-| Künstlerinfos / Empfehlungen / Credits | Implementiert; abhängig von verfügbaren YouTube-Music-Daten |
-| Android-Downloads und Cache | Vorhandene Implementierung weiterverwendet |
+| Künstlerinfos / Empfehlungen / Credits | YouTube-Music-Daten plus konservativer MusicBrainz-Fallback für Credits |
+| Android-Downloads und Cache | Dauerhafte Offline-Cover und Erhalt gespeicherter Downloads beim Qualitätswechsel |
+| Lokale Audiodateien / Lossless | Handy-Import und gemeinsame Wiedergabe von FLAC/PCM-WAV-Originalen; kein Lossless-Streaming von YouTube |
 | Google-basierter Sourcify-Cloud-Account | In diesem Snapshot kein betriebenes gemeinsames Backend enthalten |
 | Geräteübergreifender Sourcify-Cloud-Sync | Nicht als fertig ausgewiesen |
 | Windows | Experimenteller 1.2.0-Stand wiedergefunden und separat veröffentlicht; 47 Node-Tests erneut bestanden, kein neuer Windows-Hardwaretest |

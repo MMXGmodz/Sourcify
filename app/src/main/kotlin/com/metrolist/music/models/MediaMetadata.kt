@@ -63,6 +63,7 @@ data class MediaMetadata(
             inLibrary = inLibrary,
             libraryAddToken = libraryAddToken,
             libraryRemoveToken = libraryRemoveToken,
+            isLocal = id.startsWith("local:"),
             isVideo = isVideoSong,
             isEpisode = isEpisode,
             uploadEntityId = uploadEntityId

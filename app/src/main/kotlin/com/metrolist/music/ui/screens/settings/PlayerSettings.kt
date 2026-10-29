@@ -297,7 +297,7 @@ fun PlayerSettings(
                                 AudioQuality.AUTO -> stringResource(R.string.audio_quality_auto)
                                 AudioQuality.HIGH -> stringResource(R.string.audio_quality_high)
                                 AudioQuality.LOW -> stringResource(R.string.audio_quality_low)
-                            }
+                            } + "\n" + stringResource(R.string.audio_source_online_note)
                         )
                     },
                     onClick = { showAudioQualityDialog = true }

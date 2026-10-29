@@ -7,6 +7,8 @@ package com.metrolist.music.playback
 
 import android.content.Context
 import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import androidx.media3.database.DatabaseProvider
@@ -20,9 +22,6 @@ import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadNotificationHelper
 import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
-import coil3.imageLoader
-import coil3.request.CachePolicy
-import coil3.request.ImageRequest
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertubex.extraction.ContentHints
@@ -38,6 +37,7 @@ import com.metrolist.music.di.PlayerCache
 import com.metrolist.music.models.MediaMetadata
 import com.metrolist.music.models.toMediaMetadata
 import com.metrolist.music.utils.InnerTubeXPlayer
+import com.metrolist.music.utils.DownloadArtworkStore
 import com.metrolist.music.utils.enumPreference
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -46,6 +46,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -59,6 +62,7 @@ import timber.log.Timber
 import java.io.IOException
 import java.time.LocalDateTime
 import java.util.concurrent.Executor
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -90,6 +94,28 @@ constructor(
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val downloadPreparations = Semaphore(3)
+    private val artworkStore = DownloadArtworkStore.getInstance(context.filesDir)
+    private val artworkRequests = Semaphore(2)
+    private val artworkRepairs = Channel<Unit>(Channel.CONFLATED)
+    private val artworkHttpClient = streamHttpClient.newBuilder()
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .callTimeout(20, TimeUnit.SECONDS)
+        .build()
+    private val artworkNetworkCallback = object : ConnectivityManager.NetworkCallback() {
+        private var wasValidated = false
+
+        override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
+            val validated = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+            if (validated && !wasValidated) artworkRepairs.trySend(Unit)
+            wasValidated = validated
+        }
+
+        override fun onLost(network: Network) {
+            wasValidated = false
+        }
+    }
+    private var artworkNetworkCallbackRegistered = false
 
     val downloads = MutableStateFlow<Map<String, Download>>(emptyMap())
 
@@ -258,6 +284,7 @@ constructor(
                                 Download.STATE_COMPLETED -> {
                                     removeFromPlayerCache(download.request.id)
                                     database.updateDownloadedInfo(download.request.id, true, LocalDateTime.now())
+                                    artworkRepairs.trySend(Unit)
                                 }
                                 Download.STATE_FAILED,
                                 Download.STATE_STOPPED,
@@ -276,6 +303,10 @@ constructor(
                     ) {
                         val downloadId = download.request.id
                         songUrlCache.invalidate(downloadId)
+                        scope.launch {
+                            runCatching { artworkStore.remove(downloadId) }
+                                .onFailure { Timber.tag(TAG).w("Could not remove download artwork") }
+                        }
 
                         runCatching {
                             database.updateDownloadedInfo(downloadId, false, null)
@@ -303,10 +334,29 @@ constructor(
         }
         downloads.value = result
         scope.launch {
+            runCatching { artworkStore.retainOnly(result.keys) }
+                .onFailure { Timber.tag(TAG).w("Could not clean download artwork") }
             result.values
                 .filter { it.state == Download.STATE_COMPLETED }
                 .forEach { removeFromPlayerCache(it.request.id) }
+            artworkRepairs.trySend(Unit)
+            for (ignored in artworkRepairs) {
+                for (download in downloads.value.values.filter { it.state == Download.STATE_COMPLETED }) {
+                    currentCoroutineContext().ensureActive()
+                    if (!hasArtworkNetwork()) break
+                    val songId = download.request.id
+                    runCatching {
+                        database.getSongByIdBlocking(songId)?.let { song ->
+                            storeDownloadArtwork(songId, downloadArtworkUrls(song.thumbnailUrl, song.album?.thumbnailUrl))
+                        }
+                    }.onFailure { Timber.tag(TAG).w("Could not repair downloaded artwork") }
+                }
+            }
         }
+        runCatching {
+            connectivityManager.registerDefaultNetworkCallback(artworkNetworkCallback)
+            artworkNetworkCallbackRegistered = true
+        }.onFailure { Timber.tag(TAG).w("Could not watch connectivity for download artwork") }
     }
 
     fun getDownload(songId: String): Flow<Download?> = downloads.map { it[songId] }
@@ -316,9 +366,13 @@ constructor(
     fun download(song: SongItem) = download(song.toMediaMetadata())
 
     fun download(mediaMetadata: MediaMetadata) {
+        if (mediaMetadata.id.startsWith("local:")) return
         scope.launch {
             downloadPreparations.withPermit {
-                if (!shouldPrepareDownload(downloads.value[mediaMetadata.id]?.state)) return@withPermit
+                if (!shouldPrepareDownload(downloads.value[mediaMetadata.id]?.state)) {
+                    artworkRepairs.trySend(Unit)
+                    return@withPermit
+                }
 
                 mediaMetadata.album?.let { album ->
                     if (database.albumEntity(album.id) == null) {
@@ -364,24 +418,15 @@ constructor(
                 )
 
                 val albumArtwork = database.getSongByIdBlocking(mediaMetadata.id)?.album?.thumbnailUrl
-                downloadArtworkUrls(mediaMetadata.thumbnailUrl, albumArtwork).forEach { artworkUrl ->
-                    runCatching {
-                        context.imageLoader.execute(
-                            ImageRequest
-                                .Builder(context)
-                                .data(artworkUrl)
-                                .memoryCachePolicy(CachePolicy.DISABLED)
-                                .diskCachePolicy(CachePolicy.ENABLED)
-                                .networkCachePolicy(CachePolicy.ENABLED)
-                                .build(),
-                        )
-                    }
-                }
+                runCatching {
+                    storeDownloadArtwork(mediaMetadata.id, downloadArtworkUrls(mediaMetadata.thumbnailUrl, albumArtwork))
+                }.onFailure { Timber.tag(TAG).w("Could not save download artwork; will retry when online") }
             }
         }
     }
 
     fun download(songId: String) {
+        if (songId.startsWith("local:")) return
         scope.launch {
             database.getSongByIdBlocking(songId)?.let { song ->
                 download(song)
@@ -390,7 +435,40 @@ constructor(
     }
 
     fun release() {
+        if (artworkNetworkCallbackRegistered) {
+            runCatching { connectivityManager.unregisterNetworkCallback(artworkNetworkCallback) }
+            artworkNetworkCallbackRegistered = false
+        }
+        artworkRepairs.close()
         scope.cancel()
+    }
+
+    private fun hasArtworkNetwork(): Boolean = connectivityManager
+        .getNetworkCapabilities(connectivityManager.activeNetwork)
+        ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
+
+    private suspend fun storeDownloadArtwork(songId: String, urls: List<String>) {
+        artworkStore.retain(songId, urls)
+        for (url in urls) {
+            currentCoroutineContext().ensureActive()
+            if (artworkStore.fileFor(url) != null || !hasArtworkNetwork()) continue
+            artworkRequests.withPermit {
+                if (artworkStore.fileFor(url) != null) return@withPermit
+                runCatching {
+                    val request = okhttp3.Request.Builder().url(url).get().build()
+                    artworkHttpClient.newCall(request).execute().use { response ->
+                        if (response.isSuccessful) {
+                            response.body?.let { body ->
+                                artworkStore.save(url, body.contentType()?.toString(), body.contentLength(), body.byteStream())
+                            }
+                        }
+                    }
+                }.onFailure { Timber.tag(TAG).w("Could not fetch downloaded artwork") }
+            }
+        }
+        if (downloads.value[songId]?.state == Download.STATE_REMOVING ||
+            downloadManager.downloadIndex.getDownload(songId) == null
+        ) artworkStore.remove(songId)
     }
 
     private fun removeFromPlayerCache(songId: String) {

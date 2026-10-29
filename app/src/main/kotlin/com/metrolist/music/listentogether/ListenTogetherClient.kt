@@ -1772,6 +1772,7 @@ class ListenTogetherClient
             queueTitle: String? = null,
             volume: Float? = null,
         ) {
+            if (trackId?.startsWith("local:") == true || trackInfo?.id?.startsWith("local:") == true) return
             if (_role.value != RoomRole.HOST) {
                 log(LogLevel.ERROR, "Cannot control playback", "Not host")
                 return
@@ -1784,7 +1785,7 @@ class ListenTogetherClient
                     position,
                     trackInfo,
                     insertNext,
-                    queue,
+                    queue?.filterNot { it.id.startsWith("local:") },
                     queueTitle,
                     volume,
                     capturedAtServerTime =
@@ -1800,6 +1801,7 @@ class ListenTogetherClient
          * Signal that buffering is complete for the current track
          */
         fun sendBufferReady(trackId: String) {
+            if (trackId.startsWith("local:")) return
             val sanitizedTrackId = trackId.trim()
             if (sanitizedTrackId.isEmpty()) {
                 log(LogLevel.WARNING, "Skipping buffer ready", "Track ID is blank")
@@ -1812,6 +1814,7 @@ class ListenTogetherClient
          * Suggest a track to the host (guest only)
          */
         fun suggestTrack(trackInfo: TrackInfo) {
+            if (trackInfo.id.startsWith("local:")) return
             if (!isInRoom) {
                 log(LogLevel.ERROR, "Cannot suggest track", "Not in room")
                 return
