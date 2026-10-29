@@ -17,6 +17,13 @@ class ReleasePackagingTest(unittest.TestCase):
         release.validate_tag('v13.7.1-preview.1', '13.7.1')
         release.validate_tag('v13.7.1', '13.7.1')
 
+    def test_tv_tags_cannot_be_confused_with_phone_releases(self):
+        release.validate_tag('android-tv-v13.7.1-preview.1', '13.7.1', tv=True)
+        with self.assertRaises(ValueError):
+            release.validate_tag('v13.7.1-preview.1', '13.7.1', tv=True)
+        with self.assertRaises(ValueError):
+            release.validate_tag('android-tv-v13.7.1-preview.1', '13.7.1')
+
     def test_source_package_keeps_wrapper_but_excludes_signing_keys_env_and_build_outputs(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

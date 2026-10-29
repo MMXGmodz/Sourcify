@@ -4,6 +4,7 @@ Stand: 29. Oktober 2026.
 
 | Bereich | Status dieses Quellcodes |
 | --- | --- |
+| Android TV | Separate Vorschau mit eigenem Launcher und Remote-UI; 232 TV-Tests bestanden, TV-Hardwaretest offen |
 | Android-App | Build und automatisierte Tests vorhanden; Gerätetest der aktuellen Änderungen ausstehend |
 | Canvas / Player / Lyrics | Implementiert; aktuelle Android-Änderungen im Changelog |
 | Künstlerinfos / Empfehlungen / Credits | Implementiert; abhängig von verfügbaren YouTube-Music-Daten |

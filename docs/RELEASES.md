@@ -24,3 +24,15 @@
 Der Workflow testet, baut mit der veröffentlichten Paketkennung, prüft die Signatur und erstellt zunächst einen Draft. Nach vollständigem Asset-Upload wird der Release als Vorabversion veröffentlicht. Der eingegebene Tag muss zur Android-Version passen, etwa `v13.7.1-preview.1`. Ein vorhandener Release wird nicht überschrieben.
 
 Ein stabiler Release setzt einen echten Gerätetest voraus. Ein späterer Wechsel auf optimierte Release-Builds muss dieselbe Paketkennung und Signatur verwenden.
+
+## Android-TV-Vorschau
+
+Tag: `android-tv-v13.7.1-preview.1`, APK: `Sourcify-TV.apk`, Paket: `io.sourcify.player.tv`.
+Build/Test: `:app:assembleTvDebug :app:testTvDebugUnitTest`.
+Paketierung nach erfolgreichem Build und vollständigen Tests:
+
+```bash
+python3 scripts/package-release.py --tv --tag android-tv-v13.7.1-preview.1 --output release-files
+```
+
+TV und Handy besitzen unterschiedliche Tag-Präfixe; das Release-Werkzeug prüft Flavor, Paketkennung, TV-Launcher und Signatur. TV-CI-Builds verwenden die getrennte Kennung `io.sourcify.player.ci.tv` und werden nicht als signierte Release-APKs veröffentlicht. Der private Schlüssel bleibt außerhalb des Repositories.

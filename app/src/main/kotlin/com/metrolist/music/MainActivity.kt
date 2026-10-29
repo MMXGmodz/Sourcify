@@ -728,6 +728,17 @@ class MainActivity : FragmentActivity() {
                 val bottomInset = with(density) { windowsInsets.getBottom(density).toDp() }
                 val bottomInsetDp = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
 
+                if (BuildConfig.TV_INTERFACE) {
+                    CompositionLocalProvider(
+                        LocalDatabase provides database,
+                        LocalPlayerConnection provides playerConnection,
+                        LocalDownloadUtil provides downloadUtil,
+                        com.metrolist.music.ui.theme.LocalSongColor provides backdropColor,
+                        LocalContentColor provides Color.White,
+                    ) { com.metrolist.music.ui.tv.TvApp() }
+                    return@BoxWithConstraints
+                }
+
                 val navController = rememberNavController()
 
                 LaunchedEffect(Unit) {

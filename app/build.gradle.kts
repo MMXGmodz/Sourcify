@@ -46,6 +46,7 @@ android {
         applicationId = applicationIdOverride ?: baseApplicationId
         minSdk = 26
         targetSdk = 36
+        buildConfigField("Boolean", "TV_INTERFACE", "false")
         versionCode = 154
         versionName = "13.7.1"
         val baseVersionName = requireNotNull(versionName)
@@ -80,6 +81,15 @@ android {
             buildConfigField("Boolean", "UPDATER_AVAILABLE", "false")
         }
 
+        create("tv") {
+            dimension = "variant"
+            applicationIdSuffix = ".tv"
+            resValue("string", "app_name", "Sourcify TV")
+            buildConfigField("Boolean", "TV_INTERFACE", "true")
+            buildConfigField("Boolean", "CAST_AVAILABLE", "false")
+            buildConfigField("Boolean", "UPDATER_AVAILABLE", "false")
+        }
+
         // GMS - Updater and gcast
         create("gms") {
             dimension = "variant"
@@ -94,6 +104,8 @@ android {
             buildConfigField("Boolean", "UPDATER_AVAILABLE", "false")
         }
     }
+
+    sourceSets.getByName("tv").kotlin.srcDir("src/foss/kotlin")
 
     signingConfigs {
         create("persistentDebug") {
@@ -135,9 +147,6 @@ android {
         }
         debug {
             isDebuggable = true
-            if (appNameOverride == null) {
-                resValue("string", "app_name", "Sourcify")
-            }
             signingConfig =
                 if (workflowDebugKeystoreFile != null) {
                     signingConfigs.getByName("workflowDebug")

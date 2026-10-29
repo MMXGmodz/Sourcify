@@ -25,9 +25,10 @@ def version():
     return name, code
 
 
-def validate_tag(tag, name):
-    if not re.fullmatch(r'v' + re.escape(name) + r'(?:-preview\.[1-9]\d*)?', tag):
-        raise ValueError(f'Tag must match v{name} or v{name}-preview.N')
+def validate_tag(tag, name, tv=False):
+    prefix = "android-tv-v" if tv else "v"
+    if not re.fullmatch(re.escape(prefix) + re.escape(name) + r'(?:-preview\.[1-9]\d*)?', tag):
+        raise ValueError(f'Tag must match {prefix}{name} or {prefix}{name}-preview.N')
 
 
 def source_files():
@@ -49,29 +50,36 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--validate-tag')
     parser.add_argument('--tag')
-    parser.add_argument('--apk', type=Path, default=ROOT / 'app/build/outputs/apk/foss/debug/app-foss-debug.apk')
+    parser.add_argument('--tv', action='store_true', help='Package the separate Android TV flavor')
+    parser.add_argument('--apk', type=Path)
     parser.add_argument('--output', type=Path, default=ROOT / 'release-files')
     args = parser.parse_args()
     name, code = version()
     tag = args.validate_tag or args.tag
     if not tag:
         parser.error('--tag or --validate-tag is required')
-    validate_tag(tag, name)
+    validate_tag(tag, name, tv=args.tv)
     if args.validate_tag:
         print(f'Valid release tag: {tag}')
         return
 
+    variant = 'tv' if args.tv else 'foss'
+    application_id = 'io.sourcify.player.tv' if args.tv else 'io.sourcify.player.uitest'
+    label = 'Sourcify TV' if args.tv else 'Sourcify'
+    input_apk = args.apk or ROOT / f'app/build/outputs/apk/{variant}/debug/app-{variant}-debug.apk'
     sdk = Path(os.environ.get('ANDROID_HOME') or os.environ['ANDROID_SDK_ROOT'])
     build_tools = sdk / 'build-tools/37.0.0'
-    cert = subprocess.check_output([str(build_tools / 'apksigner'), 'verify', '--print-certs', str(args.apk)], text=True)
+    cert = subprocess.check_output([str(build_tools / 'apksigner'), 'verify', '--print-certs', str(input_apk)], text=True)
     if EXPECTED_SIGNER not in cert:
         raise ValueError('APK signer does not match the existing Sourcify installation')
-    badging = subprocess.check_output([str(build_tools / 'aapt'), 'dump', 'badging', str(args.apk)], text=True)
-    for expected in ["name='io.sourcify.player.uitest'", f"versionCode='{code}'", f"versionName='{name}'", "application-label:'Sourcify'"]:
+    badging = subprocess.check_output([str(build_tools / 'aapt'), 'dump', 'badging', str(input_apk)], text=True)
+    for expected in [f"name='{application_id}'", f"versionCode='{code}'", f"versionName='{name}'", f"application-label:'{label}'"]:
         if expected not in badging:
             raise ValueError(f'APK metadata mismatch: {expected}')
 
-    suites = [ET.parse(path).getroot().attrib for path in sorted((ROOT / 'app/build/test-results/testFossDebugUnitTest').glob('TEST-*.xml'))]
+    if args.tv and ("leanback-launchable-activity:" not in badging or "uses-feature: name='android.software.leanback'" not in badging):
+        raise ValueError('APK is missing the Android TV launcher or required leanback feature')
+    suites = [ET.parse(path).getroot().attrib for path in sorted((ROOT / ('app/build/test-results/testTvDebugUnitTest' if args.tv else 'app/build/test-results/testFossDebugUnitTest')).glob('TEST-*.xml'))]
     if not suites or any(int(s.get('failures', 0)) or int(s.get('errors', 0)) for s in suites):
         raise ValueError('A complete successful test result is required')
     count = sum(int(s['tests']) for s in suites)
@@ -80,9 +88,9 @@ def main():
 
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
-    apk = output / 'Sourcify.apk'
-    shutil.copy2(args.apk, apk)
-    archive = output / f'Sourcify-{name}-source.zip'
+    apk = output / ('Sourcify-TV.apk' if args.tv else 'Sourcify.apk')
+    shutil.copy2(input_apk, apk)
+    archive = output / (f'Sourcify-TV-{name}-source.zip' if args.tv else f'Sourcify-{name}-source.zip')
     with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as z:
         for path, relative in source_files():
             if output == path.parent or output in path.parents:
@@ -94,13 +102,13 @@ def main():
 
     report = {
         'version_name': name, 'version_code': code, 'tag': tag,
-        'application_id': 'io.sourcify.player.uitest', 'application_label': 'Sourcify',
-        'variant': 'fossDebug', 'prerelease': True, 'hardware_tested': False,
+        'application_id': application_id, 'application_label': label,
+        'variant': variant + 'Debug', 'platform': 'Android TV' if args.tv else 'Android', 'prerelease': True, 'hardware_tested': False,
         'certificate_sha256': EXPECTED_SIGNER, 'test_count': count,
         'tests': [{k: s[k] for k in ('name', 'tests', 'failures', 'errors', 'skipped')} for s in suites],
         'files': {p.name: {'bytes': p.stat().st_size, 'sha256': digest(p)} for p in (apk, archive)},
-        'commands': [':app:assembleFossDebug', ':app:testFossDebugUnitTest'],
-        'limitations': ['No physical Android device test.', 'FOSS debug build with the existing update-compatible signer.', 'YouTube Music availability determines streams and recommendations.'],
+        'commands': [':app:assembleTvDebug', ':app:testTvDebugUnitTest'] if args.tv else [':app:assembleFossDebug', ':app:testFossDebugUnitTest'],
+        'limitations': ['No physical Android TV device test.' if args.tv else 'No physical Android device test.', 'FOSS debug build with the existing update-compatible signer.', 'YouTube Music availability determines streams and recommendations.'],
     }
     report_path = output / 'build-report.json'
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')

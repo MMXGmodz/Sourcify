@@ -1,0 +1,42 @@
+name: Android TV
+on:
+  push:
+    branches: [main]
+    paths: ['app/**', 'gradle/**', '*.gradle.kts', 'gradle.properties', '.github/workflows/android-tv.yml']
+  pull_request:
+    paths: ['app/**', 'gradle/**', '*.gradle.kts', 'gradle.properties', '.github/workflows/android-tv.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: android-tv-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  tv-build-and-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      METROLIST_APPLICATION_ID: io.sourcify.player.ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install Android SDK
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;37.0.0" "build-tools;36.0.0"'
+      - name: Build and test TV flavor
+        run: ./gradlew --no-configuration-cache --max-workers=1 '-Dorg.gradle.jvmargs=-Xmx2048m -XX:+UseParallelGC -Dkotlin.daemon.jvm.options=-Xmx2048m' :app:assembleTvDebug :app:testTvDebugUnitTest
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-TV-test-reports
+          path: |
+            app/build/reports/tests/testTvDebugUnitTest/
+            app/build/test-results/testTvDebugUnitTest/
+            app/build/ui-previews/
+          if-no-files-found: warn

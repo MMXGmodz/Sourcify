@@ -50,6 +50,12 @@ chmod +x gradlew
 
 Der lokale Standard-Build verwendet `io.sourcify.player`. Für ein Update der veröffentlichten APK müssen die Paketkennung und der private Signierschlüssel übereinstimmen. Details stehen in [docs/ANDROID.md](docs/ANDROID.md).
 
+## Android TV / Google TV
+
+[TV-APK herunterladen](https://github.com/MMXGmodz/Sourcify/releases/tag/android-tv-v13.7.1-preview.1) · [TV-Anleitung und Grenzen](docs/ANDROID-TV.md)
+
+Eine separate Vorschau mit Fernbedienungssteuerung, sichtbarem Fokus und gemeinsamem Android-Audio-/Datenbank-Code. Die TV-Oberfläche ist noch kein vollständiger Ersatz aller Handy-Dialoge. Echte TV-Hardwaretests stehen aus.
+
 ## Experimentelle Windows-Version
 
 [Windows 1.2.0 herunterladen](https://github.com/MMXGmodz/Sourcify/releases/tag/windows-v1.2.0-experimental.3) · [Anleitung und Grenzen](docs/WINDOWS.md)
