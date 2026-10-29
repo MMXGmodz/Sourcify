@@ -1,0 +1,23 @@
+name: Publish Sourcify TV audio preview
+on:
+  push:
+    branches: [release-assets/android-tv-v13.7.2]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify signed TV APK and source checksums
+        working-directory: release-assets
+        run: sha256sum -c SHA256SUMS
+      - name: Publish TV APK and matching source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload android-tv-v13.7.2-preview.1 --repo "$GITHUB_REPOSITORY" release-assets/*
+          gh release edit android-tv-v13.7.2-preview.1 --repo "$GITHUB_REPOSITORY" --draft=false --prerelease
