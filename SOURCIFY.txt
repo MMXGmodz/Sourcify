@@ -1,0 +1,13 @@
+Sourcify 13.7.1 — Android player update, 2026-10-29.
+
+Build, installation and current feature status are documented in README.md,
+docs/ANDROID.md, docs/PROJECT_STATUS.md and docs/RELEASES.md.
+
+Based on the approved Android UI source derived from Metrolist.
+Upstream snapshot: f758c86de9278481bcead7b0120786ca46398251.
+GPL-3.0 and original copyright notices are retained; see LICENSE and NOTICE.
+
+Visible application name: Sourcify.
+Published APK package: io.sourcify.player.uitest (kept for update compatibility).
+Default source build package: io.sourcify.player.
+This snapshot does not establish Windows, PS5 or shared Sourcify-cloud support.

@@ -1,0 +1,10 @@
+Sourcify — independent Android customization of Metrolist.
+Upstream: https://github.com/MetrolistGroup/Metrolist
+Original source snapshot: f758c86de9278481bcead7b0120786ca46398251
+License: GNU General Public License version 3; see LICENSE.
+Original copyright notices and contributor acknowledgments remain in source.
+
+Sourcify-specific player, Canvas, theming and discovery changes: 2026.
+Lato font: app/src/main/res/font/lato_bold.ttf
+Lato license: app/src/main/assets/lato-OFL.txt (SIL Open Font License 1.1).
+Other dependencies retain their respective licenses.

@@ -1,0 +1,58 @@
+name: Android
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      METROLIST_APPLICATION_ID: io.sourcify.player.ci
+      METROLIST_APP_NAME: Sourcify
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+      - name: Install SDK
+        run: sdkmanager 'platforms;android-37' 'build-tools;37.0.0' 'build-tools;36.0.0'
+      - name: Test release tooling
+        run: python3 -m unittest discover -s scripts/tests -v
+      - name: Build and test
+        run: ./gradlew --no-configuration-cache --max-workers=2 :app:assembleFossDebug :app:testFossDebugUnitTest
+      - name: Collect APK
+        run: cp app/build/outputs/apk/foss/debug/app-foss-debug.apk Sourcify-CI.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Sourcify-CI
+          path: Sourcify-CI.apk
+          if-no-files-found: error
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-test-reports
+          path: |
+            app/build/reports/tests/
+            app/build/test-results/
+            app/build/ui-previews/
+          if-no-files-found: warn

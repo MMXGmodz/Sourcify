@@ -1,0 +1,33 @@
+name: Fehler melden
+description: Einen Fehler in Sourcify beschreiben.
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Sourcify-Version
+      placeholder: 13.7.1 / v13.7.1-preview.1
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Gerät und Android-Version
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zum Reproduzieren
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Erwartetes und tatsächliches Verhalten
+    validations:
+      required: true
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshots oder bereinigte Logs
+      description: Keine Passwörter, Cookies oder Tokens anhängen.

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/sourcify_background" />
+    <foreground android:drawable="@drawable/sourcify_mark" />
+    <monochrome android:drawable="@drawable/sourcify_mark" />
+</adaptive-icon>
