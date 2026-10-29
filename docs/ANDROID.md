@@ -3,7 +3,7 @@
 ## Voraussetzungen
 
 - JDK 21.
-- Android SDK mit `platform-tools`, `platforms;android-37`, `build-tools;37.0.0` und `build-tools;36.0.0`.
+- Android SDK mit `platform-tools`, `platforms;android-37.0`, `build-tools;37.0.0` und `build-tools;36.0.0`.
 - Internetzugang für Gradle-, Maven- und JitPack-Abhängigkeiten.
 - `ANDROID_HOME` oder eine lokale, nicht versionierte `local.properties` mit dem SDK-Pfad.
 
