@@ -1,0 +1,4 @@
+'use strict';
+for(const b of document.querySelectorAll('[data-action]'))b.addEventListener('click',()=>window.sourcifyMini.command(b.dataset.action));
+window.sourcifyMini.onState(s=>{const t=s.track;document.getElementById('title').textContent=t?.title||'Sourcify Player';document.getElementById('artist').textContent=t?.artist||'Keine Wiedergabe';document.getElementById('cover').src=t?.thumbnail||'../../../assets/mark.svg';const n=Math.floor(s.position||0);document.getElementById('position').textContent=`${Math.floor(n/60)}:${String(n%60).padStart(2,'0')}`;document.getElementById('play').textContent=s.paused?'▶':'❚❚';document.getElementById('play').setAttribute('aria-label',s.paused?'Abspielen':'Pausieren');});
+document.getElementById('cover').addEventListener('error',e=>{if(!e.target.src.endsWith('mark.svg'))e.target.src='../../../assets/mark.svg';});

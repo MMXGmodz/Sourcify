@@ -1,0 +1,33 @@
+Sourcify Player for Windows 1.1.0
+Own desktop implementation: GPL-3.0-only (LICENSE).
+Credits: MMXG (concept and direction), Vibecoded (development).
+
+Electron 44.5.1: MIT, https://github.com/electron/electron/tree/v44.5.1
+The distribution includes Electron's LICENSE and Chromium's LICENSES.chromium.html.
+These contain the notices for Chromium, Node.js and their bundled dependencies.
+
+yt-dlp 2026.08.19 source: Unlicense (yt-dlp-LICENSE.txt).
+The official PyInstaller Windows executable is fetched on first online use; it
+bundles additional components and is
+licensed as a combined work under GPL-3.0-or-later, according to upstream:
+https://github.com/yt-dlp/yt-dlp/tree/2026.08.19#license
+Pinned download URL: https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp.exe
+SHA256: 66674953fe251b89f4d08c5f0e35e0728679bd67ab3d7d05c0562af101dd3e7a
+Source release is included in the source package: vendor/yt-dlp.tar.gz.
+Upstream source and Windows build configuration:
+https://github.com/yt-dlp/yt-dlp/tree/2026.08.19
+Original dependency notices, extracted unchanged from the verified executable,
+are included in engine-NOTICES.txt. Source package also includes mutagen 1.47.0,
+certifi 2026.07.22, curl_cffi 0.16.0 and yt-dlp-ejs 0.8.0 source distributions.
+Upstream build scripts for remaining bundled components are available via the
+source references in that file and the curl_cffi distribution.
+The GPLv3 license text is also shipped as LICENSE-Sourcify.txt.
+
+Design lineage: the Sourcify Android app is based on Metrolist (GPL-3.0),
+https://github.com/MetrolistGroup/Metrolist
+This Windows program is implemented separately in Electron/JavaScript.
+No upstream branding or creator promotion is shown in the normal player UI.
+
+NSIS installer compiler: zlib/libpng license and component licenses.
+https://nsis.sourceforge.io/License
+Build-only npm dependencies and their licenses are recorded in package-lock.json.

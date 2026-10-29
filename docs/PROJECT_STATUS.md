@@ -10,7 +10,7 @@ Stand: 29. Oktober 2026.
 | Android-Downloads und Cache | Vorhandene Implementierung weiterverwendet |
 | Google-basierter Sourcify-Cloud-Account | In diesem Snapshot kein betriebenes gemeinsames Backend enthalten |
 | Geräteübergreifender Sourcify-Cloud-Sync | Nicht als fertig ausgewiesen |
-| Windows | In diesem Arbeitsstand kein entsprechender Quellcode oder geprüfter Build vorhanden |
+| Windows | Experimenteller 1.2.0-Stand wiedergefunden und separat veröffentlicht; 47 Node-Tests erneut bestanden, kein neuer Windows-Hardwaretest |
 | PS5 / etaHEN / ShadowMount | In diesem Arbeitsstand kein entsprechender Quellcode oder geprüfter Build vorhanden |
 | PS5-Hintergrundwiedergabe im Spiel | Nicht implementiert oder auf Hardware bestätigt in diesem Snapshot |
 

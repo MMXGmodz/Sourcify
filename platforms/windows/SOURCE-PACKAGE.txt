@@ -1,0 +1,5 @@
+Windows-relevant portion imported from Sourcify-Windows-1.2.0-Source.zip.
+The complete original archive, including historical native PS5 sources and notices, is attached to the Windows experimental release.
+This directory contains Windows source, tests, docs, lockfile and engine resources.
+No generated dist/node_modules, credentials or account sessions.
+Run npm ci, npm test, npm run build:win.

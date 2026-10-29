@@ -1,0 +1,47 @@
+GEÄNDERT
+scripts/installer.nsi
+README.txt
+package-lock.json
+package.json
+scripts/verify-package.cjs
+src/app.js
+src/core.cjs
+src/index.html
+src/main.cjs
+src/music-api.cjs
+src/preload.cjs
+test/electron.py
+test/renderer.py
+
+NEU
+assets/media-next.png
+assets/media-pause.png
+assets/media-play.png
+assets/media-previous.png
+docs/CLOUD-CONTRACT.md
+docs/WINDOWS-CHANGED-FILES.txt
+docs/WINDOWS-REPORT.md
+docs/WINDOWS-VALIDATION.json
+src/canvas-editor.js
+src/canvas.cjs
+src/core/account/api.cjs
+src/core/account/manager.cjs
+src/core/auth/google.cjs
+src/core/cache/images.cjs
+src/core/sync/manager.cjs
+src/enhancements.css
+src/enhancements.js
+src/platform/windows/auth/credentials.cjs
+src/platform/windows/integration.cjs
+src/platform/windows/mini-preload.cjs
+src/platform/windows/mini.css
+src/platform/windows/mini.html
+src/platform/windows/mini.js
+test/auth-sync.test.cjs
+test/canvas-cache.test.cjs
+test/canvas-renderer.py
+test/windows-enhancements.py
+
+Backend: keine Code-Änderungen, nur gemeinsamer Adaptervertrag.
+Android: keine Änderungen. Native PS5 C/C++: keine Änderungen.
+Neue npm-/native Runtime-Dependencies: keine.

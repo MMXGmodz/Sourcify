@@ -31,6 +31,7 @@ YouTube-Music-Daten bestimmen die verfügbaren Streams, Empfehlungen und Metadat
 ```text
 app/                 Android-App, UI, Player, Datenbank und Tests
 innertube/           Anbindung an die vorhandene InnerTubeX-Bibliothek
+platforms/windows/   Experimenteller Windows-Client 1.2.0
 gradle/              Gradle-Wrapper und Versionskatalog
 docs/                Build-Anleitung, Release-Ablauf und Plattformstatus
 .github/workflows/   Android-Prüfung und manueller Release-Ablauf
@@ -49,9 +50,15 @@ chmod +x gradlew
 
 Der lokale Standard-Build verwendet `io.sourcify.player`. Für ein Update der veröffentlichten APK müssen die Paketkennung und der private Signierschlüssel übereinstimmen. Details stehen in [docs/ANDROID.md](docs/ANDROID.md).
 
+## Experimentelle Windows-Version
+
+[Windows 1.2.0 herunterladen](https://github.com/MamaxLEONBot/Sourcify/releases/tag/windows-v1.2.0-experimental.1) · [Anleitung und Grenzen](docs/WINDOWS.md)
+
+Der vorhandene Windows-Installer und sein Quellcode sind als separater experimenteller Stand erhalten. Die Windows-Quellen liegen unter `platforms/windows/`; sie teilen noch nicht automatisch alle aktuellen Android-Funktionen.
+
 ## Plattformen und Accounts
 
-Dieses Repository veröffentlicht aktuell den vorhandenen **Android-Quellcode**. Windows, PS5 sowie ein gemeinsames Google-Account-/Cloud-Sync-Backend sind mit diesem Stand nicht als fertig oder unterstützt ausgewiesen. Vorhandene YouTube-Anmeldefunktionen sind kein eigener Sourcify-Cloud-Dienst. Siehe [Projektstatus](docs/PROJECT_STATUS.md).
+Dieses Repository veröffentlicht aktuell den vorhandenen **Android-Quellcode**. Windows ist als separater experimenteller 1.2.0-Stand enthalten. PS5 sowie ein gemeinsames Google-Account-/Cloud-Sync-Backend sind mit diesem Stand nicht als fertig oder unterstützt ausgewiesen. Vorhandene YouTube-Anmeldefunktionen sind kein eigener Sourcify-Cloud-Dienst. Siehe [Projektstatus](docs/PROJECT_STATUS.md).
 
 ## Lizenz und Herkunft
 

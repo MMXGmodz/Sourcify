@@ -1,0 +1,47 @@
+{
+  "version": "1.2.0",
+  "built_at_utc": "2026-10-05",
+  "platform": "Windows x64",
+  "test_host": "Linux / Electron 44.5.1",
+  "build": "PASS",
+  "packaged_source_integrity": "PASS",
+  "artifacts": [
+    {
+      "name": "Sourcify-Player-Windows-1.2.0-x64-Setup.exe",
+      "bytes": 96463818,
+      "sha256": "3ad1eacb22b6f5485af1bf36a11acb2e8f1dc3e86b28c7550f888fc0443e4bfa"
+    },
+    {
+      "name": "Sourcify-Player-Windows-1.2.0-x64.zip",
+      "bytes": 130931707,
+      "sha256": "ef81948cdae5007dfe7513bed641ea1cf3220bb0a3e3c8ec170f00fcebed084b"
+    }
+  ],
+  "tests": {
+    "node": {
+      "passed": 47,
+      "failed": 0
+    },
+    "ps5_js_bridge_regression": {
+      "passed": 3,
+      "failed": 0
+    },
+    "browser_renderer": "PASS",
+    "browser_canvas_search_selection_and_trim": "PASS",
+    "electron_existing_player": "PASS",
+    "electron_fullscreen_canvas_mini_account_and_playlists": "PASS"
+  },
+  "not_live_tested": [
+    "Windows OS installation / DPAPI / SMTC / tray / autostart / multi-monitor",
+    "Google production OAuth",
+    "Android to Windows same-account cloud sync",
+    "Live YouTube streaming"
+  ],
+  "external_blockers": [
+    "No shared Sourcify account/cloud backend in supplied repository",
+    "No Google Desktop OAuth client ID configured"
+  ],
+  "backend_code_changes": false,
+  "android_changes": false,
+  "new_runtime_dependencies": []
+}

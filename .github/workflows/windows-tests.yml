@@ -1,0 +1,24 @@
+name: Windows source tests
+on:
+  push:
+    branches: [main]
+    paths: ['platforms/windows/**', '.github/workflows/windows-tests.yml']
+  pull_request:
+    paths: ['platforms/windows/**', '.github/workflows/windows-tests.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  node-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Run existing Windows source tests
+        working-directory: platforms/windows
+        run: npm test

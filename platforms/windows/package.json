@@ -1,0 +1,83 @@
+{
+  "name": "sourcify-player",
+  "version": "1.2.0",
+  "description": "Sourcify Player f\u00fcr Windows",
+  "main": "src/main.cjs",
+  "author": "MMXG \u00b7 Vibecoded",
+  "license": "GPL-3.0-only",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.cjs",
+    "build:win": "electron-builder --win zip --x64 && node scripts/build-installer.cjs",
+    "vendor": "python3 scripts/fetch-engine.py",
+    "build:setup": "node scripts/build-installer.cjs"
+  },
+  "devDependencies": {
+    "electron": "44.5.1",
+    "electron-builder": "26.15.3",
+    "resedit": "1.7.2"
+  },
+  "build": {
+    "appId": "io.sourcify.player.desktop",
+    "productName": "Sourcify Player",
+    "copyright": "Copyright \u00a9 2026 Sourcify contributors",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "LICENSE",
+      "THIRD-PARTY.txt",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "vendor/version.json",
+        "to": "engine-version.json"
+      },
+      {
+        "from": "LICENSE",
+        "to": "LICENSE-Sourcify.txt"
+      },
+      {
+        "from": "THIRD-PARTY.txt",
+        "to": "THIRD-PARTY.txt"
+      },
+      {
+        "from": "assets/yt-dlp-LICENSE.txt",
+        "to": "yt-dlp-LICENSE.txt"
+      },
+      {
+        "from": "README.txt",
+        "to": "README-Sourcify.txt"
+      },
+      {
+        "from": "assets/engine-NOTICES.txt",
+        "to": "engine-NOTICES.txt"
+      },
+      {
+        "from": "docs/WINDOWS-REPORT.md",
+        "to": "SOURCIFY-WINDOWS-REPORT.md"
+      },
+      {
+        "from": "docs/CLOUD-CONTRACT.md",
+        "to": "CLOUD-CONTRACT.md"
+      },
+      {
+        "from": "docs/WINDOWS-CHANGED-FILES.txt",
+        "to": "WINDOWS-CHANGED-FILES.txt"
+      }
+    ],
+    "win": {
+      "target": [
+        "zip"
+      ],
+      "icon": "assets/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "artifactName": "Sourcify-Player-Windows-${version}-${arch}.${ext}",
+    "afterPack": "scripts/brand.cjs"
+  }
+}
