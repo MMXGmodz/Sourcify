@@ -1,0 +1,23 @@
+name: Publish Windows experimental release
+on:
+  push:
+    branches: [release-assets/windows-v1.2.0]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify original installer and source checksums
+        working-directory: release-assets
+        run: sha256sum -c SHA256SUMS
+      - name: Upload assets and publish experimental release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload windows-v1.2.0-experimental.1 --repo "$GITHUB_REPOSITORY" release-assets/*
+          gh release edit windows-v1.2.0-experimental.1 --repo "$GITHUB_REPOSITORY" --draft=false --prerelease

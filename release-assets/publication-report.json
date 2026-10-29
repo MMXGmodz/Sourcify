@@ -1,0 +1,34 @@
+{
+  "version": "1.2.0",
+  "tag": "windows-v1.2.0-experimental.1",
+  "publication_date": "2026-10-29",
+  "original_build_date": "2026-10-05",
+  "installer_rebuilt": false,
+  "windows_hardware_tested_this_publication": false,
+  "node_tests": {
+    "passed": 47,
+    "failed": 0,
+    "host": "Linux / Node 24.19.0"
+  },
+  "installer_matches_original_build_report": true,
+  "files": {
+    "Sourcify-Player-Windows-1.2.0-x64-Setup.exe": {
+      "bytes": 96463818,
+      "sha256": "3ad1eacb22b6f5485af1bf36a11acb2e8f1dc3e86b28c7550f888fc0443e4bfa"
+    },
+    "Sourcify-Windows-1.2.0-Report.md": {
+      "bytes": 11656,
+      "sha256": "1af6a010703faa8ad3b683cafeb0d236220a210ba87fd5a0c942224c37645d5f"
+    },
+    "Sourcify-Windows-1.2.0-Source.zip": {
+      "bytes": 60045150,
+      "sha256": "40c4b1f89e016350702ded822a88db796d10ff91060591a4220298e562fe610b"
+    }
+  },
+  "limitations": [
+    "Existing unsigned Windows 10/11 x64 installer, republished unchanged.",
+    "Live Windows installation and media integration not re-tested.",
+    "Google OAuth configuration and shared cloud backend missing.",
+    "Not feature-identical to Android 13.7.1."
+  ]
+}
