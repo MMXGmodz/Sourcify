@@ -1,0 +1,31 @@
+name: Sourcify Test APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Extract source
+        run: unzip -q 'Sourcify-Player-Spotify-UI-v1(2).zip' -d source
+      - name: Install Android SDK
+        run: $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0'
+      - name: Build test APK
+        working-directory: source/Sourcify-Player
+        run: bash ./gradlew :app:assembleGmsDebug --no-daemon --stacktrace
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sourcify-Spotify-UI-test-APK
+          path: source/Sourcify-Player/app/build/outputs/apk/gms/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
