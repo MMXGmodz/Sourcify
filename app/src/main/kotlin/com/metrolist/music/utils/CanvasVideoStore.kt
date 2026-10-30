@@ -5,6 +5,8 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -134,4 +136,19 @@ fun rememberCanvasSelection(songId: String?): CanvasSelection? {
         }
     }
     return selection
+}
+
+@Composable
+fun rememberPlaybackCanvasSelection(songId: String?, automaticEnabled: Boolean = true): CanvasSelection? {
+    val manual = rememberCanvasSelection(songId)
+    val context = LocalContext.current
+    val store = remember(context) { DownloadCompanionStore.get(context) }
+    val revision by store.revision.collectAsState()
+    val value by produceState<Triple<String?, CanvasSelection?, CanvasSelection?>?>(null, songId, manual, revision, automaticEnabled) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            Triple(songId, manual, songId?.let { store.playbackSelection(it, manual, automaticEnabled) })
+        }
+    }
+    if (manual == null && !automaticEnabled) return null
+    return value?.takeIf { it.first == songId && it.second == manual }?.third ?: manual
 }

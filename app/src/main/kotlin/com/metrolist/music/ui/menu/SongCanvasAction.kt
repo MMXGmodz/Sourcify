@@ -14,12 +14,17 @@ import com.metrolist.music.utils.rememberCanvasEnabled
 @Composable
 internal fun SongCanvasAction(songId: String) {
     val context = LocalContext.current
+    val downloads = com.metrolist.music.LocalDownloadUtil.current
     val enabled = rememberCanvasEnabled(songId)
     val store = remember(context) { CanvasVideoStore(context) }
+    fun change(value: Boolean) {
+        store.setEnabled(songId, value)
+        if (value) downloads.requestCompanionDownload(songId)
+    }
     Material3MenuGroup(listOf(Material3MenuItemData(
         title = { Text(stringResource(R.string.sourcify_canvas_this_song)) },
         icon = { Icon(painterResource(R.drawable.slow_motion_video), null) },
-        trailingContent = { Switch(enabled, { store.setEnabled(songId, it) }) },
-        onClick = { store.setEnabled(songId, !enabled) },
+        trailingContent = { Switch(enabled, { change(it) }) },
+        onClick = { change(!enabled) },
     )))
 }

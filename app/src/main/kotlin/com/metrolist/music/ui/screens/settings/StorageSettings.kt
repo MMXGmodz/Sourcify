@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -79,7 +81,7 @@ fun StorageSettings(
 ) {
     val context = LocalContext.current
     val database = LocalDatabase.current
-    val imageDiskCache = context.imageLoader.diskCache ?: return
+    var imageDiskCache by remember { mutableStateOf(context.imageLoader.diskCache) }
     val playerCache = LocalPlayerConnection.current?.service?.playerCache ?: return
     val downloadCache = LocalPlayerConnection.current?.service?.downloadCache ?: return
 
@@ -110,17 +112,22 @@ fun StorageSettings(
     var onConfirmAction by remember { mutableStateOf<() -> Unit>({}) }
 
     var imageCacheSize by remember {
-        androidx.compose.runtime.mutableLongStateOf(imageDiskCache.size)
+        androidx.compose.runtime.mutableLongStateOf(imageDiskCache?.size ?: 0)
     }
     var playerCacheSize by remember {
         androidx.compose.runtime.mutableLongStateOf(tryOrNull { playerCache.cacheSpace } ?: 0)
+    }
+    val customStorage = remember(context) { com.metrolist.music.utils.DownloadStorage.get(context) }
+    val storageRevision by customStorage.revision.collectAsStateWithLifecycle()
+    val externalBytes by androidx.compose.runtime.produceState(0L, storageRevision) {
+        value = kotlinx.coroutines.withContext(Dispatchers.IO) { customStorage.storedBytes() }
     }
     var downloadCacheSize by remember {
         mutableLongStateOf(tryOrNull { downloadCache.cacheSpace } ?: 0)
     }
     val imageCacheProgress by animateFloatAsState(
         targetValue =
-            (imageCacheSize.toFloat() / (maxImageCacheSize * 1024 * 1024L)).coerceIn(
+            (if (maxImageCacheSize <= 0) 0f else imageCacheSize.toFloat() / (maxImageCacheSize * 1024 * 1024L)).coerceIn(
                 0f,
                 1f,
             ),
@@ -136,13 +143,20 @@ fun StorageSettings(
     )
 
     LaunchedEffect(maxImageCacheSize) {
-        SingletonImageLoader.reset()
-        if (maxImageCacheSize == 0) {
-            coroutineScope.launch(Dispatchers.IO) {
-                imageDiskCache.clear()
+        imageDiskCache = kotlinx.coroutines.withContext(Dispatchers.IO) {
+            val previous = context.imageLoader
+            val expectedLimit = com.metrolist.music.utils.imageCacheLimitBytes(maxImageCacheSize).takeIf { it > 0 }
+            if (previous.diskCache?.maxSize != expectedLimit) {
+                (context.applicationContext as? com.metrolist.music.App)?.setImageCacheLimit(maxImageCacheSize)
+                if (maxImageCacheSize == 0) previous.diskCache?.clear()
+                previous.shutdown()
+                previous.diskCache?.shutdown()
+                SingletonImageLoader.reset()
             }
+            context.imageLoader.diskCache
         }
     }
+
     LaunchedEffect(maxSongCacheSize) {
         if (maxSongCacheSize == 0) {
             coroutineScope.launch(Dispatchers.IO) {
@@ -156,7 +170,7 @@ fun StorageSettings(
     LaunchedEffect(imageDiskCache) {
         while (isActive) {
             delay(500)
-            imageCacheSize = imageDiskCache.size
+            imageCacheSize = imageDiskCache?.size ?: 0
         }
     }
     LaunchedEffect(playerCache) {
@@ -177,11 +191,9 @@ fun StorageSettings(
             title = stringResource(R.string.clear_all_downloads),
             onDismiss = { clearDownloads = false },
             onConfirm = {
-                coroutineScope.launch(Dispatchers.IO) {
-                    downloadCache.keys.forEach { key ->
-                        downloadCache.removeResource(key)
-                    }
-                }
+                androidx.media3.exoplayer.offline.DownloadService.sendRemoveAllDownloads(
+                    context, com.metrolist.music.playback.ExoDownloadService::class.java, false,
+                )
                 clearDownloads = false
             },
             onCancel = { clearDownloads = false },
@@ -214,29 +226,9 @@ fun StorageSettings(
             onDismiss = { clearImageCacheDialog = false },
             onConfirm = {
                 coroutineScope.launch(Dispatchers.IO) {
-                    val urlsToPreserve = mutableSetOf<String>()
-                    val downloadedSongs =
-                        try {
-                            database.downloadedSongsByNameAsc().first()
-                        } catch (e: Exception) {
-                            emptyList()
-                        }
-                    downloadedSongs.forEach { song ->
-                        song.song.thumbnailUrl?.let { urlsToPreserve.add(it.encodeUtf8().sha256().hex()) }
-                        song.album?.thumbnailUrl?.let { urlsToPreserve.add(it.encodeUtf8().sha256().hex()) }
-                    }
-                    val directory = imageDiskCache.directory.toFile()
-                    if (directory.exists() && directory.isDirectory) {
-                        directory.listFiles()?.forEach { file ->
-                            if (file.isFile && !file.name.startsWith("journal")) {
-                                val isPreserved = urlsToPreserve.any { hash -> file.name.startsWith(hash) }
-                                if (!isPreserved) {
-                                    file.delete()
-                                }
-                            }
-                        }
-                    }
-                    imageDiskCache.clear()
+                    imageDiskCache?.clear()
+                    context.imageLoader.memoryCache?.clear()
+                    imageCacheSize = imageDiskCache?.size ?: 0
                 }
                 clearImageCacheDialog = false
             },
@@ -298,6 +290,8 @@ fun StorageSettings(
                 ),
             ),
         )
+        DownloadFolderSetting()
+        Spacer(Modifier.height(16.dp))
         Material3SettingsGroup(
             title = stringResource(R.string.storage),
             items =
@@ -306,7 +300,7 @@ fun StorageSettings(
                         icon = painterResource(R.drawable.storage),
                         title = { Text(stringResource(R.string.downloaded_songs)) },
                         description = {
-                            Text(text = Formatter.formatShortFileSize(context, downloadCacheSize))
+                            Text(text = Formatter.formatShortFileSize(context, downloadCacheSize + externalBytes))
                         },
                     ),
                     Material3SettingsItem(
@@ -422,20 +416,21 @@ fun StorageSettings(
                         title = { Text(stringResource(R.string.max_image_cache_size)) },
                         description = {
                             val imageCacheValues =
-                                remember { listOf(0, 128, 256, 512, 1024, 2048, 4096, 8192) }
+                                remember { listOf(0, 128, 256, 512, 1024, 2048, 4096, 8192, -1) }
                             Column {
                                 Text(
                                     text =
                                         when (maxImageCacheSize) {
                                             0 -> stringResource(R.string.disable)
+                                            -1 -> stringResource(R.string.unlimited)
                                             else -> Formatter.formatShortFileSize(context, maxImageCacheSize * 1024 * 1024L)
                                         },
                                 )
                                 Slider(
-                                    value = imageCacheValues.indexOf(maxImageCacheSize).toFloat(),
+                                    value = imageCacheValues.indexOf(maxImageCacheSize).coerceAtLeast(0).toFloat(),
                                     onValueChange = {
                                         val newValue = imageCacheValues[it.roundToInt()]
-                                        val newLimitInBytes = newValue * 1024 * 1024L
+                                        val newLimitInBytes = com.metrolist.music.utils.imageCacheLimitBytes(newValue)
 
                                         if (newLimitInBytes < imageCacheSize) {
                                             cacheUsage = imageCacheSize
@@ -456,7 +451,7 @@ fun StorageSettings(
                                 )
                                 Spacer(modifier = Modifier.padding(2.dp))
                                 Text(
-                                    text = "${Formatter.formatShortFileSize(context, imageCacheSize)} / ${
+                                    text = if (maxImageCacheSize == -1) Formatter.formatShortFileSize(context, imageCacheSize) else "${Formatter.formatShortFileSize(context, imageCacheSize)} / ${
                                         Formatter.formatShortFileSize(context, 
                                             maxImageCacheSize * 1024 * 1024L,
                                         )

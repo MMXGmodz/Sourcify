@@ -298,7 +298,7 @@ fun TvApp() {
 
 @Composable
 private fun TvArtwork(song: MediaMetadata, playing: Boolean, enabled: Boolean, automatic: Boolean, modifier: Modifier) {
-    val selection = rememberCanvasSelection(song.id)
+    val selection = com.metrolist.music.utils.rememberPlaybackCanvasSelection(song.id, automatic)
     val songEnabled = enabled && com.metrolist.music.utils.rememberCanvasEnabled(song.id)
     val selected = rememberSelectedCanvas(selection, songEnabled)
     val auto = rememberAutomaticCanvas(song, songEnabled && automatic && selection == null)

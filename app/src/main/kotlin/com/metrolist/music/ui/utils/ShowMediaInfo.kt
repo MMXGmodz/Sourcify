@@ -106,9 +106,19 @@ fun ShowMediaInfo(videoId: String) {
     LaunchedEffect(Unit, videoId) {
         loading = true
         try {
-            if (!isLocal) info = withContext(Dispatchers.IO) { withTimeoutOrNull(12_000) { YouTube.getMediaInfo(videoId).getOrNull() } }
+            if (!isLocal) {
+                val store = com.metrolist.music.utils.DownloadCompanionStore.get(context)
+                info = withContext(Dispatchers.IO) { store.info(videoId) }
+                if (com.metrolist.music.playback.hasDownloadInternet(context)) {
+                    val fresh = withContext(Dispatchers.IO) { withTimeoutOrNull(12_000) { YouTube.getMediaInfo(videoId).getOrNull() } }
+                    if (fresh != null) {
+                        info = fresh
+                        withContext(Dispatchers.IO) { store.saveInfo(videoId, fresh) }
+                    }
+                }
+            }
         } catch (e: CancellationException) { throw e }
-        catch (_: Exception) { info = null }
+        catch (_: Exception) { /* Keep saved song information available. */ }
         finally { loading = false }
     }
 

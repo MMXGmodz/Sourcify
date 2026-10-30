@@ -38,6 +38,8 @@ import com.metrolist.music.models.MediaMetadata
 import com.metrolist.music.models.toMediaMetadata
 import com.metrolist.music.utils.InnerTubeXPlayer
 import com.metrolist.music.utils.DownloadArtworkStore
+import com.metrolist.music.utils.DownloadCompanionStore
+import com.metrolist.music.utils.DownloadStorage
 import com.metrolist.music.utils.enumPreference
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -49,6 +51,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -94,6 +98,14 @@ constructor(
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val downloadPreparations = Semaphore(3)
+    private val removalTasks = java.util.concurrent.ConcurrentHashMap<String, CompletableDeferred<Unit>>()
+    private val companionStore = DownloadCompanionStore.get(context)
+    private val audioStorage = DownloadStorage.get(context)
+    private val companionSignal = Channel<Unit>(Channel.CONFLATED)
+    private val companionQueue = java.util.concurrent.ConcurrentLinkedDeque<String>()
+    private val companionPending = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    private val companionForced = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    val extraDownloads = MutableStateFlow<Set<String>>(emptySet())
     private val artworkStore = DownloadArtworkStore.getInstance(context.filesDir)
     private val artworkRequests = Semaphore(2)
     private val artworkRepairs = Channel<Unit>(Channel.CONFLATED)
@@ -107,7 +119,10 @@ constructor(
 
         override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
             val validated = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-            if (validated && !wasValidated) artworkRepairs.trySend(Unit)
+            if (validated && !wasValidated) {
+                artworkRepairs.trySend(Unit)
+                downloads.value.values.filter { it.state == Download.STATE_COMPLETED }.forEach { enqueueCompanions(it.request.id, false) }
+            }
             wasValidated = validated
         }
 
@@ -285,6 +300,7 @@ constructor(
                                     removeFromPlayerCache(download.request.id)
                                     database.updateDownloadedInfo(download.request.id, true, LocalDateTime.now())
                                     artworkRepairs.trySend(Unit)
+                                    enqueueCompanions(download.request.id, true)
                                 }
                                 Download.STATE_FAILED,
                                 Download.STATE_STOPPED,
@@ -303,22 +319,21 @@ constructor(
                     ) {
                         val downloadId = download.request.id
                         songUrlCache.invalidate(downloadId)
+                        val removal = CompletableDeferred<Unit>()
+                        removalTasks[downloadId] = removal
                         scope.launch {
-                            runCatching { artworkStore.remove(downloadId) }
-                                .onFailure { Timber.tag(TAG).w("Could not remove download artwork") }
-                        }
-
-                        runCatching {
-                            database.updateDownloadedInfo(downloadId, false, null)
-                        }.onSuccess {
-                            downloads.update { map ->
-                                map.toMutableMap().apply {
-                                    remove(downloadId)
-                                }
+                            try {
+                                runCatching { companionStore.remove(downloadId) }.onFailure { Timber.tag(TAG).w("Could not remove download extras") }
+                                runCatching { audioStorage.remove(downloadId) }.onFailure { Timber.tag(TAG).w("Could not remove exported audio") }
+                                runCatching { artworkStore.remove(downloadId) }.onFailure { Timber.tag(TAG).w("Could not remove download artwork") }
+                                runCatching { database.updateDownloadedInfo(downloadId, false, null) }
+                                    .onFailure { Timber.tag(TAG).e(it, "Failed to update database for removed download") }
+                            } finally {
+                                // Publish removal only after cleanup: a new request must not lose its fresh ownership files.
+                                downloads.update { map -> map - downloadId }
+                                removalTasks.remove(downloadId, removal)
+                                removal.complete(Unit)
                             }
-                            Timber.tag(TAG).d("Successfully removed download $downloadId from in-memory map")
-                        }.onFailure { error ->
-                            Timber.tag(TAG).e(error, "Failed to update database for removed download $downloadId, keeping in-memory entry")
                         }
                     }
                 }
@@ -333,6 +348,26 @@ constructor(
             }
         }
         downloads.value = result
+        scope.launch {
+            companionStore.retainOnly(result.keys)
+            result.keys.forEach(companionStore::retain)
+            result.values.filter { it.state == Download.STATE_COMPLETED }.forEach { enqueueCompanions(it.request.id, false) }
+            val preparer = DownloadCompanionPreparer(context, database, downloadCache) { downloadManager.downloadIndex.getDownload(it) }
+            for (ignored in companionSignal) {
+                while (true) {
+                    val id = companionQueue.pollFirst() ?: break
+                    try {
+                        preparer.prepare(id, companionForced.remove(id))
+                    } catch (error: kotlinx.coroutines.CancellationException) { throw error }
+                    catch (_: Exception) { Timber.tag(TAG).w("Could not finish optional download files") }
+                    finally {
+                        companionPending.remove(id)
+                        if (companionForced.contains(id)) enqueueCompanions(id, true)
+                        extraDownloads.value = companionPending.toSet()
+                    }
+                }
+            }
+        }
         scope.launch {
             runCatching { artworkStore.retainOnly(result.keys) }
                 .onFailure { Timber.tag(TAG).w("Could not clean download artwork") }
@@ -369,8 +404,11 @@ constructor(
         if (mediaMetadata.id.startsWith("local:")) return
         scope.launch {
             downloadPreparations.withPermit {
+                downloads.first { map -> map[mediaMetadata.id]?.state.let { it != Download.STATE_REMOVING && it != Download.STATE_RESTARTING } }
+                removalTasks[mediaMetadata.id]?.await()
                 if (!shouldPrepareDownload(downloads.value[mediaMetadata.id]?.state)) {
                     artworkRepairs.trySend(Unit)
+                    requestCompanionDownload(mediaMetadata.id)
                     return@withPermit
                 }
 
@@ -404,6 +442,8 @@ constructor(
                     return@withPermit
                 }
 
+                audioStorage.plan(mediaMetadata.id)
+                companionStore.retain(mediaMetadata.id)
                 val request =
                     DownloadRequest
                         .Builder(mediaMetadata.id, mediaMetadata.id.toUri())
@@ -434,11 +474,25 @@ constructor(
         }
     }
 
+    fun requestCompanionDownload(id: String) {
+        if (id.startsWith("local:") || downloads.value[id]?.state != Download.STATE_COMPLETED) return
+        companionForced.add(id)
+        enqueueCompanions(id, true)
+    }
+
+    private fun enqueueCompanions(id: String, urgent: Boolean) {
+        if (id.startsWith("local:") || !companionPending.add(id)) return
+        if (urgent) companionQueue.addFirst(id) else companionQueue.addLast(id)
+        extraDownloads.value = companionPending.toSet()
+        companionSignal.trySend(Unit)
+    }
+
     fun release() {
         if (artworkNetworkCallbackRegistered) {
             runCatching { connectivityManager.unregisterNetworkCallback(artworkNetworkCallback) }
             artworkNetworkCallbackRegistered = false
         }
+        companionSignal.close()
         artworkRepairs.close()
         scope.cancel()
     }
@@ -472,6 +526,7 @@ constructor(
     }
 
     private fun removeFromPlayerCache(songId: String) {
+        if (audioStorage.hasActiveReads(songId)) return
         runCatching { playerCache.removeResource(songId) }
             .onFailure { Timber.tag(TAG).w(it, "Failed to remove downloaded song $songId from player cache") }
     }

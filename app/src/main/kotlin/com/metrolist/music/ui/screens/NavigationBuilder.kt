@@ -72,6 +72,7 @@ fun NavGraphBuilder.navigationBuilder(
     latestVersionName: String,
     activity: Activity,
     snackbarHostState: SnackbarHostState,
+    accountButton: @androidx.compose.runtime.Composable () -> Unit = {},
 ) {
     composable(Screens.Home.route) {
         HomeScreen(snackbarHostState = snackbarHostState)
@@ -91,7 +92,8 @@ fun NavGraphBuilder.navigationBuilder(
             }
         SearchScreen(
             pureBlack = pureBlack,
-            savedStateHandle = backStackEntry.savedStateHandle
+            savedStateHandle = backStackEntry.savedStateHandle,
+            accountButton = accountButton,
         )
     }
 

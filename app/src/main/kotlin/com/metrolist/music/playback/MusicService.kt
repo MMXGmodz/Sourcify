@@ -167,6 +167,7 @@ import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.Event
 import com.metrolist.music.db.entities.FormatEntity
 import com.metrolist.music.db.entities.LyricsEntity
+import com.metrolist.music.lyrics.saveFetchedLyricsIfMissing
 import com.metrolist.music.db.entities.PlaylistEntity
 import com.metrolist.music.db.entities.RelatedSongMap
 import com.metrolist.music.db.entities.Song
@@ -813,7 +814,7 @@ class MusicService :
                     Timber.tag(TAG).i("QUALITY CHANGED: $oldQuality -> $newQuality")
 
                     val mediaId = player.currentMediaItem?.mediaId ?: return@collect
-                    if (isLocalAudioMediaId(mediaId)) return@collect
+                    if (isLocalAudioMediaId(mediaId) || com.metrolist.music.utils.DownloadStorage.get(this@MusicService).record(mediaId) != null) return@collect
                     val currentPosition = player.currentPosition
                     val wasPlaying = player.isPlaying
                     val currentIndex = player.currentMediaItemIndex
@@ -884,15 +885,8 @@ class MusicService :
                     .first() == null
             ) {
                 val lyricsWithProvider = lyricsHelper.getLyrics(mediaMetadata)
-                database.query {
-                    upsert(
-                        LyricsEntity(
-                            id = mediaMetadata.id,
-                            lyrics = lyricsWithProvider.lyrics,
-                            provider = lyricsWithProvider.provider,
-                        ),
-                    )
-                }
+                database.saveFetchedLyricsIfMissing(LyricsEntity(mediaMetadata.id,
+                    lyricsWithProvider.lyrics, lyricsWithProvider.provider))
             }
         }
 
@@ -3043,7 +3037,7 @@ class MusicService :
             .w(error, "Player error occurred for $mediaId: errorCode=${error.errorCode}, message=${error.message}")
         reportException(error)
 
-        if (isLocalAudioMediaId(mediaId)) {
+        if (isLocalAudioMediaId(mediaId) || mediaId?.let { com.metrolist.music.utils.DownloadStorage.get(this).record(it) } != null) {
             waitingForNetworkConnection.value = false
             retryJob?.cancel()
             stopOnError()
@@ -3982,7 +3976,7 @@ class MusicService :
                 )
             }
         }
-        return LocalAudioDataSourceFactory(streamFactory) { mediaId ->
+        val localAndStream = LocalAudioDataSourceFactory(streamFactory) { mediaId ->
             applyAudioNormalizationBeforePlayback(
                 processor = normalizationProcessor,
                 playerProvider = playerProvider,
@@ -3991,6 +3985,21 @@ class MusicService :
                 perceptualLoudnessDb = null,
             )
             LocalAudioStore.get(this).fileForId(mediaId)
+        }
+        val saved = com.metrolist.music.utils.DownloadStorage.get(this)
+        val sourceWithDocuments = SavedDownloadDataSourceFactory(localAndStream, { saved.record(it)?.uri },
+            androidx.media3.datasource.DefaultDataSource.Factory(this),
+            { id -> saved.record(id)?.let { downloadCache.isCached(id, 0, it.size) } == true },
+            { id ->
+                val format = runBlocking(Dispatchers.IO) { database.format(id).first() }
+                applyAudioNormalizationBeforePlayback(normalizationProcessor, playerProvider, id,
+                    format?.loudnessDb, format?.perceptualLoudnessDb, preserveCachedIfMissing = true)
+            }, unavailableMessage = getString(R.string.sourcify_download_file_unavailable))
+        return DownloadReadTrackingDataSourceFactory(sourceWithDocuments, saved) { id ->
+            if (!saved.hasActiveReads(id)) {
+                if (downloadUtil.downloads.value[id]?.state == androidx.media3.exoplayer.offline.Download.STATE_COMPLETED) playerCache.removeResource(id)
+                if (saved.record(id) != null && saved.isReadable(id)) downloadCache.removeResource(id)
+            }
         }
     }
 

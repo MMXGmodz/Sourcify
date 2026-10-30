@@ -1028,7 +1028,7 @@
     <string name="sourcify_licenses">Open-source licenses</string>
     <string name="sourcify_canvas_zoom">Canvas zoom</string>
     <string name="sourcify_canvas_zoom_description">Crop the edges to fill the screen. Increase zoom if the video itself contains black bars.</string>
-    <string name="sourcify_release_notes">Your sound. Your space.\n\nA new Sourcify design with floating navigation and compact player controls.\n\nCanvas videos fill the screen, with adjustable zoom and automatic matching videos.\n\nCredits: Vibecoded · MMXG</string>
+    <string name="sourcify_release_notes">Sourcify 13.7.3\n\nProfil links auf Startseite, Suche und Bibliothek. Statistik und Hörverlauf im Profil; Jam und gemeinsames Hören in den Einstellungen.\n\nRote Favoritenherzen und weiße Künstlernamen. Aufgeräumter Player mit Repeat neben Play, Schlaftimer im Menü, Cover in der kompakten Kopfleiste und richtigem Lyrics-Vollbildsymbol. Canvas pro Song an- und ausschalten.\n\nDownloads ergänzen verfügbare Lyrics, Songinfos, Credits und geeignete Canvas-Clips für offline. Unter Speicher lässt sich für neue Musik ein eigener Ordner wählen. Der Bildcache bietet jetzt Unbegrenzt.\n\nCanvas und zusätzliche Metadaten hängen von ihrer Verfügbarkeit ab. Vorabversion ohne abschließenden Smartphone-Hardwaretest.\n\nCredits: Vibecoded · MMXG\nGitHub: github.com/MMXGmodz/Sourcify</string>
 
     <string name="sourcify_update_available_message">Sourcify Player %s is ready to download.</string>
     <string name="sourcify_kmp_upgrade_title">Sourcify Player KMP %s is available</string>
@@ -1192,4 +1192,13 @@
     <string name="sourcify_player_repeat">Wiederholen</string>
     <string name="sourcify_timer_active">Schlaf-Timer ist aktiv</string>
     <string name="sourcify_timer_stop">Schlaf-Timer beenden</string>
+    <string name="sourcify_download_folder">Musikspeicher</string>
+    <string name="sourcify_download_folder_choose">Downloadordner auswählen</string>
+    <string name="sourcify_download_folder_auto">Automatisch · App-Speicher</string>
+    <string name="sourcify_download_folder_description">Gilt für neue Downloads. Bereits gespeicherte Songs bleiben an ihrem bisherigen Ort. Wähle einen lokalen Ordner für die Offline-Nutzung.</string>
+    <string name="sourcify_download_folder_error">Der Ordner ist nicht dauerhaft beschreibbar. Wähle einen anderen lokalen Ordner aus.</string>
+    <string name="sourcify_offline_extras">Offline-Daten ergänzen</string>
+    <string name="sourcify_offline_extras_loading">Lyrics, Canvas und Songinfos werden vorbereitet…</string>
+    <string name="sourcify_offline_extras_description">Zusatzdaten erneut abrufen, soweit die Quellen sie bereitstellen.</string>
+    <string name="sourcify_download_file_unavailable">Die gespeicherte Audiodatei ist nicht erreichbar. Prüfe den Downloadordner und seine Freigabe.</string>
 </resources>

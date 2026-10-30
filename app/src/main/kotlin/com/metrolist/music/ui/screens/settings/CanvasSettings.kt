@@ -41,6 +41,7 @@ private data class CanvasEdit(val songId: String, val source: CanvasVideoSource,
 @Composable
 fun CanvasSettings(navController: NavController) {
     val context = LocalContext.current
+    val downloads = if (LocalPlayerConnection.current != null) com.metrolist.music.LocalDownloadUtil.current else null
     val scope = rememberCoroutineScope()
     val store = remember(context) { CanvasVideoStore(context) }
     val metadata by LocalPlayerConnection.current?.mediaMetadata?.collectAsStateWithLifecycle()
@@ -123,7 +124,7 @@ fun CanvasSettings(navController: NavController) {
                     Text(metadata?.title ?: stringResource(R.string.sourcify_canvas_start_song), style = MaterialTheme.typography.titleLarge)
                     if (metadata != null) Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(stringResource(R.string.sourcify_canvas_this_song), Modifier.weight(1f))
-                        Switch(enabledForSong, { store.setEnabled(metadata!!.id, it) })
+                        Switch(enabledForSong, { store.setEnabled(metadata!!.id, it); if (it) downloads?.requestCompanionDownload(metadata!!.id) })
                     }
                     Text(stringResource(R.string.sourcify_canvas_for_song), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Button(onClick = { target = metadata?.id; picker.launch(arrayOf("video/*")) }, enabled = metadata != null && !busy) {
@@ -214,6 +215,8 @@ fun CanvasSettings(navController: NavController) {
                 TextButton(enabled = !failed, onClick = {
                     try {
                         store.saveClip(editor.songId, CanvasSelection(uri = editor.source.uri.takeIf { editor.videoId == null }, videoId = editor.videoId, startMs = clip.first, endMs = clip.last + 1))
+                        store.setEnabled(editor.songId, true)
+                        downloads?.requestCompanionDownload(editor.songId)
                         setEnabled(true); edit = null
                     } catch (_: Exception) { failed = true }
                 }) { Text(stringResource(android.R.string.ok)) }

@@ -56,7 +56,7 @@ fun PlaybackError(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val streamClient by playerConnection.currentStreamClient.collectAsState()
     val isOnline by playerConnection.service.connectivityObserver.networkStatus.collectAsState()
-    val isLocal = mediaMetadata?.id?.startsWith("local:") == true
+    val isLocal = mediaMetadata?.id?.startsWith("local:") == true || mediaMetadata?.id?.let { com.metrolist.music.utils.DownloadStorage.get(context).record(it) } != null
     val causes = remember(error) { error.causeChain() }
     val rawErrorMessages =
         remember(causes) {

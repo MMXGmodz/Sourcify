@@ -312,6 +312,7 @@ fun PlayerMenu(
         item { RenameSongAction(mediaMetadata, onDismiss) }
         item { PlayerSleepTimerAction() }
         item { SongCanvasAction(mediaMetadata.id) }
+        item { DownloadExtrasAction(mediaMetadata.id) }
         item {
             Material3MenuGroup(items = listOf(Material3MenuItemData(
                 title = { Text(stringResource(R.string.share)) },

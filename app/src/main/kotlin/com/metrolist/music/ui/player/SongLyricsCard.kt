@@ -35,6 +35,7 @@ import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
 import com.metrolist.music.db.entities.LyricsEntity
+import com.metrolist.music.lyrics.saveFetchedLyricsIfMissing
 import com.metrolist.music.lyrics.LyricsUtils
 import com.metrolist.music.models.MediaMetadata
 import com.metrolist.music.ui.theme.LocalSongColor
@@ -75,11 +76,13 @@ fun SongLyricsCard(song: MediaMetadata, position: Long) {
     LaunchedEffect(song.id) {
         withContext(Dispatchers.IO) {
             try {
-                if (database.lyrics(song.id).first() == null) {
+                if (database.lyrics(song.id).first()?.lyrics.let { it == null || it == LyricsEntity.LYRICS_NOT_FOUND }) {
                     val helper = EntryPointAccessors.fromApplication(context.applicationContext,
                         com.metrolist.music.di.LyricsHelperEntryPoint::class.java).lyricsHelper()
                     val result = helper.getLyrics(song)
-                    database.withTransaction { upsert(LyricsEntity(song.id, result.lyrics, result.provider)) }
+                    if (result.lyrics.isNotBlank() && result.lyrics != LyricsEntity.LYRICS_NOT_FOUND) {
+                        database.saveFetchedLyricsIfMissing(LyricsEntity(song.id, result.lyrics, result.provider))
+                    }
                 }
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) { /* The preview remains unavailable; playback continues. */ }

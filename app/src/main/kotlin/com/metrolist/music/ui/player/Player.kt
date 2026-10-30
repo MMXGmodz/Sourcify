@@ -169,6 +169,7 @@ import com.metrolist.music.constants.SquigglySliderKey
 import com.metrolist.music.constants.ThumbnailCornerRadius
 import com.metrolist.music.constants.UseNewPlayerDesignKey
 import com.metrolist.music.db.entities.LyricsEntity
+import com.metrolist.music.lyrics.saveFetchedLyricsIfMissing
 import com.metrolist.music.extensions.metadata
 import com.metrolist.music.extensions.togglePlayPause
 import com.metrolist.music.extensions.toggleRepeatMode
@@ -229,10 +230,10 @@ fun BottomSheetPlayer(
     val compactThreshold = with(LocalDensity.current) { (LocalConfiguration.current.screenHeightDp * 0.7f).dp.toPx() }
     val compactPlayerHeader by remember(compactThreshold) { derivedStateOf { playerScrollState.value > compactThreshold } }
 
-    val canvasSelection = rememberCanvasSelection(mediaMetadata?.id)
+    val automaticCanvasEnabled by rememberPreference(AutomaticCanvasKey, true)
+    val canvasSelection = com.metrolist.music.utils.rememberPlaybackCanvasSelection(mediaMetadata?.id, automaticCanvasEnabled)
     val canvasGlobalEnabled by rememberPreference(CanvasEnabledKey, true)
     val canvasEnabled = canvasGlobalEnabled && com.metrolist.music.utils.rememberCanvasEnabled(mediaMetadata?.id)
-    val automaticCanvasEnabled by rememberPreference(AutomaticCanvasKey, true)
     val automaticCanvas = rememberAutomaticCanvas(
         mediaMetadata,
         canvasEnabled && automaticCanvasEnabled && canvasSelection == null,
@@ -1825,9 +1826,7 @@ fun InlineLyricsView(
                         )
                     val lyricsHelper = entryPoint.lyricsHelper()
                     val fetchedLyricsWithProvider = lyricsHelper.getLyrics(mediaMetadata)
-                    database.query {
-                        upsert(LyricsEntity(mediaMetadata.id, fetchedLyricsWithProvider.lyrics, fetchedLyricsWithProvider.provider))
-                    }
+                    database.saveFetchedLyricsIfMissing(LyricsEntity(mediaMetadata.id, fetchedLyricsWithProvider.lyrics, fetchedLyricsWithProvider.provider))
                 } catch (e: Exception) {
                     // Handle error
                 }
@@ -1865,9 +1864,7 @@ fun InlineLyricsView(
                     )
                 val lyricsHelper = entryPoint.lyricsHelper()
                 val fetched = lyricsHelper.getLyrics(nextMetadata)
-                database.query {
-                    upsert(LyricsEntity(nextId, fetched.lyrics, fetched.provider))
-                }
+                database.saveFetchedLyricsIfMissing(LyricsEntity(nextId, fetched.lyrics, fetched.provider))
             } catch (_: Exception) {
             }
         }

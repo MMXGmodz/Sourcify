@@ -1,5 +1,19 @@
 # Sourcify changelog
 
+## 13.7.3 — 30. Oktober 2026 — Vorabversion
+
+- Favorisierte Songs zeigen in Album- und Playlistlisten immer rote Herzen; Künstlernamen bleiben weiß und lesbar.
+- Profilbild links auf Startseite, Suche und Bibliothek; Jam/Gemeinsam hören in Einstellungen, Statistik im Profil und Hörverlauf bei Statistik. Bibliothek: Erstellen und Suche zusammen; Playlist-Cover bearbeiten neben der Suche.
+- Player: Schlaftimer im Drei-Punkte-Menü, Repeat neben der Wiedergabe, keine doppelten Shuffle-/Lyrics-Steuerungen und Albumcover in der kompakten Kopfleiste. Lyrics-Vollbild zeigt das Symbol zum Verlassen.
+- Canvas lässt sich je Song dauerhaft an- oder ausschalten, unabhängig von der globalen Einstellung.
+- Neue und bestehende Downloads ergänzen bei Internetzugang verfügbare Lyrics und Songinfos/Credits. Geeignete Canvas-Clips werden begrenzt und ohne Neukodierung im dauerhaften App-Speicher abgelegt; Änderungen manueller Ausschnitte werden berücksichtigt. Fehlende Zusatzdaten beeinflussen die Audiodatei nicht. Über das Songmenü erneut anfordern.
+- Eigener lokaler Downloadordner oder Automatisch unter Speicher. Gilt für neue Downloads: vollständige Originalbytes werden geschrieben, synchronisiert und per Prüfsumme geprüft, bevor die interne Kopie freigegeben wird. Frühere Downloads bleiben erreichbar. Laufende Wiedergabe schützt noch benutzte Cache-Dateien.
+- Bildcache mit Unbegrenzt und wirksamer Größenänderung; Leeren entfernt keine dauerhaft gespeicherten Download-Cover. Lokale Playlist-Cover liegen außerhalb des flüchtigen Caches.
+- Token-Anzeige/-Editor unter Privatsphäre, KI-Songtextübersetzung unter Inhalt, System-Equalizer im Equalizer. Theme-Auswahl auf Modus reduziert, dynamische Symbolfarben entfernt und GitHub in Credits ergänzt.
+- App-Name Sourcify, bestehende Android-Paketkennung und Signatur bleiben für Updates erhalten.
+
+Canvas-Offline-Speicherung ist auf unterstützte, kurze progressive Quellen und einen begrenzten Umfang beschränkt; Datenverfügbarkeit und Android-Videounterstützung bestimmen das Ergebnis. Automatisierte Prüfungen stehen im Release-Bericht. Ein abschließender Test auf einem echten Smartphone steht noch aus.
+
 ## 13.7.2 — 29. Oktober 2026 — Vorabversion
 
 - Lokale Audiodateien mit Originalbytes importieren und ohne Netzwerk im gemeinsamen Player abspielen: FLAC, PCM WAV sowie unterstütztes MP3/AAC/Ogg/Opus. Keine FLAC-Umwandlung von YouTube-Streams.

@@ -37,7 +37,7 @@ internal object CanvasVideoCache {
                 it.requireBoundedRange, it.rangeChunkSizeBytes, it.useRangeChunks)
         }
         val upstream = CanvasNetworkPolicy.get(context).guard(DefaultDataSource.Factory(context.applicationContext, OkHttpDataSource.Factory(client)))
-        val videoCache = if (source.uri.scheme == "content") null else runCatching { cache(context) }.getOrNull()
+        val videoCache = if (source.uri.scheme in setOf("content", "file")) null else runCatching { cache(context) }.getOrNull()
         val cached: DataSource.Factory = if (videoCache == null) upstream else CacheDataSource.Factory()
             .setCache(videoCache).setUpstreamDataSourceFactory(upstream)
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)

@@ -124,6 +124,8 @@ internal class AutomaticCanvasResolver(
 
 private val sharedCanvasResolver by lazy { AutomaticCanvasResolver() }
 
+internal suspend fun resolveCanvasForDownload(song: MediaMetadata): CanvasVideoSource? = sharedCanvasResolver.resolve(song)
+
 @Composable
 internal fun rememberAutomaticCanvas(song: MediaMetadata?, enabled: Boolean): CanvasVideoSource? {
     val resolver = sharedCanvasResolver

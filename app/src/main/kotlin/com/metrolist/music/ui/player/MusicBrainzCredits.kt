@@ -187,3 +187,19 @@ internal fun mergeMusicBrainzCredits(primary: SongCredits, extra: MusicBrainzCre
     val missingGroups = CreditGroup.entries.filter { group -> primary.entries.none { it.group == group } }
     return primary.copy(entries = (primary.entries + confirmed.entries.filter { it.group in missingGroups }).distinct())
 }
+
+internal fun savedMusicBrainzCredits(result: MusicBrainzCreditsResult.Found): org.json.JSONObject = org.json.JSONObject()
+    .put("recording", result.recordingId).put("entries", org.json.JSONArray().apply {
+        result.credits.entries.take(120).forEach { credit -> put(org.json.JSONObject()
+            .put("name", credit.name.take(300)).put("role", credit.role.take(100)).put("group", credit.group.name)) }
+    })
+
+internal fun readSavedMusicBrainzCredits(json: org.json.JSONObject): MusicBrainzCreditsResult.Found? {
+    val id = json.optString("recording").takeIf(::isMusicBrainzId) ?: return null
+    val entries = json.optJSONArray("entries") ?: return null
+    val credits = (0 until minOf(entries.length(), 120)).mapNotNull { index -> runCatching {
+        val row = entries.getJSONObject(index)
+        SongCredit(row.getString("name").take(300), row.getString("role").take(100), CreditGroup.valueOf(row.getString("group")))
+    }.getOrNull() }
+    return MusicBrainzCreditsResult.Found(id, SongCredits(credits, emptyList()))
+}

@@ -297,6 +297,8 @@ class App :
     @Volatile
     private var cachedCoilCacheSize: Int? = null
 
+    internal fun setImageCacheLimit(mebibytes: Int) { cachedCoilCacheSize = mebibytes }
+
     override fun newImageLoader(context: PlatformContext): ImageLoader {
         val cacheSize = cachedCoilCacheSize ?: runBlocking {
             dataStore.data.map { it[MaxImageCacheSizeKey] ?: 512 }.first()
@@ -317,13 +319,14 @@ class App :
                         .build()
                 }
                 if (cacheSize == 0) {
+                    diskCache(null)
                     diskCachePolicy(CachePolicy.DISABLED)
                 } else {
                     diskCache(
                         DiskCache
                             .Builder()
                             .directory(cacheDir.resolve("coil"))
-                            .maxSizeBytes(cacheSize * 1024 * 1024L)
+                            .maxSizeBytes(com.metrolist.music.utils.imageCacheLimitBytes(cacheSize))
                             .build(),
                     )
                     // Allow reading from disk cache as fallback when network is unavailable

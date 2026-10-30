@@ -1232,7 +1232,7 @@ private fun rememberPlaylistCoverEditor(playlist: Playlist, snackbarHostState: S
     val overrideThumbnail = remember { mutableStateOf<String?>(null) }
     var isCustomThumbnail: Boolean =
         playlist.thumbnails.firstOrNull()?.let {
-            it.contains("studio_square_thumbnail") || it.contains("content://com.metrolist.music")
+            it.contains("studio_square_thumbnail") || it.startsWith("content://${context.packageName}.FileProvider/") || it.startsWith("content://com.metrolist.music.FileProvider/")
         } ?: false
 
     val result = remember { mutableStateOf<Uri?>(null) }
@@ -1261,7 +1261,8 @@ private fun rememberPlaylistCoverEditor(playlist: Playlist, snackbarHostState: S
             ActivityResultContracts.PickVisualMedia(),
         ) { uri ->
             uri?.let { sourceUri ->
-                val destFile = java.io.File(context.cacheDir, "playlist_cover_crop_${System.currentTimeMillis()}.jpg")
+                val coverDirectory = if (playlist.playlist.browseId == null) java.io.File(context.filesDir, "playlist-artwork").apply { mkdirs() } else context.cacheDir
+                val destFile = java.io.File(coverDirectory, "playlist_cover_crop_${System.currentTimeMillis()}.jpg")
                 val destUri = FileProvider.getUriForFile(context, "${context.packageName}.FileProvider", destFile)
                 pendingCropDestUri = destUri
 

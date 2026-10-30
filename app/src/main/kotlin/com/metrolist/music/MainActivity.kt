@@ -1086,30 +1086,8 @@ class MainActivity : FragmentActivity() {
                                             )
                                         },
                                         navigationIcon = {
-                                            IconButton(onClick = { showAccountDialog = true }) {
-                                                BadgedBox(badge = {
-                                                    if (latestVersionName != BuildConfig.BASE_VERSION_NAME) {
-                                                        Badge()
-                                                    }
-                                                }) {
-                                                    if (accountImageUrl != null) {
-                                                        AsyncImage(
-                                                            model = accountImageUrl,
-                                                            contentDescription = stringResource(R.string.account),
-                                                            modifier =
-                                                                Modifier
-                                                                    .size(24.dp)
-                                                                    .clip(CircleShape),
-                                                        )
-                                                    } else {
-                                                        Icon(
-                                                            painter = painterResource(R.drawable.account),
-                                                            contentDescription = stringResource(R.string.account),
-                                                            modifier = Modifier.size(24.dp),
-                                                        )
-                                                    }
-                                                }
-                                            }
+                                            com.metrolist.music.ui.component.ProfileButton(accountImageUrl,
+                                                latestVersionName != BuildConfig.BASE_VERSION_NAME) { showAccountDialog = true }
                                         },
                                         scrollBehavior = topAppBarScrollBehavior,
                                         colors =
@@ -1393,6 +1371,10 @@ class MainActivity : FragmentActivity() {
                                         latestVersionName = latestVersionName,
                                         activity = this@MainActivity,
                                         snackbarHostState = snackbarHostState,
+                                        accountButton = {
+                                            com.metrolist.music.ui.component.ProfileButton(accountImageUrl,
+                                                latestVersionName != BuildConfig.BASE_VERSION_NAME) { showAccountDialog = true }
+                                        },
                                     )
                                 }
                             }

@@ -352,12 +352,12 @@ private fun SearchInputScreen(
     }
 }
 @Composable
-fun SearchScreen(pureBlack: Boolean, savedStateHandle: SavedStateHandle) {
+fun SearchScreen(pureBlack: Boolean, savedStateHandle: SavedStateHandle, accountButton: @Composable () -> Unit = {}) {
     var editing by rememberSaveable { mutableStateOf(false) }
     val focus = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     val backToBrowse = { focus.clearFocus(); keyboard?.hide(); editing = false }
     androidx.activity.compose.BackHandler(enabled = editing, onBack = backToBrowse)
     if (editing) SearchInputScreen(pureBlack, savedStateHandle, onBack = backToBrowse)
-    else SearchBrowseScreen(onSearch = { editing = true })
+    else SearchBrowseScreen(onSearch = { editing = true }, accountButton = accountButton)
 }

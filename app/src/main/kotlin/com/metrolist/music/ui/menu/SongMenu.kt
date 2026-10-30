@@ -509,7 +509,8 @@ fun SongMenu(
                 bottom = 8.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding(),
             ),
     ) {
-        item { RenameSongAction(song.toMediaMetadata(), onDismiss) }
+        item { RenameSongAction(song.toMediaMetadata(), onDismiss)
+        DownloadExtrasAction(song.id) }
         item { Spacer(Modifier.height(12.dp)) }
         item {
             NewActionGrid(

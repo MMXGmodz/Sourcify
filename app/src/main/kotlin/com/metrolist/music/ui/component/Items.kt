@@ -651,7 +651,7 @@ fun ArtistListItem(
             Icon(
                 painter = painterResource(R.drawable.favorite),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = Color(0xFFFF4D5E),
                 modifier = Modifier
                     .size(18.dp)
                     .padding(end = 2.dp),

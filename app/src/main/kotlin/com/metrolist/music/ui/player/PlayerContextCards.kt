@@ -49,7 +49,7 @@ fun PlayerContextCards(song: MediaMetadata, onNavigate: (String) -> Unit) {
     var loading by remember(song.id) { mutableStateOf(true) }
     val result by produceState<Pair<String, PlayerContextData>?>(null, song.id, attempt) {
         value = null; loading = true
-        try { value = song.id to PlayerContextRepository.load(song, force = attempt > 0) }
+        try { value = song.id to PlayerContextRepository.load(song, force = attempt > 0, context = context) }
         catch (e: CancellationException) { throw e }
         catch (_: Exception) { value = song.id to PlayerContextData(null, null) }
         finally { loading = false }
@@ -122,7 +122,15 @@ fun PlayerContextCards(song: MediaMetadata, onNavigate: (String) -> Unit) {
         val needsMoreCredits = !song.isEpisode && CreditGroup.entries.any { group -> credits.entries.none { it.group == group } }
         val extraCredits by produceState<MusicBrainzCreditsResult?>(null, creditsKey, needsMoreCredits, creditsAttempt) {
             value = null
-            if (needsMoreCredits) value = MusicBrainzCreditsRepository.shared.load(creditsKey, force = creditsAttempt > 0)
+            val store = com.metrolist.music.utils.DownloadCompanionStore.get(context)
+            val previous = withContext(Dispatchers.IO) { store.additionalCredits(song.id)?.let(::readSavedMusicBrainzCredits) }
+            value = previous
+            if (needsMoreCredits && (previous == null || creditsAttempt > 0)) {
+                value = MusicBrainzCreditsRepository.shared.load(creditsKey, force = creditsAttempt > 0)
+                (value as? MusicBrainzCreditsResult.Found)?.let { found ->
+                    withContext(Dispatchers.IO) { store.saveAdditionalCredits(song.id, savedMusicBrainzCredits(found)) }
+                }
+            }
         }
         val completeCredits = remember(credits, extraCredits) { mergeMusicBrainzCredits(credits, extraCredits) }
         fun openSource(url: String) {

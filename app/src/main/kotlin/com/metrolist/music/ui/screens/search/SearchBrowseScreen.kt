@@ -28,7 +28,7 @@ import com.metrolist.music.viewmodels.MoodAndGenresViewModel
 internal data class BrowseCategory(val title: String, val color: Color, val icon: Int, val route: String)
 
 @Composable
-fun SearchBrowseScreen(onSearch: () -> Unit, viewModel: MoodAndGenresViewModel = hiltViewModel()) {
+fun SearchBrowseScreen(onSearch: () -> Unit, accountButton: @Composable () -> Unit = {}, viewModel: MoodAndGenresViewModel = hiltViewModel()) {
     val navController = LocalNavController.current
     val genres by viewModel.moodAndGenres.collectAsStateWithLifecycle()
     val primary = listOf(
@@ -47,15 +47,19 @@ fun SearchBrowseScreen(onSearch: () -> Unit, viewModel: MoodAndGenresViewModel =
         BrowseCategory("Rock", Color(0xFFBA1F35), R.drawable.album, SearchRoutes.resultRoute("rock music")),
         BrowseCategory("Latin", Color(0xFFD0087F), R.drawable.album, SearchRoutes.resultRoute("latin music")),
     )
-    SearchBrowseContent(primary + backend.ifEmpty { fallback }, onSearch) { navController.navigate(it) }
+    SearchBrowseContent(primary + backend.ifEmpty { fallback }, onSearch, { navController.navigate(it) }, accountButton)
 }
 
 @Composable
-internal fun SearchBrowseContent(categories: List<BrowseCategory>, onSearch: () -> Unit, onCategory: (String) -> Unit) {
+internal fun SearchBrowseContent(categories: List<BrowseCategory>, onSearch: () -> Unit, onCategory: (String) -> Unit, accountButton: @Composable () -> Unit = {}) {
     val bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
     Column(Modifier.fillMaxSize().background(Color(0xFF0D0D12)).statusBarsPadding()) {
-        Text(stringResource(R.string.search), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold,
-            color = Color.White, modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp))
+        Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 12.dp, bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            accountButton()
+            Text(stringResource(R.string.search), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold,
+                color = Color.White, modifier = Modifier.padding(start = 8.dp))
+        }
         Row(Modifier.padding(horizontal = 12.dp).fillMaxWidth().clip(RoundedCornerShape(10.dp))
             .background(Color(0xFF242424)).clickable(onClick = onSearch).padding(16.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {

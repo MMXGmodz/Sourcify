@@ -41,16 +41,22 @@ internal object PlayerContextRepository {
     private data class Entry(val value: PlayerContextData, val timestamp: Long)
     private val tracks = LruCache<String, Entry>(24)
     private val artists = LruCache<String, ArtistPage>(16)
-    suspend fun load(song: MediaMetadata, force: Boolean = false): PlayerContextData = coroutineScope {
+    suspend fun load(song: MediaMetadata, force: Boolean = false, context: android.content.Context? = null): PlayerContextData = coroutineScope {
         tracks.get(song.id)?.takeIf { !force && System.currentTimeMillis() - it.timestamp < 600_000 }?.let { return@coroutineScope it.value }
+        val online = context?.let { com.metrolist.music.playback.hasDownloadInternet(it) } ?: true
+        val saved = context?.let { com.metrolist.music.utils.DownloadCompanionStore.get(it) }
         val artistId = song.artists.firstOrNull()?.id
         val artist = async(Dispatchers.IO) {
-            if (artistId == null) null else artists.get(artistId)?.takeIf { !force } ?: run {
+            if (artistId == null || !online) null else artists.get(artistId)?.takeIf { !force } ?: run {
                 val value = withTimeoutOrNull(15_000) { YouTube.artist(artistId).getOrNull() }
                 value?.also { artists.put(artistId, it) }
             }
         }
-        val media = async(Dispatchers.IO) { withTimeoutOrNull(15_000) { YouTube.getMediaInfo(song.id).getOrNull() } }
+        val media = async(Dispatchers.IO) {
+            val previous = saved?.info(song.id)
+            if (previous != null && !force || !online) previous
+            else withTimeoutOrNull(15_000) { YouTube.getMediaInfo(song.id).getOrNull() }?.also { saved?.saveInfo(song.id, it) } ?: previous
+        }
         val value = PlayerContextData(artist.await(), media.await())
         if (value.artist != null && value.media != null) tracks.put(song.id, Entry(value, System.currentTimeMillis()))
         value
