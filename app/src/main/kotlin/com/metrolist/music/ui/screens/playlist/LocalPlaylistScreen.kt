@@ -254,6 +254,7 @@ private fun LocalPlaylistScreenContent(
     }
 
     val editable: Boolean = playlist?.playlist?.isEditable == true
+    val coverEditor = playlist?.let { rememberPlaylistCoverEditor(it, snackbarHostState) }
 
     LaunchedEffect(songs) {
         selection.fastForEachReversed { mapId ->
@@ -478,6 +479,7 @@ private fun LocalPlaylistScreenContent(
         onBack = { navController.navigateUp() },
         onBackLongClick = { navController.backToMain() },
         onSearch = { isSearching = true },
+        onEditCover = coverEditor?.onEdit?.takeIf { editable },
         onPlay = { if (songs.isNotEmpty()) {
             playerConnection.playQueue(ListQueue(title = playlist?.playlist?.name.orEmpty(), items = songs.map { it.song.toMediaItem() }))
         } },
@@ -507,6 +509,7 @@ private fun LocalPlaylistScreenContent(
                                 onShowRemoveDownloadDialog = { showRemoveDownloadDialog = true },
                                 onshowDeletePlaylistDialog = { showDeletePlaylistDialog = true },
                                 onStartSearch = { isSearching = true },
+                                coverThumbnail = coverEditor?.thumbnail,
                                 snackbarHostState = snackbarHostState,
                                 modifier = Modifier.animateItem(),
                             )
@@ -875,6 +878,7 @@ fun LocalPlaylistHeader(
     onShowRemoveDownloadDialog: () -> Unit,
     onshowDeletePlaylistDialog: () -> Unit,
     onStartSearch: () -> Unit,
+    coverThumbnail: String?,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier,
 ) {
@@ -901,108 +905,6 @@ fun LocalPlaylistHeader(
     val liked = playlist.playlist.bookmarkedAt != null
     val editable: Boolean = playlist.playlist.isEditable
 
-    val overrideThumbnail = remember { mutableStateOf<String?>(null) }
-    var isCustomThumbnail: Boolean =
-        playlist.thumbnails.firstOrNull()?.let {
-            it.contains("studio_square_thumbnail") || it.contains("content://com.metrolist.music")
-        } ?: false
-
-    val result = remember { mutableStateOf<Uri?>(null) }
-    var pendingCropDestUri by remember { mutableStateOf<Uri?>(null) }
-    var showEditNoteDialog by remember { mutableStateOf(false) }
-
-    val cropLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
-            if (res.resultCode == android.app.Activity.RESULT_OK) {
-                val output = res.data?.let { UCrop.getOutput(it) } ?: pendingCropDestUri
-                if (output != null) result.value = output
-            }
-        }
-
-    val (darkMode, _) =
-        rememberEnumPreference(
-            DarkModeKey,
-            defaultValue = DarkMode.ON,
-        )
-
-    val cropColor = MaterialTheme.colorScheme
-    val darkTheme = darkMode == DarkMode.ON || (darkMode == DarkMode.AUTO && isSystemInDarkTheme())
-
-    val pickLauncher =
-        rememberLauncherForActivityResult(
-            ActivityResultContracts.PickVisualMedia(),
-        ) { uri ->
-            uri?.let { sourceUri ->
-                val destFile = java.io.File(context.cacheDir, "playlist_cover_crop_${System.currentTimeMillis()}.jpg")
-                val destUri = FileProvider.getUriForFile(context, "${context.packageName}.FileProvider", destFile)
-                pendingCropDestUri = destUri
-
-                val options =
-                    UCrop.Options().apply {
-                        setCompressionFormat(Bitmap.CompressFormat.JPEG)
-                        setCompressionQuality(90)
-                        setHideBottomControls(true)
-                        setToolbarTitle(editPlaylistCoverStr)
-
-                        setStatusBarLight(!darkTheme)
-
-                        setToolbarColor(cropColor.surface.toArgb())
-                        setToolbarWidgetColor(cropColor.inverseSurface.toArgb())
-                        setRootViewBackgroundColor(cropColor.surface.toArgb())
-                        setLogoColor(cropColor.surface.toArgb())
-                    }
-
-                val intent =
-                    UCrop
-                        .of(sourceUri, destUri)
-                        .withAspectRatio(1f, 1f)
-                        .withOptions(options)
-                        .getIntent(context)
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                cropLauncher.launch(intent)
-            }
-        }
-
-    LaunchedEffect(result.value) {
-        val uri = result.value ?: return@LaunchedEffect
-        withContext(Dispatchers.IO) {
-            when {
-                playlist.playlist.browseId == null -> {
-                    overrideThumbnail.value = uri.toString()
-                    isCustomThumbnail = true
-
-                    // Update the database with the new thumbnail
-                    database.query {
-                        update(playlist.playlist.copy(thumbnailUrl = uri.toString()))
-                    }
-                }
-
-                else -> {
-                    val bytes = uriToByteArray(context, uri)
-                    YouTube
-                        .uploadCustomThumbnailLink(
-                            playlist.playlist.browseId,
-                            bytes!!,
-                        ).onSuccess { newThumbnailUrl ->
-                            overrideThumbnail.value = newThumbnailUrl
-                            isCustomThumbnail = true
-
-                            // Update the database with the new thumbnail URL
-                            database.query {
-                                update(playlist.playlist.copy(thumbnailUrl = newThumbnailUrl))
-                            }
-                        }.onFailure {
-                            if (it is ClientRequestException) {
-                                snackbarHostState.showSnackbar("${it.response.status.value} ${it.response.status.description}")
-                            }
-                            reportException(it)
-                        }
-                }
-            }
-        }
-    }
-
     LaunchedEffect(songs) {
         if (songs.isEmpty()) return@LaunchedEffect
         downloadUtil.downloads.collect { downloads ->
@@ -1026,32 +928,6 @@ fun LocalPlaylistHeader(
         modifier = modifier.fillMaxWidth().background(Color.Transparent).playlistHeaderAnchor(),
         horizontalAlignment = Alignment.Start,
     ) {
-        if (showEditNoteDialog) {
-            ActionPromptDialog(
-                title = stringResource(R.string.edit_playlist_cover),
-                onDismiss = { showEditNoteDialog = false },
-                onConfirm = {
-                    showEditNoteDialog = false
-                    pickLauncher.launch(
-                        PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly),
-                    )
-                },
-                onCancel = { showEditNoteDialog = false },
-            ) {
-                if (playlist.playlist.browseId != null) {
-                    Text(
-                        text = stringResource(R.string.edit_playlist_cover_note),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                }
-                Text(
-                    text = stringResource(R.string.edit_playlist_cover_note_wait),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                )
-            }
-        }
         PlaylistArtworkHeader(playlist.playlist.name) {
             when (playlist.thumbnails.size) {
                 0 -> {
@@ -1082,60 +958,13 @@ fun LocalPlaylistHeader(
                         shape = RoundedCornerShape(0.dp),
                     ) {
                         AsyncImage(
-                            model = overrideThumbnail.value ?: playlist.thumbnails[0],
+                            model = coverThumbnail ?: playlist.thumbnails[0],
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
-                    if (editable) {
-                        OverlayEditButton(
-                            visible = true,
-                            alignment = Alignment.TopEnd,
-                            onClick = {
-                                if (isCustomThumbnail) {
-                                    menuState.show(
-                                        {
-                                            CustomThumbnailMenu(
-                                                onEdit = {
-                                                    pickLauncher.launch(
-                                                        PickVisualMediaRequest(
-                                                            mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly,
-                                                        ),
-                                                    )
-                                                },
-                                                onRemove = {
-                                                    when {
-                                                        playlist.playlist.browseId == null -> {
-                                                            overrideThumbnail.value = null
-                                                            database.query {
-                                                                update(playlist.playlist.copy(thumbnailUrl = null))
-                                                            }
-                                                        }
 
-                                                        else -> {
-                                                            scope.launch(Dispatchers.IO) {
-                                                                YouTube.removeThumbnailPlaylist(playlist.playlist.browseId).onSuccess { newThumbnailUrl ->
-                                                                    overrideThumbnail.value = newThumbnailUrl
-                                                                    database.query {
-                                                                        update(playlist.playlist.copy(thumbnailUrl = newThumbnailUrl))
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                    isCustomThumbnail = false
-                                                },
-                                                onDismiss = menuState::dismiss,
-                                            )
-                                        },
-                                    )
-                                } else {
-                                    showEditNoteDialog = true
-                                }
-                            },
-                        )
-                    }
                 }
 
                 else -> {
@@ -1163,54 +992,7 @@ fun LocalPlaylistHeader(
                             }
                         }
                     }
-                    if (editable) {
-                        OverlayEditButton(
-                            visible = true,
-                            alignment = Alignment.TopEnd,
-                            onClick = {
-                                if (isCustomThumbnail) {
-                                    menuState.show(
-                                        {
-                                            CustomThumbnailMenu(
-                                                onEdit = {
-                                                    pickLauncher.launch(
-                                                        PickVisualMediaRequest(
-                                                            mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly,
-                                                        ),
-                                                    )
-                                                },
-                                                onRemove = {
-                                                    when {
-                                                        playlist.playlist.browseId == null -> {
-                                                            overrideThumbnail.value = null
-                                                            database.query {
-                                                                update(playlist.playlist.copy(thumbnailUrl = null))
-                                                            }
-                                                        }
 
-                                                        else -> {
-                                                            scope.launch(Dispatchers.IO) {
-                                                                YouTube.removeThumbnailPlaylist(playlist.playlist.browseId).onSuccess { newThumbnailUrl ->
-                                                                    overrideThumbnail.value = newThumbnailUrl
-                                                                    database.query {
-                                                                        update(playlist.playlist.copy(thumbnailUrl = newThumbnailUrl))
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                    isCustomThumbnail = false
-                                                },
-                                                onDismiss = menuState::dismiss,
-                                            )
-                                        },
-                                    )
-                                } else {
-                                    showEditNoteDialog = true
-                                }
-                            },
-                        )
-                    }
                 }
             }
         }
@@ -1435,4 +1217,187 @@ fun LocalPlaylistScreen(navController: NavController, viewModel: LocalPlaylistVi
     com.metrolist.music.ui.component.ArtworkPage(item?.thumbnails?.firstOrNull()) {
         LocalPlaylistScreenContent(navController, viewModel)
     }
+}
+
+
+private data class PlaylistCoverEditor(val thumbnail: String?, val onEdit: () -> Unit)
+
+@Composable
+private fun rememberPlaylistCoverEditor(playlist: Playlist, snackbarHostState: SnackbarHostState): PlaylistCoverEditor {
+    val context = LocalContext.current
+    val database = LocalDatabase.current
+    val menuState = LocalMenuState.current
+    val scope = rememberCoroutineScope()
+    val editPlaylistCoverStr = stringResource(R.string.edit_playlist_cover)
+    val overrideThumbnail = remember { mutableStateOf<String?>(null) }
+    var isCustomThumbnail: Boolean =
+        playlist.thumbnails.firstOrNull()?.let {
+            it.contains("studio_square_thumbnail") || it.contains("content://com.metrolist.music")
+        } ?: false
+
+    val result = remember { mutableStateOf<Uri?>(null) }
+    var pendingCropDestUri by remember { mutableStateOf<Uri?>(null) }
+    var showEditNoteDialog by remember { mutableStateOf(false) }
+
+    val cropLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
+            if (res.resultCode == android.app.Activity.RESULT_OK) {
+                val output = res.data?.let { UCrop.getOutput(it) } ?: pendingCropDestUri
+                if (output != null) result.value = output
+            }
+        }
+
+    val (darkMode, _) =
+        rememberEnumPreference(
+            DarkModeKey,
+            defaultValue = DarkMode.ON,
+        )
+
+    val cropColor = MaterialTheme.colorScheme
+    val darkTheme = darkMode == DarkMode.ON || (darkMode == DarkMode.AUTO && isSystemInDarkTheme())
+
+    val pickLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.PickVisualMedia(),
+        ) { uri ->
+            uri?.let { sourceUri ->
+                val destFile = java.io.File(context.cacheDir, "playlist_cover_crop_${System.currentTimeMillis()}.jpg")
+                val destUri = FileProvider.getUriForFile(context, "${context.packageName}.FileProvider", destFile)
+                pendingCropDestUri = destUri
+
+                val options =
+                    UCrop.Options().apply {
+                        setCompressionFormat(Bitmap.CompressFormat.JPEG)
+                        setCompressionQuality(90)
+                        setHideBottomControls(true)
+                        setToolbarTitle(editPlaylistCoverStr)
+
+                        setStatusBarLight(!darkTheme)
+
+                        setToolbarColor(cropColor.surface.toArgb())
+                        setToolbarWidgetColor(cropColor.inverseSurface.toArgb())
+                        setRootViewBackgroundColor(cropColor.surface.toArgb())
+                        setLogoColor(cropColor.surface.toArgb())
+                    }
+
+                val intent =
+                    UCrop
+                        .of(sourceUri, destUri)
+                        .withAspectRatio(1f, 1f)
+                        .withOptions(options)
+                        .getIntent(context)
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                cropLauncher.launch(intent)
+            }
+        }
+
+    LaunchedEffect(result.value) {
+        val uri = result.value ?: return@LaunchedEffect
+        withContext(Dispatchers.IO) {
+            when {
+                playlist.playlist.browseId == null -> {
+                    overrideThumbnail.value = uri.toString()
+                    isCustomThumbnail = true
+
+                    // Update the database with the new thumbnail
+                    database.query {
+                        update(playlist.playlist.copy(thumbnailUrl = uri.toString()))
+                    }
+                }
+
+                else -> {
+                    val bytes = uriToByteArray(context, uri)
+                    YouTube
+                        .uploadCustomThumbnailLink(
+                            playlist.playlist.browseId,
+                            bytes!!,
+                        ).onSuccess { newThumbnailUrl ->
+                            overrideThumbnail.value = newThumbnailUrl
+                            isCustomThumbnail = true
+
+                            // Update the database with the new thumbnail URL
+                            database.query {
+                                update(playlist.playlist.copy(thumbnailUrl = newThumbnailUrl))
+                            }
+                        }.onFailure {
+                            if (it is ClientRequestException) {
+                                snackbarHostState.showSnackbar("${it.response.status.value} ${it.response.status.description}")
+                            }
+                            reportException(it)
+                        }
+                }
+            }
+        }
+    }
+
+        if (showEditNoteDialog) {
+            ActionPromptDialog(
+                title = stringResource(R.string.edit_playlist_cover),
+                onDismiss = { showEditNoteDialog = false },
+                onConfirm = {
+                    showEditNoteDialog = false
+                    pickLauncher.launch(
+                        PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly),
+                    )
+                },
+                onCancel = { showEditNoteDialog = false },
+            ) {
+                if (playlist.playlist.browseId != null) {
+                    Text(
+                        text = stringResource(R.string.edit_playlist_cover_note),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
+                Text(
+                    text = stringResource(R.string.edit_playlist_cover_note_wait),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                )
+            }
+        }
+    return PlaylistCoverEditor(overrideThumbnail.value, onEdit = {
+
+                                if (isCustomThumbnail) {
+                                    menuState.show(
+                                        {
+                                            CustomThumbnailMenu(
+                                                onEdit = {
+                                                    pickLauncher.launch(
+                                                        PickVisualMediaRequest(
+                                                            mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly,
+                                                        ),
+                                                    )
+                                                },
+                                                onRemove = {
+                                                    when {
+                                                        playlist.playlist.browseId == null -> {
+                                                            overrideThumbnail.value = null
+                                                            database.query {
+                                                                update(playlist.playlist.copy(thumbnailUrl = null))
+                                                            }
+                                                        }
+
+                                                        else -> {
+                                                            scope.launch(Dispatchers.IO) {
+                                                                YouTube.removeThumbnailPlaylist(playlist.playlist.browseId).onSuccess { newThumbnailUrl ->
+                                                                    overrideThumbnail.value = newThumbnailUrl
+                                                                    database.query {
+                                                                        update(playlist.playlist.copy(thumbnailUrl = newThumbnailUrl))
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    isCustomThumbnail = false
+                                                },
+                                                onDismiss = menuState::dismiss,
+                                            )
+                                        },
+                                    )
+                                } else {
+                                    showEditNoteDialog = true
+                                }
+                                })
 }

@@ -154,6 +154,9 @@ fun PrivacySettings(
             )
         )
 
+        PrivacyTokenSettings()
+        Spacer(Modifier.height(16.dp))
+
         Material3SettingsGroup(
             title = stringResource(R.string.listen_history),
             items = listOf(

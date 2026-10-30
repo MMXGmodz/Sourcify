@@ -46,6 +46,7 @@ fun CanvasSettings(navController: NavController) {
     val metadata by LocalPlayerConnection.current?.mediaMetadata?.collectAsStateWithLifecycle()
         ?: remember { mutableStateOf(null) }
     val selection = rememberCanvasSelection(metadata?.id)
+    val enabledForSong = rememberCanvasEnabled(metadata?.id)
     val (enabled, setEnabled) = rememberPreference(CanvasEnabledKey, true)
     val (wifiOnly, setWifiOnly) = rememberPreference(CanvasWifiOnlyKey, false)
     val (automatic, setAutomatic) = rememberPreference(AutomaticCanvasKey, true)
@@ -120,6 +121,10 @@ fun CanvasSettings(navController: NavController) {
                 ))
                 1 -> {
                     Text(metadata?.title ?: stringResource(R.string.sourcify_canvas_start_song), style = MaterialTheme.typography.titleLarge)
+                    if (metadata != null) Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Text(stringResource(R.string.sourcify_canvas_this_song), Modifier.weight(1f))
+                        Switch(enabledForSong, { store.setEnabled(metadata!!.id, it) })
+                    }
                     Text(stringResource(R.string.sourcify_canvas_for_song), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Button(onClick = { target = metadata?.id; picker.launch(arrayOf("video/*")) }, enabled = metadata != null && !busy) {
                         Text(stringResource(R.string.sourcify_canvas_choose))

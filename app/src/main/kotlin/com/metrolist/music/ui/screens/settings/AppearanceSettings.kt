@@ -36,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -140,6 +141,10 @@ fun AppearanceSettings(
             defaultValue = true,
         )
     val iconContext = LocalContext.current
+    LaunchedEffect(Unit) {
+        onEnableDynamicIconPrefChange(false)
+        IconUtils.setIcon(iconContext, false)
+    }
     val onEnableDynamicIconChange: (Boolean) -> Unit = { newValue ->
         onEnableDynamicIconPrefChange(newValue)
         IconUtils.setIcon(iconContext, newValue)
@@ -987,30 +992,7 @@ fun AppearanceSettings(
                             ),
                         )
                     }
-                    add(
-                        Material3SettingsItem(
-                            icon = painterResource(R.drawable.palette),
-                            title = { Text(stringResource(R.string.enable_dynamic_icon)) },
-                            description = { Text(stringResource(R.string.enable_dynamic_icon_desc)) },
-                            trailingContent = {
-                                Switch(
-                                    checked = enableDynamicIcon,
-                                    onCheckedChange = onEnableDynamicIconChange,
-                                    thumbContent = {
-                                        Icon(
-                                            painter =
-                                                painterResource(
-                                                    id = if (enableDynamicIcon) R.drawable.check else R.drawable.close,
-                                                ),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(SwitchDefaults.IconSize),
-                                        )
-                                    },
-                                )
-                            },
-                            onClick = { onEnableDynamicIconChange(!enableDynamicIcon) },
-                        ),
-                    )
+
                     add(
                         Material3SettingsItem(
                             icon = painterResource(R.drawable.palette),
@@ -1530,30 +1512,7 @@ fun AppearanceSettings(
                             onClick = { onLyricsScrollChange(!lyricsScroll) },
                         ),
                     )
-                    add(
-                        Material3SettingsItem(
-                            icon = painterResource(R.drawable.lyrics),
-                            title = { Text(stringResource(R.string.hide_status_bar_fullscreen)) },
-                            description = { Text(stringResource(R.string.hide_status_bar_fullscreen_desc)) },
-                            trailingContent = {
-                                Switch(
-                                    checked = hideStatusBarOnFullscreen,
-                                    onCheckedChange = onHideStatusBarOnFullscreenChange,
-                                    thumbContent = {
-                                        Icon(
-                                            painter =
-                                                painterResource(
-                                                    id = if (hideStatusBarOnFullscreen) R.drawable.check else R.drawable.close,
-                                                ),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(SwitchDefaults.IconSize),
-                                        )
-                                    },
-                                )
-                            },
-                            onClick = { onHideStatusBarOnFullscreenChange(!hideStatusBarOnFullscreen) },
-                        ),
-                    )
+
                 },
         )
 
@@ -1678,28 +1637,7 @@ fun AppearanceSettings(
                         },
                         onClick = { onSlimNavChange(!slimNav) },
                     ),
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.group_outlined),
-                        title = { Text(stringResource(R.string.listen_together_in_top_bar)) },
-                        description = { Text(stringResource(R.string.listen_together_in_top_bar_desc)) },
-                        trailingContent = {
-                            Switch(
-                                checked = listenTogetherInTopBar,
-                                onCheckedChange = onListenTogetherInTopBarChange,
-                                thumbContent = {
-                                    Icon(
-                                        painter =
-                                            painterResource(
-                                                id = if (listenTogetherInTopBar) R.drawable.check else R.drawable.close,
-                                            ),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(SwitchDefaults.IconSize),
-                                    )
-                                },
-                            )
-                        },
-                        onClick = { onListenTogetherInTopBarChange(!listenTogetherInTopBar) },
-                    ),
+
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.grid_view),
                         title = { Text(stringResource(R.string.grid_cell_size)) },

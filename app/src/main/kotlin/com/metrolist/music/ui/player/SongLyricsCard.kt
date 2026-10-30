@@ -99,7 +99,7 @@ fun SongLyricsCard(song: MediaMetadata, position: Long) {
                         com.metrolist.music.utils.makeTimeString(song.duration * 1000L), color = Color.White.copy(alpha = 0.8f))
                 }
                 IconButton(onClick = { fullScreen = false }) {
-                    Icon(painterResource(R.drawable.fullscreen), stringResource(R.string.cd_back), tint = Color.White)
+                    Icon(painterResource(R.drawable.fullscreen_exit), stringResource(R.string.sourcify_exit_fullscreen), tint = Color.White)
                 }
             }
             val entries = remember(raw) {

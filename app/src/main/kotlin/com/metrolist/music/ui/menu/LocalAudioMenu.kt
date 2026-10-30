@@ -32,6 +32,8 @@ internal fun LocalAudioMenu(metadata: MediaMetadata, onDismiss: () -> Unit, onIn
         Text(metadata.title, style = MaterialTheme.typography.titleLarge)
         Text(stringResource(R.string.local_audio_network_notice), style = MaterialTheme.typography.bodySmall)
         RenameSongAction(metadata, onDismiss)
+        PlayerSleepTimerAction()
+        SongCanvasAction(metadata.id)
         VolumeSlider(value = volume, onValueChange = { connection.service.playerVolume.value = it }, modifier = Modifier.fillMaxWidth())
         Material3MenuGroup(items = listOf(
             Material3MenuItemData(title = { Text(stringResource(R.string.details)) }, icon = { Icon(painterResource(R.drawable.info), null) },

@@ -754,7 +754,7 @@ class MainActivity : FragmentActivity() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val (previousTab, setPreviousTab) = rememberSaveable { mutableStateOf("home") }
 
-                val (listenTogetherInTopBar) = rememberPreference(ListenTogetherInTopBarKey, defaultValue = true)
+                val listenTogetherInTopBar = true
                 val navigationItems =
                     remember(listenTogetherInTopBar) {
                         if (listenTogetherInTopBar) {
@@ -1080,34 +1080,12 @@ class MainActivity : FragmentActivity() {
                                     TopAppBar(
                                         title = {
                                             Text(
-                                                text = if (currentRoute == "home") stringResource(R.string.sourcify_wordmark)
+                                                text = if (currentRoute == "home") ""
                                                     else currentTitleRes?.let { stringResource(it) } ?: "",
                                                 style = MaterialTheme.typography.titleLarge,
                                             )
                                         },
-                                        actions = {
-                                            if (showHistoryButton) {
-                                                IconButton(onClick = { navController.navigate("history") }) {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.history),
-                                                        contentDescription = stringResource(R.string.history),
-                                                    )
-                                                }
-                                            }
-                                            IconButton(onClick = { navController.navigate("stats") }) {
-                                                Icon(
-                                                    painter = painterResource(R.drawable.stats),
-                                                    contentDescription = stringResource(R.string.stats),
-                                                )
-                                            }
-                                            if (listenTogetherInTopBar) {
-                                                IconButton(onClick = { navController.navigate("listen_together_from_topbar") }) {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.group_outlined),
-                                                        contentDescription = stringResource(R.string.sourcify_jam_title),
-                                                    )
-                                                }
-                                            }
+                                        navigationIcon = {
                                             IconButton(onClick = { showAccountDialog = true }) {
                                                 BadgedBox(badge = {
                                                     if (latestVersionName != BuildConfig.BASE_VERSION_NAME) {

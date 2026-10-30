@@ -26,6 +26,14 @@ class CanvasVideoStore(context: Context) {
     internal val preferences = this.context.getSharedPreferences("sourcify_canvas", Context.MODE_PRIVATE)
 
     internal val clips = this.context.getSharedPreferences("sourcify_canvas_clips", Context.MODE_PRIVATE)
+    internal val enabledPreferences = this.context.getSharedPreferences("sourcify_canvas_enabled", Context.MODE_PRIVATE)
+
+    fun isEnabled(songId: String): Boolean = enabledPreferences.getBoolean(songId, true)
+
+    fun setEnabled(songId: String, enabled: Boolean) {
+        require(songId.isNotBlank())
+        enabledPreferences.edit().putBoolean(songId, enabled).apply()
+    }
 
     fun selection(songId: String): CanvasSelection? {
         val uri = get(songId)
@@ -77,6 +85,21 @@ class CanvasVideoStore(context: Context) {
             }
         }
     }
+}
+
+@Composable
+fun rememberCanvasEnabled(songId: String?): Boolean {
+    val context = LocalContext.current
+    val store = remember(context) { CanvasVideoStore(context) }
+    var enabled by remember(store, songId) { mutableStateOf(songId?.let(store::isEnabled) ?: false) }
+    DisposableEffect(store, songId) {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == songId) enabled = songId?.let(store::isEnabled) ?: false
+        }
+        store.enabledPreferences.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { store.enabledPreferences.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+    return enabled
 }
 
 @Composable

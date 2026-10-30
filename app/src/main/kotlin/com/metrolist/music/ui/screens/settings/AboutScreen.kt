@@ -34,6 +34,7 @@ import com.metrolist.music.ui.utils.backToMain
 @Composable
 fun AboutScreen(navController: NavController) {
     val context = LocalContext.current
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     val insets = LocalPlayerAwareWindowInsets.current
     var showLicenses by remember { mutableStateOf(false) }
     val notices = remember(context) {
@@ -79,6 +80,13 @@ fun AboutScreen(navController: NavController) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
+            }
+        }
+        Surface(onClick = { uriHandler.openUri("https://github.com/MMXGmodz/Sourcify") },
+            shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+            Row(Modifier.fillMaxWidth().padding(20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Icon(painterResource(R.drawable.link), null)
+                Text(stringResource(R.string.sourcify_github))
             }
         }
         Spacer(Modifier.height(8.dp))

@@ -95,6 +95,11 @@ fun SettingsScreen(
             title = stringResource(R.string.settings_section_player_content),
             items = listOf(
                 Material3SettingsItem(
+                    icon = painterResource(R.drawable.group_outlined),
+                    title = { Text(stringResource(R.string.sourcify_jam_hub_title)) },
+                    onClick = { navController.navigate("listen_together_from_topbar") }
+                ),
+                Material3SettingsItem(
                     icon = painterResource(R.drawable.slow_motion_video),
                     title = { Text(stringResource(R.string.sourcify_canvas)) },
                     onClick = { navController.navigate("settings/canvas") }
@@ -109,11 +114,7 @@ fun SettingsScreen(
                     title = { Text(stringResource(R.string.content)) },
                     onClick = { navController.navigate("settings/content") }
                 ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.translate),
-                    title = { Text(stringResource(R.string.ai_lyrics_translation)) },
-                    onClick = { navController.navigate("settings/ai") }
-                )
+
             )
         )
 

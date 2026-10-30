@@ -197,6 +197,7 @@ private fun EqScreenContent(
                     }
                 },
                 actions = {
+                    SystemEqualizerAction()
                     Box {
                         IconButton(onClick = onAddClicked) {
                             Icon(

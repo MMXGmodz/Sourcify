@@ -745,6 +745,10 @@ fun ContentSettings(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp),
     ) {
+        Material3SettingsGroup(items = listOf(Material3SettingsItem(
+            icon = painterResource(R.drawable.translate), title = { Text(stringResource(R.string.ai_lyrics_translation)) },
+            onClick = { navController.navigate("settings/ai") },
+        )))
         Material3SettingsGroup(
             title = stringResource(R.string.general),
             items = listOf(

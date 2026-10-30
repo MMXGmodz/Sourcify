@@ -766,6 +766,9 @@ fun StatsScreen(
                     )
                 }
             } else if (!isSearching) {
+                androidx.compose.material3.TextButton(onClick = { navController.navigate("history") }) {
+                    Text(stringResource(R.string.history))
+                }
                 androidx.compose.material3.IconButton(
                     onClick = { isSearching = true },
                 ) {

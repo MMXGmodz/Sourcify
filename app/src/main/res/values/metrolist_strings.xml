@@ -1184,4 +1184,12 @@
     <string name="canvas_wifi_only">Canvas nur über WLAN/LAN</string>
     <string name="canvas_wifi_only_description">Online-Canvas nur in ungetakteten WLAN- oder LAN-Netzen laden. Eigene Videos bleiben verfügbar.</string>
     <string name="local_audio_network_notice">Lokale Dateien werden nicht über YouTube, Jam oder Cast geteilt.</string>
+    <string name="sourcify_github">GitHub · MMXGmodz/Sourcify</string>
+    <string name="sourcify_eq_start_song">Starte zuerst einen Song für den System-Equalizer.</string>
+    <string name="sourcify_eq_unavailable">Auf diesem Gerät ist kein System-Equalizer verfügbar.</string>
+    <string name="sourcify_canvas_this_song">Canvas für diesen Song</string>
+    <string name="sourcify_exit_fullscreen">Vollbild verlassen</string>
+    <string name="sourcify_player_repeat">Wiederholen</string>
+    <string name="sourcify_timer_active">Schlaf-Timer ist aktiv</string>
+    <string name="sourcify_timer_stop">Schlaf-Timer beenden</string>
 </resources>

@@ -340,6 +340,13 @@ fun LibraryPlaylistsScreen(
             keyboardController = keyboardController,
             modifier = Modifier.padding(start = 16.dp),
         ) {
+            IconButton(onClick = { showCreatePlaylistDialog = true }, modifier = Modifier.size(40.dp)) {
+                Icon(painterResource(R.drawable.add), stringResource(R.string.create_playlist))
+            }
+            IconButton(onClick = { isSearchActive = true }, modifier = Modifier.size(40.dp)) {
+                Icon(painterResource(R.drawable.search), stringResource(R.string.search))
+            }
+
             SortHeader(
                 sortType = sortType,
                 sortDescending = sortDescending,
@@ -367,15 +374,6 @@ fun LibraryPlaylistsScreen(
                 color = MaterialTheme.colorScheme.secondary,
             )
 
-            IconButton(
-                onClick = { isSearchActive = true },
-                modifier = Modifier.padding(start = 8.dp).size(40.dp),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.search),
-                    contentDescription = stringResource(R.string.search),
-                )
-            }
 
             IconButton(
                 onClick = {
@@ -541,20 +539,6 @@ fun LibraryPlaylistsScreen(
         }
 
         // Always visible + button (no scroll hiding)
-        FloatingActionButton(
-            onClick = { showCreatePlaylistDialog = true },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .windowInsetsPadding(
-                    LocalPlayerAwareWindowInsets.current
-                        .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
-                )
-                .padding(16.dp)
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.add),
-                contentDescription = stringResource(R.string.create_playlist),
-            )
-        }
+
     }
 }
