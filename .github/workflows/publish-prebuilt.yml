@@ -1,0 +1,23 @@
+name: Publish verified Android release
+on:
+  push:
+    branches: [release-assets/v13.7.6]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify release files
+        working-directory: release-assets
+        run: sha256sum -c SHA256SUMS
+      - name: Publish Android 13.7.6
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload v13.7.6-preview.1 --repo "$GITHUB_REPOSITORY" release-assets/*
+          gh release edit v13.7.6-preview.1 --repo "$GITHUB_REPOSITORY" --draft=false --prerelease
