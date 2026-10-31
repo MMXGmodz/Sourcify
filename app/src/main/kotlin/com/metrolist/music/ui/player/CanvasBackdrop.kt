@@ -12,14 +12,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 
 @Composable
-internal fun CanvasBackdrop(scrollOffset: () -> Float, modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+internal fun CanvasBackdrop(scrollOffset: () -> Float, modifier: Modifier = Modifier, fullscreen: Boolean = false, content: @Composable BoxScope.() -> Unit) {
     Box(modifier.fillMaxSize().clipToBounds().background(Color.Black)) {
         Box(Modifier.fillMaxSize().graphicsLayer { translationY = -scrollOffset().coerceAtLeast(0f) }) {
             content()
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(
                 0f to Color.Transparent,
-                0.52f to Color.Transparent,
-                0.8f to Color.Black.copy(alpha = 0.7f),
+                (if (fullscreen) .75f else .52f) to Color.Transparent,
+                (if (fullscreen) .9f else .8f) to Color.Black.copy(alpha = 0.7f),
                 1f to Color.Black,
             )))
         }

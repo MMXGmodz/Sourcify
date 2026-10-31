@@ -229,7 +229,11 @@ fun BottomSheetPlayer(
     val playbackShuffle by playerConnection.shuffleModeEnabled.collectAsStateWithLifecycle()
     val playerScrollState = rememberScrollState()
     val compactThreshold = with(LocalDensity.current) { (LocalConfiguration.current.screenHeightDp * 0.7f).dp.toPx() }
-    val compactPlayerHeader by remember(compactThreshold) { derivedStateOf { playerScrollState.value > compactThreshold } }
+    val headerTransitionDistance = with(LocalDensity.current) { 64.dp.toPx() }
+    val headerFraction by animateFloatAsState(
+        compactHeaderProgress(playerScrollState.value.toFloat(), compactThreshold, headerTransitionDistance),
+        animationSpec = tween(140), label = "compactSongHeader")
+    var canvasFullscreen by rememberSaveable(mediaMetadata?.id) { mutableStateOf(false) }
 
     val automaticCanvasEnabled by rememberPreference(AutomaticCanvasKey, true)
     val canvasSelection = com.metrolist.music.utils.rememberPlaybackCanvasSelection(mediaMetadata?.id, automaticCanvasEnabled)
@@ -248,6 +252,7 @@ fun BottomSheetPlayer(
     val canvasViewport = with(LocalDensity.current) { LocalConfiguration.current.screenHeightDp.dp.toPx() }
     val canvasInView by remember(portrait, canvasViewport) { derivedStateOf { !portrait || playerScrollState.value < canvasViewport } }
     val showCanvas = canvasEnabled && canvasSource != null && !canvasFailed && state.isExpanded
+    LaunchedEffect(showCanvas) { if (!showCanvas) canvasFullscreen = false }
 
     val (useNewPlayerDesign, onUseNewPlayerDesignChange) =
         rememberPreference(
@@ -335,7 +340,7 @@ fun BottomSheetPlayer(
     }
 
     BackHandler(enabled = state.isExpanded) {
-        state.collapseSoft()
+        if (canvasFullscreen) canvasFullscreen = false else state.collapseSoft()
     }
 
     val onBackgroundColor =
@@ -428,6 +433,11 @@ fun BottomSheetPlayer(
     }
     // Track when we last manually set position to avoid Cast overwriting it
     var lastManualSeekTime by remember { mutableLongStateOf(0L) }
+    val onLyricsSeek: (Long) -> Unit = { target ->
+        position = target
+        lastManualSeekTime = System.currentTimeMillis()
+        playerConnection.seekTo(target)
+    }
 
     var gradientColors by remember {
         mutableStateOf<List<Color>>(emptyList())
@@ -800,18 +810,18 @@ fun BottomSheetPlayer(
                     }
                 }
                 if (showCanvas) {
-                    CanvasBackdrop(scrollOffset = { if (portrait) playerScrollState.value.toFloat() else 0f }) {
+                    CanvasBackdrop(scrollOffset = { if (portrait && !canvasFullscreen) playerScrollState.value.toFloat() else 0f }, fullscreen = canvasFullscreen) {
                         androidx.compose.runtime.key(mediaMetadata?.id, canvasAttempt) {
                             CanvasVideoBackground(
                                 source = canvasSource,
-                                isPlaying = isPlaying && canvasInView,
+                                isPlaying = isPlaying && (canvasInView || canvasFullscreen),
                                 onError = { if (canvasAttempt == 0) canvasAttempt++ else canvasFailed = true },
                                 modifier = Modifier.fillMaxSize().alpha(backgroundAlpha),
                             )
                         }
                     }
                 }
-                if (portrait) Box(Modifier.fillMaxSize().drawBehind {
+                if (portrait && !canvasFullscreen) Box(Modifier.fillMaxSize().drawBehind {
                     val fadeEnd = size.height * 0.62f - playerScrollState.value
                     drawRect(Brush.verticalGradient(0f to Color.Transparent, 1f to Color.Black,
                         startY = fadeEnd - size.height * 0.3f, endY = fadeEnd.coerceAtLeast(1f)))
@@ -1581,7 +1591,7 @@ fun BottomSheetPlayer(
             }
         }
 
-        when (LocalConfiguration.current.orientation) {
+        if (!canvasFullscreen) when (LocalConfiguration.current.orientation) {
             Configuration.ORIENTATION_LANDSCAPE -> {
                 // Calculate vertical padding like OuterTune
                 val density = LocalDensity.current
@@ -1618,8 +1628,14 @@ fun BottomSheetPlayer(
                             transitionSpec = { fadeIn() togetherWith fadeOut() },
                         ) { showLyrics ->
                             if (showLyrics) {
-                                mediaMetadata?.let { SongLyricsCard(it, effectivePosition) }
-                            } else if (!showCanvas) {
+                                mediaMetadata?.let { SongLyricsCard(it, effectivePosition, onSeekRequested = onLyricsSeek) }
+                            } else if (showCanvas) {
+                                Box(Modifier.fillMaxSize().clickable(onClickLabel = stringResource(R.string.s7_canvas_fullscreen)) { canvasFullscreen = true }) {
+                                    IconButton(onClick = { canvasFullscreen = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
+                                        Icon(painterResource(R.drawable.fullscreen), stringResource(R.string.s7_canvas_fullscreen), tint = Color.White)
+                                    }
+                                }
+                            } else {
                                 Thumbnail(
                                     sliderPositionProvider = sliderPositionProvider,
                                     modifier = Modifier.animateContentSize(),
@@ -1678,8 +1694,14 @@ fun BottomSheetPlayer(
                             transitionSpec = { fadeIn() togetherWith fadeOut() },
                         ) { showLyrics ->
                             if (showLyrics) {
-                                mediaMetadata?.let { SongLyricsCard(it, effectivePosition) }
-                            } else if (!showCanvas) {
+                                mediaMetadata?.let { SongLyricsCard(it, effectivePosition, onSeekRequested = onLyricsSeek) }
+                            } else if (showCanvas) {
+                                Box(Modifier.fillMaxSize().clickable(onClickLabel = stringResource(R.string.s7_canvas_fullscreen)) { canvasFullscreen = true }) {
+                                    IconButton(onClick = { canvasFullscreen = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
+                                        Icon(painterResource(R.drawable.fullscreen), stringResource(R.string.s7_canvas_fullscreen), tint = Color.White)
+                                    }
+                                }
+                            } else {
                                 Thumbnail(
                                     sliderPositionProvider = sliderPositionProvider,
                                     modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
@@ -1696,7 +1718,7 @@ fun BottomSheetPlayer(
 
                     Spacer(Modifier.height(24.dp))
                     mediaMetadata?.let { song ->
-                        SongLyricsCard(song, effectivePosition)
+                        SongLyricsCard(song, effectivePosition, onSeekRequested = onLyricsSeek)
                     }
                     if (canvasEnabled && canvasFailed) {
                         androidx.compose.material3.TextButton(onClick = { canvasFailed = false; canvasAttempt++ }) {
@@ -1715,48 +1737,27 @@ fun BottomSheetPlayer(
             }
         }
 
-        if (mediaMetadata != null) {
-            Column(Modifier.align(Alignment.TopCenter).fillMaxWidth()
-                .background(if (compactPlayerHeader) Brush.verticalGradient(listOf(
-                    if (showCanvas) Color.Black else androidx.compose.ui.graphics.lerp(songColor, Color.Black, 0.75f),
-                    if (showCanvas) Color.Black else androidx.compose.ui.graphics.lerp(songColor, Color.Black, 0.75f)))
-                    else Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.65f), 0.7f to Color.Black.copy(alpha = 0.2f), 1f to Color.Transparent))
-                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (!compactPlayerHeader) IconButton(onClick = { state.collapseSoft() }, modifier = Modifier.size(48.dp)) {
-                        Icon(painterResource(R.drawable.expand_more), stringResource(R.string.cd_back), tint = Color.White)
-                    }
-                    if (compactPlayerHeader) {
-                        coil3.compose.AsyncImage(mediaMetadata!!.thumbnailUrl, null, contentScale = ContentScale.Crop,
-                            modifier = Modifier.size(40.dp).clip(RoundedCornerShape(6.dp)))
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(mediaMetadata!!.title, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(mediaMetadata!!.artists.joinToString { it.name }, color = Color.White.copy(alpha = 0.7f), maxLines = 1)
-                        }
-                        IconButton(onClick = playerConnection::toggleLike) {
-                            Icon(painterResource(if (currentSong?.song?.liked == true) R.drawable.favorite else R.drawable.favorite_border),
-                                stringResource(R.string.player_toggle_favorite), tint = if (currentSong?.song?.liked == true) Color(0xFFFF4D5E) else Color.White)
-                        }
-                        IconButton(onClick = playerConnection::togglePlayPause) {
-                            Icon(painterResource(if (effectiveIsPlaying) R.drawable.pause else R.drawable.play), stringResource(if (effectiveIsPlaying) R.string.pause else R.string.play), tint = Color.White)
-                        }
-                    } else Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        Text(stringResource(R.string.sourcify_wordmark), style = MaterialTheme.typography.titleMedium,
-                            color = Color.White, letterSpacing = 2.sp)
-                    }
-                    Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                        PlayerMoreMenuButton(mediaMetadata!!, state, Color.White.copy(alpha = 0.14f), Color.White)
-                    }
-                }
-                if (compactPlayerHeader) androidx.compose.material3.LinearProgressIndicator(
-                    progress = { (effectivePosition.toFloat() / duration.coerceAtLeast(1)).coerceIn(0f, 1f) },
-                    color = Color.White, trackColor = Color.White.copy(alpha = 0.25f), modifier = Modifier.fillMaxWidth().height(2.dp))
+        if (mediaMetadata != null && !canvasFullscreen) {
+            Box(Modifier.align(Alignment.TopCenter)) {
+                PlayerScrollHeader(mediaMetadata!!, headerFraction,
+                    if (showCanvas) Color.Black else androidx.compose.ui.graphics.lerp(songColor, Color.Black, .75f),
+                    currentSong?.song?.liked == true, effectiveIsPlaying,
+                    (effectivePosition.toFloat() / duration.coerceAtLeast(1)).coerceIn(0f, 1f),
+                    onCollapse = { state.collapseSoft() }, onLike = playerConnection::toggleLike, onPlay = playerConnection::togglePlayPause,
+                    more = { PlayerMoreMenuButton(mediaMetadata!!, state, Color.White.copy(alpha = .14f), Color.White) })
+            }
+        }
+        AnimatedVisibility(visible = canvasFullscreen && showCanvas,
+            enter = fadeIn(tween(250)), exit = fadeOut(tween(180))) {
+            mediaMetadata?.let { song ->
+                CanvasFullscreenControls(song, currentSong?.song?.liked == true, effectiveIsPlaying,
+                    (effectivePosition.toFloat() / duration.coerceAtLeast(1)).coerceIn(0f, 1f),
+                    onExit = { canvasFullscreen = false }, onLike = playerConnection::toggleLike, onPlay = playerConnection::togglePlayPause)
             }
         }
 
         AnimatedVisibility(
-            visible = !isFullScreen,
+            visible = !isFullScreen && !canvasFullscreen,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = shrinkVertically(shrinkTowards = Alignment.Top) + slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
@@ -1777,6 +1778,8 @@ fun BottomSheetPlayer(
                 },
             )
         }
+        // Override the sheet's predictive back while the Canvas owns the screen.
+        BackHandler(enabled = canvasFullscreen) { canvasFullscreen = false }
     }
 }
 

@@ -1,5 +1,13 @@
 # Sourcify changelog
 
+## 13.7.7 — 31. Oktober 2026 — Vorabversion
+
+- Canvas mit einem Tipp auf die Videofläche oder das Vollbildsymbol bildschirmfüllend ansehen. Derselbe stumme Videoplayer läuft weiter; kompakte Songsteuerung unten, Zurück verlässt zuerst Vollbild.
+- Synchronisierte Lyrics im Vollbild antippbar: Sprung zum Zeitstempel unter Berücksichtigung des Lyrics-Versatzes, aktuelle Zeile hervorgehoben. Wiedergabe und Positionsregler bleiben unten erreichbar. Unsynchronisierte Texte, deaktivierte Lyricsklicks und Gäste lösen keine Zeilensprünge aus.
+- Kompakte Player-Kopfleiste mit Cover, Titel und Künstler blendet beim Scrollen gleitend von oben ein.
+- Seitlich einfahrendes Profilmenü mit Profilkarte, Konto-/Kanalwechsel, Statistik, Verlauf, Neuerscheinungen, Integrationen und Einstellungen. Kontooptionen einschließlich Abmelden und Synchronisierung bleiben erreichbar.
+
+
 ## 13.7.6 — 31. Oktober 2026 — Vorabversion
 
 - Als Nächstes steht unmittelbar über den abschließenden Songinfos. Details und Mitwirkende öffnen eine gemeinsame Ansicht mit zwei Reitern.

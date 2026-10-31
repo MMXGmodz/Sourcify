@@ -5,6 +5,13 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -31,6 +38,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
@@ -66,15 +76,44 @@ internal fun lyricsPreviewWindow(raw: String?, position: Long): LyricsPreviewWin
 }
 
 @Composable
-fun SongLyricsCard(song: MediaMetadata, position: Long) {
+fun SongLyricsCard(song: MediaMetadata, position: Long, onSeekRequested: ((Long) -> Unit)? = null) {
     val connection = LocalPlayerConnection.current ?: return
     val lyrics by connection.currentLyrics.collectAsStateWithLifecycle()
     val database = LocalDatabase.current
     val context = LocalContext.current
+    val currentSong by connection.currentSong.collectAsStateWithLifecycle(initialValue = null)
+    val offset = currentSong?.takeIf { it.song.id == song.id }?.song?.lyricsOffset ?: 0
+    val clickEnabled by com.metrolist.music.utils.rememberPreference(com.metrolist.music.constants.LyricsClickKey, true)
+    val role = com.metrolist.music.LocalListenTogetherManager.current?.role?.collectAsStateWithLifecycle()
+    val guest = role?.value == com.metrolist.music.listentogether.RoomRole.GUEST
+    val cast = connection.service.castConnectionHandler
+    val casting by cast?.isCasting?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(false) }
+    val castPlaying by cast?.castIsPlaying?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(false) }
+    val playing by connection.isPlaying.collectAsStateWithLifecycle()
+    var livePosition by remember(song.id) { mutableLongStateOf(position) }
+    var pendingSeek by remember(song.id) { mutableStateOf<Pair<Long, Long>?>(null) }
+    fun seek(target: Long) {
+        pendingSeek = target to android.os.SystemClock.elapsedRealtime()
+        if (onSeekRequested != null) onSeekRequested(target) else connection.seekTo(target)
+        livePosition = target
+    }
     val color = LocalSongColor.current
     var sharing by rememberSaveable(song.id) { mutableStateOf(false) }
     if (sharing) SongShareSheet(song, { sharing = false }, startWithLyrics = true)
     var fullScreen by rememberSaveable(song.id) { mutableStateOf(false) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(fullScreen, song.id, lifecycle) {
+        if (fullScreen) lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (isActive) {
+                val remote = cast?.isCasting?.value == true
+                val reported = if (remote) cast!!.castPosition.value else connection.player.currentPosition
+                val pending = pendingSeek
+                livePosition = lyricsReportedPosition(reported, pending?.first?.takeIf { remote },
+                    android.os.SystemClock.elapsedRealtime() - (pending?.second ?: 0L))
+                delay(100)
+            }
+        }
+    }
     LaunchedEffect(song.id) {
         withContext(Dispatchers.IO) {
             try {
@@ -91,7 +130,7 @@ fun SongLyricsCard(song: MediaMetadata, position: Long) {
         }
     }
     val raw = lyrics?.takeIf { it.id == song.id }?.lyrics
-    val window = remember(raw, position / 500) { lyricsPreviewWindow(raw, position) }
+    val window = remember(raw, position / 500, offset) { lyricsPreviewWindow(raw, position + offset) }
     val synced = com.metrolist.music.lyrics.lyricsTextLooksSynced(raw)
     LyricsPreviewCard(window.lines, color, onFullscreen = { fullScreen = true }, activeLine = window.activeLine)
     if (fullScreen) Dialog(onDismissRequest = { fullScreen = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -100,7 +139,7 @@ fun SongLyricsCard(song: MediaMetadata, position: Long) {
                 Column(Modifier.weight(1f)) {
                     Text(song.title, style = MaterialTheme.typography.titleLarge, color = Color.White)
                     Text(song.artists.joinToString { it.name }, color = Color.White)
-                    Text(com.metrolist.music.utils.makeTimeString(position) + " / " +
+                    Text(com.metrolist.music.utils.makeTimeString(livePosition) + " / " +
                         com.metrolist.music.utils.makeTimeString(song.duration * 1000L), color = Color.White.copy(alpha = 0.8f))
                 }
                 IconButton(onClick = { sharing = true }) { Icon(painterResource(R.drawable.share), stringResource(R.string.s6_share_lyrics), tint = Color.White) }
@@ -113,7 +152,7 @@ fun SongLyricsCard(song: MediaMetadata, position: Long) {
                 else if (synced) LyricsUtils.parseLyrics(raw).filter { it.text.isNotBlank() }
                 else raw.lines().filter(String::isNotBlank).map { com.metrolist.music.lyrics.LyricsEntry(0, it) }
             }
-            val active = if (synced) activeLyricsLine(entries.map { it.time }, position) else -1
+            val active = if (synced) activeLyricsLine(entries.map { it.time }, livePosition + offset) else -1
             val listState = rememberLazyListState()
             LaunchedEffect(active) {
                 if (active >= 0 && !listState.isScrollInProgress) listState.animateScrollToItem((active - 1).coerceAtLeast(0))
@@ -121,14 +160,35 @@ fun SongLyricsCard(song: MediaMetadata, position: Long) {
             if (!synced) Text(stringResource(R.string.lyrics_unsynced), color = Color.White.copy(alpha = 0.75f))
             LazyColumn(state = listState, modifier = Modifier.weight(1f).padding(top = 24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 itemsIndexed(entries) { index, line ->
-                    Text(line.text, style = MaterialTheme.typography.headlineMedium,
-                        fontFamily = PlayerLyricsFont,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White.copy(alpha = if (!synced || index == active) 1f else 0.5f))
+                    FullscreenLyricsLine(line.text, !synced || index == active,
+                        lyricsSeekPosition(line.time, offset, synced, clickEnabled, guest) != null) {
+                        lyricsSeekPosition(line.time, offset, synced, clickEnabled, guest)?.let { target ->
+                            seek(target)
+                        }
+                    }
                 }
+            }
+            var scrub by remember { mutableStateOf<Float?>(null) }
+            val total = (if (casting) cast?.castDuration?.value else song.duration * 1000L)?.coerceAtLeast(1L) ?: 1L
+            Slider(value = scrub ?: livePosition.coerceIn(0, total).toFloat(), valueRange = 0f..total.toFloat(), enabled = !guest,
+                onValueChange = { scrub = it }, onValueChangeFinished = { scrub?.let { seek(it.toLong()) }; scrub = null },
+                colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.White, inactiveTrackColor = Color.White.copy(alpha = .3f)))
+            FilledIconButton(onClick = connection::togglePlayPause, enabled = !guest,
+                colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.White, contentColor = Color.Black), modifier = Modifier.size(56.dp)) {
+                val activePlayback = if (casting) castPlaying else playing
+                Icon(painterResource(if (activePlayback) R.drawable.pause else R.drawable.play), stringResource(if (activePlayback) R.string.pause else R.string.play))
             }
         }
     }
+}
+
+@Composable
+internal fun FullscreenLyricsLine(text: String, active: Boolean, seekEnabled: Boolean, onSeek: () -> Unit) {
+    Text(text, style = MaterialTheme.typography.headlineMedium, fontFamily = PlayerLyricsFont, fontWeight = FontWeight.Bold,
+        color = Color.White.copy(alpha = if (active) 1f else .5f),
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).semantics { selected = active }
+            .clickable(enabled = seekEnabled, onClickLabel = stringResource(R.string.s7_seek_lyrics), onClick = onSeek)
+            .padding(vertical = 6.dp))
 }
 
 internal val PlayerLyricsFont = FontFamily(Font(R.font.lato_bold, FontWeight.Bold))

@@ -1265,4 +1265,10 @@
     <string name="s6_decades">Jahrzehnte</string>
     <string name="s6_radio">Radio</string>
     <string name="s6_discover">Neue Entdeckungen</string>
+    <string name="s7_canvas_fullscreen">Canvas im Vollbild anzeigen</string>
+    <string name="s7_seek_lyrics">Zu dieser Lyricszeile springen</string>
+    <string name="s7_view_profile">Profil ansehen</string>
+    <string name="s7_add_account">Konto hinzufügen</string>
+    <string name="s7_settings_privacy">Einstellungen und Datenschutz</string>
+    <string name="s7_account_options">Kontooptionen und Synchronisierung</string>
 </resources>

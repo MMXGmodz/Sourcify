@@ -44,6 +44,28 @@ class CanvasUiRenderTest {
                 CanvasSettings(rememberNavController())
             }
         }
+        render("profile-drawer") {
+            com.metrolist.music.ui.component.ProfileDrawerContent("Test User", null, true, false, {}, {}, {})
+        }
+        render("canvas-fullscreen-controls", verify = { bitmap ->
+            var white = 0
+            for (y in 1600 until 1750) for (x in 30 until 790) {
+                val c = bitmap.getPixel(x, y)
+                if (android.graphics.Color.red(c) > 220 && android.graphics.Color.green(c) > 220 && android.graphics.Color.blue(c) > 220) white++
+            }
+            assertTrue("Fullscreen song and playback controls must be painted at the bottom", white > 100)
+        }) {
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF374A64), Color.Black)))) {
+                com.metrolist.music.ui.player.CanvasFullscreenControls(
+                    com.metrolist.music.models.MediaMetadata("track", "Test Song", listOf(com.metrolist.music.models.MediaMetadata.Artist("artist", "Test Artist")), 180),
+                    true, true, .4f, {}, {}, {})
+            }
+        }
+        render("player-compact-header") {
+            com.metrolist.music.ui.player.PlayerScrollHeader(
+                com.metrolist.music.models.MediaMetadata("track", "Test Song", listOf(com.metrolist.music.models.MediaMetadata.Artist("artist", "Test Artist")), 180),
+                1f, Color(0xFF302822), true, true, .4f, {}, {}, {}, {})
+        }
         render("stats-dashboard") {
             com.metrolist.music.ui.screens.StatsDashboard(133, "Artist", null, "Top Song", null, emptyList(), {}, {}, {})
         }
@@ -135,7 +157,7 @@ class CanvasUiRenderTest {
             val bitmap = Bitmap.createBitmap(824, 1784, Bitmap.Config.ARGB_8888)
             root.draw(Canvas(bitmap))
             val colors = mutableSetOf<Int>()
-            for (y in 150 until 1500 step 10) for (x in 10 until 800 step 10) colors += bitmap.getPixel(x, y)
+            for (y in (if (name == "player-compact-header") 0 else 150) until 1500 step 10) for (x in 10 until 800 step 10) colors += bitmap.getPixel(x, y)
             val output = File("build/ui-previews/$name.png").apply { parentFile?.mkdirs() }
             output.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
             assertTrue("Expected painted UI, not an empty window", colors.size > 10 || name == "canvas-backdrop-hidden")

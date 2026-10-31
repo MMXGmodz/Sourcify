@@ -751,6 +751,10 @@ class MainActivity : FragmentActivity() {
 
                 val homeViewModel: HomeViewModel = hiltViewModel()
                 val accountImageUrl by homeViewModel.accountImageUrl.collectAsStateWithLifecycle()
+                val profileName by homeViewModel.accountName.collectAsStateWithLifecycle()
+                val profileCookie by rememberPreference(com.metrolist.music.constants.InnerTubeCookieKey, "")
+                val profileLoggedIn = "SAPISID" in com.metrolist.innertube.utils.parseCookieString(profileCookie)
+                val profileDrawerState = androidx.compose.material3.rememberDrawerState(androidx.compose.material3.DrawerValue.Closed)
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val (previousTab, setPreviousTab) = rememberSaveable { mutableStateOf("home") }
 
@@ -1067,6 +1071,16 @@ class MainActivity : FragmentActivity() {
                         ChangelogScreen(onDismiss = { showChangelog.value = false })
                     }
 
+                    com.metrolist.music.ui.component.ProfileNavigationDrawer(
+                        state = profileDrawerState,
+                        sheetContent = {
+                            com.metrolist.music.ui.component.ProfileDrawerContent(profileName, accountImageUrl, profileLoggedIn,
+                                BuildConfig.UPDATER_AVAILABLE && latestVersionName != BuildConfig.BASE_VERSION_NAME,
+                                onNavigate = { route -> coroutineScope.launch { profileDrawerState.close(); navController.navigate(route) } },
+                                onAccountOptions = { coroutineScope.launch { profileDrawerState.close(); showAccountDialog = true } },
+                                onClose = { coroutineScope.launch { profileDrawerState.close() } })
+                        },
+                    ) {
                     Scaffold(
                         containerColor = Color.Transparent,
                         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -1087,7 +1101,7 @@ class MainActivity : FragmentActivity() {
                                         },
                                         navigationIcon = {
                                             com.metrolist.music.ui.component.ProfileButton(accountImageUrl,
-                                                latestVersionName != BuildConfig.BASE_VERSION_NAME) { showAccountDialog = true }
+                                                latestVersionName != BuildConfig.BASE_VERSION_NAME) { coroutineScope.launch { profileDrawerState.open() } }
                                         },
                                         scrollBehavior = topAppBarScrollBehavior,
                                         colors =
@@ -1193,7 +1207,7 @@ class MainActivity : FragmentActivity() {
                                         pureBlack = pureBlack,
                                         slimNav = slimNav,
                                         onSearchLongClick = onSearchLongClick,
-                                        onHomeLongHold = { showAccountDialog = true },
+                                        onHomeLongHold = { coroutineScope.launch { profileDrawerState.open() } },
                                         modifier =
                                             Modifier
                                                 .align(Alignment.BottomCenter)
@@ -1310,7 +1324,7 @@ class MainActivity : FragmentActivity() {
                                     onItemClick = onRailItemClick,
                                     pureBlack = pureBlack,
                                     onSearchLongClick = onRailSearchLongClick,
-                                    onHomeLongHold = { showAccountDialog = true },
+                                    onHomeLongHold = { coroutineScope.launch { profileDrawerState.open() } },
                                 )
                             }
                             Box(Modifier.weight(1f)) {
@@ -1373,7 +1387,7 @@ class MainActivity : FragmentActivity() {
                                         snackbarHostState = snackbarHostState,
                                         accountButton = {
                                             com.metrolist.music.ui.component.ProfileButton(accountImageUrl,
-                                                latestVersionName != BuildConfig.BASE_VERSION_NAME) { showAccountDialog = true }
+                                                latestVersionName != BuildConfig.BASE_VERSION_NAME) { coroutineScope.launch { profileDrawerState.open() } }
                                         },
                                     )
                                 }
@@ -1381,6 +1395,7 @@ class MainActivity : FragmentActivity() {
                         }
                     }
 
+                    }
                     BottomSheetMenu(
                         state = LocalMenuState.current,
                         modifier = Modifier.align(Alignment.BottomCenter),
