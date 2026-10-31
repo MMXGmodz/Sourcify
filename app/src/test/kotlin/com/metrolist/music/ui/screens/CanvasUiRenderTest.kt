@@ -44,6 +44,17 @@ class CanvasUiRenderTest {
                 CanvasSettings(rememberNavController())
             }
         }
+        render("stats-dashboard") {
+            com.metrolist.music.ui.screens.StatsDashboard(133, "Artist", null, "Top Song", null, emptyList(), {}, {}, {})
+        }
+        render("queue-controls") {
+            // Place this short footer inside the shared screenshot sampling region.
+            androidx.compose.foundation.layout.Row(Modifier.padding(top = 100.dp)) {
+                com.metrolist.music.ui.player.QueueControl(com.metrolist.music.R.drawable.shuffle, "Shuffle", false, true, Modifier.weight(1f)) {}
+                com.metrolist.music.ui.player.QueueControl(com.metrolist.music.R.drawable.repeat, "Wiederholen", true, true, Modifier.weight(1f)) {}
+                com.metrolist.music.ui.player.QueueControl(com.metrolist.music.R.drawable.bedtime, "Timer", false, true, Modifier.weight(1f)) {}
+            }
+        }
         render("lyrics-preview") {
             com.metrolist.music.ui.player.LyricsPreviewCard(listOf("First line", "Second line", "Third line"), Color(0xFF9D2525), onFullscreen = {})
         }

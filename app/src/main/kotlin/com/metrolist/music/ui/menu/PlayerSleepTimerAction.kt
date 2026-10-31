@@ -17,7 +17,7 @@ import com.metrolist.music.utils.rememberPreference
 import kotlin.math.roundToInt
 
 @Composable
-internal fun PlayerSleepTimerAction() {
+internal fun PlayerSleepTimerAction(trigger: (@Composable (() -> Unit) -> Unit)? = null) {
     val connection = LocalPlayerConnection.current ?: return
     val timer = connection.service.sleepTimer ?: return
     val (defaultMinutes, setDefaultMinutes) = rememberPreference(SleepTimerDefaultKey, 30f)
@@ -25,7 +25,7 @@ internal fun PlayerSleepTimerAction() {
     val (fade, setFade) = rememberPreference(SleepTimerFadeOutKey, false)
     var showing by remember { mutableStateOf(false) }
     var minutes by remember { mutableFloatStateOf(defaultMinutes.coerceIn(5f, 120f)) }
-    Material3MenuGroup(listOf(Material3MenuItemData(
+    if (trigger != null) trigger { showing = true } else Material3MenuGroup(listOf(Material3MenuItemData(
         title = { Text(stringResource(R.string.sleep_timer)) },
         description = { if (timer.isActive) Text(stringResource(R.string.sourcify_timer_active)) },
         icon = { Icon(painterResource(R.drawable.bedtime), null) }, onClick = { showing = true },

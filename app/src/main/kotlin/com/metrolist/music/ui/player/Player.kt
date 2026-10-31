@@ -32,6 +32,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -810,6 +811,11 @@ fun BottomSheetPlayer(
                         }
                     }
                 }
+                if (portrait) Box(Modifier.fillMaxSize().drawBehind {
+                    val fadeEnd = size.height * 0.62f - playerScrollState.value
+                    drawRect(Brush.verticalGradient(0f to Color.Transparent, 1f to Color.Black,
+                        startY = fadeEnd - size.height * 0.3f, endY = fadeEnd.coerceAtLeast(1f)))
+                })
             }
         },
         onDismiss =
@@ -1704,6 +1710,7 @@ fun BottomSheetPlayer(
                             navController.navigate(route)
                         })
                     }
+                    PlayerNextCard(onOpenQueue = { queueSheetState.expandSoft() })
                     Spacer(Modifier.height(30.dp))
                 }
             }

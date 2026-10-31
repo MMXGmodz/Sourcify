@@ -1,5 +1,13 @@
 # Sourcify changelog
 
+## 13.7.5 — 31. Oktober 2026 — Vorabversion
+
+- Streamingstatistik mit versetzten Karten für gehörte Minuten, Top-Künstler und Top-Songs aus den tatsächlichen Daten des ausgewählten Zeitraums. Hörverlauf und bisherige Statistikdetails bleiben erreichbar. Keine erfundenen Freundesranglisten.
+- Playlist-Kopfleiste mit nach unten auslaufendem Farbverlauf.
+- Player-Hintergrund unter den scrollenden Details blendet vollständig nach Schwarz, damit Cover-Balken nicht neben der Lyrics-Karte durchscheinen.
+- Als-Nächstes-Karte mit echtem nächsten Queue-Titel, einschließlich Shuffle, und Warteschlangen-Verknüpfung.
+- Beschriftete große Queue-Knöpfe für Shuffle, Wiederholen und Timer; explizites Bearbeiten/Fertig für die bestehende Sortiersperre.
+
 ## 13.7.4 — 30. Oktober 2026 — Vorabversion
 
 - Neue Lossless-Kataloge unter Einstellungen → Integrationen: Tidal über kompatible HiFi-API, Qobuz über Squid-API und Deezer-Katalog mit eigenem Direct-FLAC-Resolver.

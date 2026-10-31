@@ -122,9 +122,9 @@ internal fun PlaylistCollapsingContainer(
         }) {
             content()
             if (enabled) {
-                Box(Modifier.fillMaxWidth().height(with(density) { barBottom.toDp() })
+                Box(Modifier.fillMaxWidth().height(with(density) { barBottom.toDp() } + 56.dp)
                     .graphicsLayer { alpha = frame.titleAlpha }
-                    .background(barColor))
+                    .background(Brush.verticalGradient(0f to barColor, 0.55f to barColor, 1f to Color.Transparent)))
                 Row(Modifier.fillMaxWidth().padding(top = with(density) { topInset.toDp() }).height(64.dp)
                     .padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onBack, onLongClick = onBackLongClick, modifier = Modifier.size(48.dp)

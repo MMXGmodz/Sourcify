@@ -63,6 +63,7 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -213,7 +214,7 @@ fun Queue(
         BackHandler(onBack = onExitSelectionMode)
     }
 
-    var locked by rememberPreference(QueueEditLockKey, defaultValue = false)
+    var locked by rememberPreference(QueueEditLockKey, defaultValue = true)
 
     val (useNewPlayerDesign, onUseNewPlayerDesignChange) =
         rememberPreference(
@@ -225,6 +226,8 @@ fun Queue(
     var dismissJob: Job? by remember { mutableStateOf(null) }
 
     val coroutineScope = rememberCoroutineScope()
+    var footerHeight by remember { mutableStateOf(104.dp) }
+    val footerDensity = androidx.compose.ui.platform.LocalDensity.current
     BottomSheet(
         state = state,
         modifier = modifier,
@@ -275,7 +278,7 @@ fun Queue(
                         .add(
                             WindowInsets(
                                 top = ListItemHeight,
-                                bottom = ListItemHeight,
+                                bottom = footerHeight,
                             ),
                         ).asPaddingValues(),
             ) { from, to ->
@@ -344,7 +347,7 @@ fun Queue(
                         .add(
                             WindowInsets(
                                 top = ListItemHeight + 8.dp,
-                                bottom = ListItemHeight + 8.dp,
+                                bottom = footerHeight + 8.dp,
                             ),
                         ).asPaddingValues(),
                 modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
@@ -643,13 +646,11 @@ fun Queue(
                         .height(ListItemHeight)
                         .padding(horizontal = 12.dp),
             ) {
-                Text(
-                    text = queueTitle.orEmpty(),
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.queue), style = MaterialTheme.typography.titleLarge)
+                    Text(queueTitle.orEmpty(), style = MaterialTheme.typography.bodySmall, maxLines = 1,
+                        overflow = TextOverflow.Ellipsis)
+                }
 
                 AnimatedVisibility(
                     visible = !inSelectMode,
@@ -657,37 +658,16 @@ fun Queue(
                     exit = fadeOut() + slideOutVertically { it },
                 ) {
                     Row {
-                        IconButton(
+                        androidx.compose.material3.TextButton(
                             onClick = { locked = !locked },
                             modifier = Modifier.padding(horizontal = 6.dp),
                         ) {
-                            Icon(
-                                painter = painterResource(if (locked) R.drawable.lock else R.drawable.lock_open),
-                                contentDescription = null,
-                            )
+                            Text(stringResource(if (locked) R.string.ui_queue_edit else R.string.ui_queue_done))
                         }
                     }
                 }
 
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    horizontalAlignment = Alignment.End,
-                ) {
-                    Text(
-                        text =
-                            pluralStringResource(
-                                R.plurals.n_song,
-                                queueWindows.size,
-                                queueWindows.size,
-                            ),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
 
-                    Text(
-                        text = makeTimeString(queueLength * 1000L),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
             }
 
             AnimatedVisibility(
@@ -765,81 +745,19 @@ fun Queue(
 
         val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsStateWithLifecycle()
 
-        Box(
-            modifier =
-                Modifier
-                    .background(
-                        if (pureBlack) {
-                            Color.Black
-                        } else {
-                            MaterialTheme.colorScheme
-                                .secondaryContainer
-                                .copy(alpha = 0.90f)
-                        },
-                    ).fillMaxWidth()
-                    .height(
-                        ListItemHeight +
-                            WindowInsets.systemBars
-                                .asPaddingValues()
-                                .calculateBottomPadding(),
-                    ).align(Alignment.BottomCenter)
-                    .clickable {
-                        state.collapseSoft()
-                    }.windowInsetsPadding(
-                        WindowInsets.systemBars
-                            .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal),
-                    ).padding(12.dp),
-        ) {
-            IconButton(
-                enabled = !isListenTogetherGuest,
-                modifier = Modifier.align(Alignment.CenterStart),
-                onClick = {
-                    coroutineScope
-                        .launch {
-                            lazyListState.animateScrollToItem(
-                                if (playerConnection.player.shuffleModeEnabled) playerConnection.player.currentMediaItemIndex else 0,
-                            )
-                        }.invokeOnCompletion {
-                            playerConnection.player.shuffleModeEnabled =
-                                !playerConnection.player.shuffleModeEnabled
-                        }
-                },
-            ) {
-                val baseAlpha = if (shuffleModeEnabled) 1f else 0.5f
-                val finalAlpha = if (!isListenTogetherGuest) baseAlpha else 0.3f
-                Icon(
-                    painter = painterResource(R.drawable.shuffle),
-                    contentDescription = null,
-                    modifier = Modifier.alpha(finalAlpha),
-                )
-            }
-
-            Icon(
-                painter = painterResource(R.drawable.expand_more),
-                contentDescription = null,
-                modifier = Modifier.align(Alignment.Center),
-            )
-
-            IconButton(
-                enabled = !isListenTogetherGuest,
-                modifier = Modifier.align(Alignment.CenterEnd),
-                onClick = playerConnection.player::toggleRepeatMode,
-            ) {
-                val baseAlpha = if (repeatMode == Player.REPEAT_MODE_OFF) 0.5f else 1f
-                val finalAlpha = if (!isListenTogetherGuest) baseAlpha else 0.3f
-                Icon(
-                    painter =
-                        painterResource(
-                            when (repeatMode) {
-                                Player.REPEAT_MODE_OFF, Player.REPEAT_MODE_ALL -> R.drawable.repeat
-                                Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
-                                else -> throw IllegalStateException()
-                            },
-                        ),
-                    contentDescription = null,
-                    modifier = Modifier.alpha(finalAlpha),
-                )
-            }
+        Row(Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+            .background(background.copy(alpha = 0.98f))
+            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
+            .onSizeChanged { footerHeight = with(footerDensity) { it.height.toDp() } }
+            .padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            QueueControl(R.drawable.shuffle, stringResource(R.string.shuffle), shuffleModeEnabled, !isListenTogetherGuest,
+                Modifier.weight(1f)) { playerConnection.player.shuffleModeEnabled = !playerConnection.player.shuffleModeEnabled }
+            QueueControl(if (repeatMode == Player.REPEAT_MODE_ONE) R.drawable.repeat_one else R.drawable.repeat,
+                stringResource(R.string.ui_queue_repeat), repeatMode != Player.REPEAT_MODE_OFF, !isListenTogetherGuest,
+                Modifier.weight(1f), playerConnection.player::toggleRepeatMode)
+            com.metrolist.music.ui.menu.PlayerSleepTimerAction(trigger = { open ->
+                QueueControl(R.drawable.bedtime, stringResource(R.string.sleep_timer), false, true, Modifier.weight(1f), open)
+            })
         }
 
         SnackbarHost(
@@ -848,7 +766,7 @@ fun Queue(
                 Modifier
                     .padding(
                         bottom =
-                            ListItemHeight +
+                            footerHeight +
                                 WindowInsets.systemBars
                                     .asPaddingValues()
                                     .calculateBottomPadding(),

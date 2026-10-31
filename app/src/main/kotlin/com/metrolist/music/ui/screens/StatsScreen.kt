@@ -322,6 +322,20 @@ fun StatsScreen(
                         artist.name.contains(query.text, ignoreCase = true)
                     }
 
+            item(key = "dashboard") {
+                StatsDashboard(
+                    minutes = mostPlayedSongsStats.sumOf { (it.timeListened ?: 0L).toLong() } / 60000,
+                    artist = mostPlayedArtists.firstOrNull()?.artist?.name,
+                    artistImage = mostPlayedArtists.firstOrNull()?.artist?.thumbnailUrl,
+                    song = mostPlayedSongsStats.firstOrNull()?.title,
+                    songImage = mostPlayedSongsStats.firstOrNull()?.thumbnailUrl,
+                    covers = mostPlayedSongsStats.take(3).mapNotNull { it.thumbnailUrl },
+                    onArtist = { mostPlayedArtists.firstOrNull()?.let { navController.navigate("artist/${it.id}") } },
+                    onSong = { if (orderedMostPlayedSongs.isNotEmpty()) playerConnection.playQueue(ListQueue(
+                        context.getString(R.string.most_played_songs), orderedMostPlayedSongs.map { it.toMediaMetadata().toMediaItem() })) },
+                    onHistory = { navController.navigate("history") },
+                )
+            }
             item(key = "choice_chips") {
                 ChoiceChipsRow(
                     chips =
@@ -671,7 +685,7 @@ fun StatsScreen(
         }
     }
 
-    TopAppBar(
+    androidx.compose.material3.CenterAlignedTopAppBar(
         title = {
             if (inSelectMode) {
                 Text(pluralStringResource(R.plurals.n_selected, selection.size, selection.size))
@@ -714,7 +728,7 @@ fun StatsScreen(
                     }
                 }
             } else {
-                Text(stringResource(R.string.stats))
+                Text(stringResource(R.string.ui_stream_stats))
             }
         },
         navigationIcon = {
