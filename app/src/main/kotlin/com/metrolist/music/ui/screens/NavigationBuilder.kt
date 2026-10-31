@@ -398,6 +398,11 @@ fun NavGraphBuilder.navigationBuilder(
         IntegrationScreen(navController)
     }
 
+    composable("settings/integrations/lossless/{provider}") { entry ->
+        val provider = com.metrolist.music.utils.LosslessProvider.entries.firstOrNull { it.name == entry.arguments?.getString("provider") }
+        if (provider != null) com.metrolist.music.ui.screens.settings.integrations.LosslessProviderScreen(provider, navController)
+    }
+
     composable("settings/integrations/discord") {
         DiscordSettings(navController)
     }

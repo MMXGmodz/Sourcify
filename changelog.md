@@ -1,5 +1,15 @@
 # Sourcify changelog
 
+## 13.7.4 — 30. Oktober 2026 — Vorabversion
+
+- Neue Lossless-Kataloge unter Einstellungen → Integrationen: Tidal über kompatible HiFi-API, Qobuz über Squid-API und Deezer-Katalog mit eigenem Direct-FLAC-Resolver.
+- Editierbare HTTPS-Adressen, getrenntes Speichern und Audiozugangsprüfung; keine vorgetäuschte Anmeldung und keine mitgelieferten Anbieter-Abos. Community-Adressen sind von ihrer externen Verfügbarkeit abhängig. Deezer benötigt einen Resolver-Zugang.
+- Explizite Titelauswahl, vollständiger Download vor Wiedergabe, FLAC-STREAMINFO-/Dauer-/Vollständigkeitsprüfung und Android-Formatprüfung, Originalbytes ohne Neukodierung. Maximal 256 MiB pro Titel, Fortschritt und Abbruch.
+- Gespeicherte Titel stehen im vorhandenen Player und unter Lokale Audiodateien offline bereit; erneutes Antippen verwendet die gespeicherte Kopie. Normale YouTube-Titel werden weiterhin als AAC/Opus wiedergegeben.
+- Verschlüsselte, segmentierte und Preview-Quellen werden abgelehnt. Noch keine automatische Lossless-Ersetzung bestehender YouTube-Titel.
+
+Die Cloud-Ausführungsumgebung blockiert direkte Anfragen an die externen Anbieterhosts; Schnittstellen werden anhand veröffentlichter Verträge und Tests geprüft. Live-Anbieter- und Smartphone-Hardwaretests bleiben offen.
+
 ## 13.7.3 — 30. Oktober 2026 — Vorabversion
 
 - Favorisierte Songs zeigen in Album- und Playlistlisten immer rote Herzen; Künstlernamen bleiben weiß und lesbar.

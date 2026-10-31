@@ -39,6 +39,14 @@ fun IntegrationScreen(
             .padding(horizontal = 16.dp),
     ) {
         IntegrationCard(
+            title = stringResource(R.string.lossless_integrations),
+            items = com.metrolist.music.utils.LosslessProvider.entries.map { provider ->
+                IntegrationCardItem(icon = painterResource(R.drawable.music_note),
+                    title = { Text(provider.label) },
+                    onClick = { navController.navigate("settings/integrations/lossless/${provider.name}") })
+            },
+        )
+        IntegrationCard(
             title = stringResource(R.string.general),
             items = listOf(
                 IntegrationCardItem(

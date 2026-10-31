@@ -52,7 +52,7 @@ class LocalAudioStore internal constructor(private val directory: File) {
     fun trackForId(id: String): LocalAudioTrack? =
         tracks.value.firstOrNull { it.id == id } ?: uuidForId(id)?.let { readTrack(File(directory, it)) }
 
-    suspend fun importAudio(context: Context, uri: Uri): LocalAudioTrack = withContext(Dispatchers.IO) {
+    suspend fun importAudio(context: Context, uri: Uri, sourceTitle: String? = null, sourceArtist: String? = null): LocalAudioTrack = withContext(Dispatchers.IO) {
         require(uri.scheme == "content" || uri.scheme == "file") { "Select a local audio file" }
         mutex.withLock {
             check(directory.mkdirs() || directory.isDirectory) { "Audio storage is unavailable" }
@@ -77,7 +77,10 @@ class LocalAudioStore internal constructor(private val directory: File) {
                     }
                 } ?: throw IOException("The selected file cannot be opened")
                 currentCoroutineContext().ensureActive()
-                val track = inspectAudio(audio, displayName, "local:$uuid")
+                val track = inspectAudio(audio, displayName, "local:$uuid").let { original ->
+                    original.copy(title = sourceTitle?.take(300)?.takeIf(String::isNotBlank) ?: original.title,
+                        artist = sourceArtist?.take(300)?.takeIf(String::isNotBlank) ?: original.artist)
+                }
                 saveArtwork(audio, File(staging, "cover.jpg"))
                 FileOutputStream(File(staging, "metadata.json")).use {
                     it.write(track.toJson().toString().toByteArray(Charsets.UTF_8))
@@ -205,7 +208,11 @@ class LocalAudioStore internal constructor(private val directory: File) {
                     durationMs = duration, mimeType = mime,
                     sampleRate = format.intOrNull(MediaFormat.KEY_SAMPLE_RATE),
                     channelCount = format.intOrNull(MediaFormat.KEY_CHANNEL_COUNT),
-                    bitDepth = if (mime == "audio/raw") pcmBits else null,
+                    bitDepth = if (mime == "audio/raw") pcmBits else if (mime == "audio/flac") runCatching {
+                        val header = ByteArray(42)
+                        file.inputStream().use { require(it.read(header) == header.size) }
+                        inspectFlacHeader(header, 0).bitDepth
+                    }.getOrNull() else null,
                     size = file.length(),
                 )
             } finally {
