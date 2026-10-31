@@ -1,0 +1,559 @@
+{
+  "version_name": "13.7.5",
+  "version_code": 158,
+  "tag": "v13.7.5-preview.1",
+  "application_id": "io.sourcify.player.uitest",
+  "application_label": "Sourcify",
+  "variant": "fossDebug",
+  "platform": "Android",
+  "prerelease": true,
+  "hardware_tested": false,
+  "certificate_sha256": "213034870b96e6cd98d1b56225e668c5f81f1b198f3f4b4a28d4f686481f844e",
+  "test_count": 294,
+  "tests": [
+    {
+      "name": "com.metrolist.music.api.OpenRouterServiceTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.betterlyrics.TTMLParserTest",
+      "tests": "14",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.db.AddSongsToPlaylistTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.db.AndroidAutoDatabasePaginationTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.db.ArtistPageCacheTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.db.HistoryDatabaseDeduplicationTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.db.LocalAudioRetentionTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.db.MusicDatabaseMigrationTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.db.PlaylistDuplicatesBatchedTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.db.SongMetadataEditingTest",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.db.entities.LocalIdTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.db.entities.SongEntityTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.discord.DiscordAuthTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.discord.DiscordPresenceTest",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.discord.DiscordReconnectStrategyTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.discord.DiscordTokenStoreTest",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.extensions.ContentResolverExtTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.extensions.MediaItemExtTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.jam.AndroidJamTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.jam.AndroidJamVisualTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.jam.JamServerTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.listentogether.MessageCodecTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.listentogether.PlaybackSyncTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.listentogether.QueueSyncTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.listentogether.ServerClockTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.lyrics.LyricsBackgroundTimingTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.lyrics.LyricsPersistenceTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.lyrics.MacedonianRomanizationTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.playback.AudioQualityCacheTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.playback.DownloadContentLengthTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.playback.DownloadUtilTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.playback.LocalAudioDataSourceTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.playback.MediaLibrarySessionCallbackTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.playback.NormalizationGainTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.playback.SavedDownloadDataSourceTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.playback.StreamUrlCacheTest",
+      "tests": "8",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.playback.VoiceSearchMatcherTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.playback.audio.AudioProcessorBufferReuseTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.ui.component.PlaylistCollapseTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.ui.player.CanvasVideoLayoutTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.ui.player.LyricsPreviewTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.ui.player.MusicBrainzCreditsTest",
+      "tests": "8",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.ui.player.PlaybackErrorTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.ui.player.PlayerContextDataTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.ui.player.PlayerDiscoveryTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.ui.player.UpNextTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.ui.screens.CanvasUiRenderTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.ui.screens.settings.SourcifyCreditsTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.ui.theme.SongBackdropTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.ui.tv.TvFocusTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.ui.tv.TvPlaybackTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.ui.utils.YouTubeUtilsTest",
+      "tests": "9",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.ArtistNameAliasesTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.AudioEncodingTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.AutomaticCanvasResolverTest",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.CanvasNetworkPolicyTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.CanvasSongPreferenceTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.CanvasVideoCacheTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.CanvasVideoStoreTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.ComposeToImageTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.DownloadArtworkStoreTest",
+      "tests": "10",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.DownloadCompanionStoreTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.DownloadStorageProviderTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.DownloadStorageTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.DownloadedCanvasTransferTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.ImageCacheLimitTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.InnerTubeXPlayerTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.LocalAudioStoreTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.LosslessClientTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.LosslessProviderTest",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.NetworkConnectivityObserverTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.PlaylistSyncTest",
+      "tests": "31",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.utils.UpdaterTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.viewmodels.CachePlaylistPartitionTest",
+      "tests": "8",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "com.metrolist.music.viewmodels.HomeSpeedDialTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ],
+  "files": {
+    "Sourcify.apk": {
+      "bytes": 52335106,
+      "sha256": "ef12a2e2f24f2414985c4410d6812ab87a5dcde959f8731dc1fb7713cc22c088"
+    },
+    "Sourcify-13.7.5-source.zip": {
+      "bytes": 38098224,
+      "sha256": "b8b0d15e30ebac903f7236fc15efcda62a7670eef79934fc9a85708dd11376ba"
+    }
+  },
+  "commands": [
+    ":app:assembleFossDebug",
+    ":app:testFossDebugUnitTest"
+  ],
+  "limitations": [
+    "No physical Android device test.",
+    "FOSS debug build with the existing update-compatible signer.",
+    "YouTube Music availability determines streams and recommendations."
+  ]
+}
