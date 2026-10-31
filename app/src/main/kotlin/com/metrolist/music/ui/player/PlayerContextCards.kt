@@ -38,8 +38,8 @@ private val ContextCardColor = Color(0xFF282828)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlayerContextCards(song: MediaMetadata, onNavigate: (String) -> Unit) {
-    if (com.metrolist.music.utils.LocalAudioStore.isLocalId(song.id)) return
+fun PlayerContextCards(song: MediaMetadata, onNavigate: (String) -> Unit, beforeSongInfo: @Composable () -> Unit = {}, informationOnly: Boolean = false, onDismissInformation: () -> Unit = {}) {
+    val localAudio = com.metrolist.music.utils.LocalAudioStore.isLocalId(song.id)
     val context = LocalContext.current
     val database = LocalDatabase.current
     if (LocalPlayerConnection.current == null) return
@@ -49,6 +49,7 @@ fun PlayerContextCards(song: MediaMetadata, onNavigate: (String) -> Unit) {
     var loading by remember(song.id) { mutableStateOf(true) }
     val result by produceState<Pair<String, PlayerContextData>?>(null, song.id, attempt) {
         value = null; loading = true
+        if (localAudio) { loading = false; return@produceState }
         try { value = song.id to PlayerContextRepository.load(song, force = attempt > 0, context = context) }
         catch (e: CancellationException) { throw e }
         catch (_: Exception) { value = song.id to PlayerContextData(null, null) }
@@ -62,7 +63,7 @@ fun PlayerContextCards(song: MediaMetadata, onNavigate: (String) -> Unit) {
     val followed = saved?.artist?.bookmarkedAt != null
     var following by remember(song.id) { mutableStateOf(false) }
     var showBiography by rememberSaveable(song.id) { mutableStateOf(false) }
-    var showCredits by rememberSaveable(song.id) { mutableStateOf(false) }
+    var showCredits by rememberSaveable(song.id) { mutableStateOf(informationOnly) }
     var discovery by remember(song.id) { mutableStateOf<DiscoverKind?>(null) }
     val artistName = artist?.artist?.title ?: song.artists.firstOrNull()?.name
     val credits = remember(data?.media?.description) { parseSongCredits(data?.media?.description) }
@@ -85,7 +86,7 @@ fun PlayerContextCards(song: MediaMetadata, onNavigate: (String) -> Unit) {
             finally { following = false }
         }
     }
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    if (!informationOnly) Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
         if (artistName != null) ArtistAboutCard(
             name = artistName, image = artist?.artist?.thumbnail, description = artist?.description,
@@ -105,21 +106,23 @@ fun PlayerContextCards(song: MediaMetadata, onNavigate: (String) -> Unit) {
                 similarSongTitle = song.title,
             )
         }
+        if (!localAudio && !loading && ((artistId != null && data?.artist == null) || data?.media == null)) TextButton(onClick = { attempt++ }) { Text(stringResource(R.string.player_context_retry)) }
+        beforeSongInfo()
         SongCreditsPreview(song, credits, onAll = { showCredits = true }, followed = followed, canFollow = artistId != null && artist != null && !following, onFollow = follow)
-        if (!loading && ((artistId != null && data?.artist == null) || data?.media == null)) TextButton(onClick = { attempt++ }) { Text(stringResource(R.string.player_context_retry)) }
+
     }
     discovery?.let { PlayerDiscoverSheet(song, artist, it, onDismiss = { discovery = null }) }
     if (showBiography && artistName != null) AlertDialog(onDismissRequest = { showBiography = false },
         title = { Text(artistName) },
         text = { Text(artist?.description ?: stringResource(R.string.player_context_missing), modifier = Modifier.verticalScroll(rememberScrollState())) },
         confirmButton = { TextButton(onClick = { showBiography = false }) { Text(stringResource(android.R.string.ok)) } })
-    if (showCredits) ModalBottomSheet(onDismissRequest = { showCredits = false },
+    if (showCredits) ModalBottomSheet(onDismissRequest = { showCredits = false; onDismissInformation() },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Color(0xFF202020), contentColor = Color.White) {
         var creditsAttempt by remember(song.id) { mutableIntStateOf(0) }
         val creditsKey = remember(song.title, song.artists, song.duration) {
             MusicBrainzSongKey(song.title, song.artists.map { it.name }, song.duration)
         }
-        val needsMoreCredits = !song.isEpisode && CreditGroup.entries.any { group -> credits.entries.none { it.group == group } }
+        val needsMoreCredits = !localAudio && !song.isEpisode && CreditGroup.entries.any { group -> credits.entries.none { it.group == group } }
         val extraCredits by produceState<MusicBrainzCreditsResult?>(null, creditsKey, needsMoreCredits, creditsAttempt) {
             value = null
             val store = com.metrolist.music.utils.DownloadCompanionStore.get(context)
@@ -137,11 +140,18 @@ fun PlayerContextCards(song: MediaMetadata, onNavigate: (String) -> Unit) {
             runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
                 .onFailure { Toast.makeText(context, R.string.player_context_error, Toast.LENGTH_LONG).show() }
         }
-        SongCreditsContent(song, completeCredits, followed, artistId != null && artist != null && !following, follow,
+        var infoTab by remember { mutableIntStateOf(if (localAudio) 1 else 0) }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            TextButton(onClick = { infoTab = 0 }) { Text(stringResource(R.string.player_credits_artists)) }
+            TextButton(onClick = { infoTab = 1 }) { Text(stringResource(R.string.details)) }
+            if (!localAudio && !loading) TextButton(onClick = { attempt++ }) { Text(stringResource(R.string.player_context_retry)) }
+        }
+        if (infoTab == 1) com.metrolist.music.ui.utils.ShowMediaInfo(song.id)
+        else SongCreditsContent(song, completeCredits, followed, artistId != null && artist != null && !following, follow,
             onSource = { openSource("https://music.youtube.com/watch?v=${Uri.encode(song.id)}") },
             musicBrainz = extraCredits, loadingMusicBrainz = needsMoreCredits && extraCredits == null,
             onRetryMusicBrainz = { creditsAttempt++ },
-            onMusicBrainzSource = { (extraCredits as? MusicBrainzCreditsResult.Found)?.sourceUrl?.let(::openSource) })
+            onMusicBrainzSource = { (extraCredits as? MusicBrainzCreditsResult.Found)?.sourceUrl?.let(::openSource) }, canOpenSource = !localAudio)
     }
 }
 
@@ -231,7 +241,7 @@ private fun CreditRow(name: String, role: String) {
 @Composable
 internal fun SongCreditsContent(song: MediaMetadata, credits: SongCredits, followed: Boolean, canFollow: Boolean,
     onFollow: () -> Unit, onSource: () -> Unit, musicBrainz: MusicBrainzCreditsResult? = null,
-    loadingMusicBrainz: Boolean = false, onRetryMusicBrainz: () -> Unit = {}, onMusicBrainzSource: () -> Unit = {}) {
+    loadingMusicBrainz: Boolean = false, onRetryMusicBrainz: () -> Unit = {}, onMusicBrainzSource: () -> Unit = {}, canOpenSource: Boolean = true) {
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp).padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(song.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
@@ -252,7 +262,7 @@ internal fun SongCreditsContent(song: MediaMetadata, credits: SongCredits, follo
             entries.forEach { CreditRow(it.name, it.role) }
         }
         Text(stringResource(R.string.player_credits_sources), style = MaterialTheme.typography.headlineSmall, color = Color.White, fontWeight = FontWeight.Bold)
-        Text("YouTube Music", color = Color.White)
+        Text(if(canOpenSource) "YouTube Music" else stringResource(R.string.local_audio_title), color = Color.White)
         credits.sources.forEach { Text(it, color = Color.White.copy(alpha = 0.7f)) }
         when {
             loadingMusicBrainz -> {
@@ -268,6 +278,6 @@ internal fun SongCreditsContent(song: MediaMetadata, credits: SongCredits, follo
                 TextButton(onClick = onRetryMusicBrainz) { Text(stringResource(R.string.musicbrainz_credits_retry)) }
             }
         }
-        OutlinedButton(border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.45f)), onClick = onSource, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text(stringResource(R.string.player_open_source), color = Color.White) }
+        if (canOpenSource) OutlinedButton(border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.45f)), onClick = onSource, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text(stringResource(R.string.player_open_source), color = Color.White) }
     }
 }

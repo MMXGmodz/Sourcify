@@ -1,5 +1,12 @@
 # Sourcify changelog
 
+## 13.7.6 — 31. Oktober 2026 — Vorabversion
+
+- Als Nächstes steht unmittelbar über den abschließenden Songinfos. Details und Mitwirkende öffnen eine gemeinsame Ansicht mit zwei Reitern.
+- Suche mit weißem feststehendem Suchfeld, sechs Einstiegskacheln, echter Katalog-Playlist-Reihe, weiteren Empfehlungen, Genres, Stimmungen/Aktivitäten und Reinhören. Alle-anzeigen klappt weitere Kacheln auf; jede Kachel öffnet ein vorhandenes Such-/Browse-Ziel.
+- Native Song-/Lyrics-Teilenansicht mit Cover, Sourcify-Logo, drei Farbstilen und Auswahl von einer bis drei Originalzeilen. PNG-Export über Android-Teilen mit gezielter Dateifreigabe, Link kopieren für YouTube-Titel; lokale IDs werden nicht als YouTube-Link veröffentlicht.
+- Teilen aus Player-/Songmenü und aus der Lyrics-Vollbildansicht. Ziele und Kontakte werden vom Android-Teilenfenster angeboten; keine erfundenen Kontaktvorschläge.
+
 ## 13.7.5 — 31. Oktober 2026 — Vorabversion
 
 - Streamingstatistik mit versetzten Karten für gehörte Minuten, Top-Künstler und Top-Songs aus den tatsächlichen Daten des ausgewählten Zeitraums. Hörverlauf und bisherige Statistikdetails bleiben erreichbar. Keine erfundenen Freundesranglisten.

@@ -72,6 +72,8 @@ fun SongLyricsCard(song: MediaMetadata, position: Long) {
     val database = LocalDatabase.current
     val context = LocalContext.current
     val color = LocalSongColor.current
+    var sharing by rememberSaveable(song.id) { mutableStateOf(false) }
+    if (sharing) SongShareSheet(song, { sharing = false }, startWithLyrics = true)
     var fullScreen by rememberSaveable(song.id) { mutableStateOf(false) }
     LaunchedEffect(song.id) {
         withContext(Dispatchers.IO) {
@@ -101,6 +103,7 @@ fun SongLyricsCard(song: MediaMetadata, position: Long) {
                     Text(com.metrolist.music.utils.makeTimeString(position) + " / " +
                         com.metrolist.music.utils.makeTimeString(song.duration * 1000L), color = Color.White.copy(alpha = 0.8f))
                 }
+                IconButton(onClick = { sharing = true }) { Icon(painterResource(R.drawable.share), stringResource(R.string.s6_share_lyrics), tint = Color.White) }
                 IconButton(onClick = { fullScreen = false }) {
                     Icon(painterResource(R.drawable.fullscreen_exit), stringResource(R.string.sourcify_exit_fullscreen), tint = Color.White)
                 }

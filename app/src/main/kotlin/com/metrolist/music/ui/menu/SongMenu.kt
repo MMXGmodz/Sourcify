@@ -113,6 +113,8 @@ fun SongMenu(
     onDismiss: () -> Unit,
     isFromCache: Boolean = false,
 ) {
+    var sharing by remember(originalSong.id) { mutableStateOf(false) }
+    if (sharing) com.metrolist.music.ui.player.SongShareSheet(originalSong.toMediaMetadata(), onDismiss = { sharing = false })
     if (com.metrolist.music.utils.LocalAudioStore.isLocalId(originalSong.id)) {
         LocalAudioMenu(originalSong.toMediaMetadata(), onDismiss)
         return
@@ -558,14 +560,7 @@ fun SongMenu(
                             },
                             text = stringResource(R.string.share),
                             onClick = {
-                                onDismiss()
-                                val intent =
-                                    Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/watch?v=${song.id}")
-                                    }
-                                context.startActivity(Intent.createChooser(intent, null))
+                                sharing = true
                             },
                         ),
                     ),

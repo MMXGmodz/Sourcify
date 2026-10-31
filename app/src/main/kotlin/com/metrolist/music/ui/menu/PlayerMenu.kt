@@ -114,8 +114,12 @@ fun PlayerMenu(
     onDismiss: () -> Unit,
 ) {
     mediaMetadata ?: return
+    var information by remember(mediaMetadata.id) { mutableStateOf(false) }
+    var sharing by remember(mediaMetadata.id) { mutableStateOf(false) }
+    if (information) com.metrolist.music.ui.player.PlayerContextCards(mediaMetadata, {}, informationOnly = true, onDismissInformation = { information = false })
+    if (sharing) com.metrolist.music.ui.player.SongShareSheet(mediaMetadata, onDismiss = { sharing = false })
     if (com.metrolist.music.utils.LocalAudioStore.isLocalId(mediaMetadata.id)) {
-        LocalAudioMenu(mediaMetadata, onDismiss, onShowDetailsDialog)
+        LocalAudioMenu(mediaMetadata, onDismiss, { information = true })
         return
     }
     val navController = LocalNavController.current
@@ -318,11 +322,7 @@ fun PlayerMenu(
                 title = { Text(stringResource(R.string.share)) },
                 icon = { Icon(painterResource(R.drawable.share), contentDescription = null) },
                 onClick = {
-                    context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/watch?v=${mediaMetadata.id}")
-                    }, null))
-                    onDismiss()
+                    sharing = true
                 },
             )))
         }
@@ -694,7 +694,7 @@ fun PlayerMenu(
                     buildList {
                         add(
                             Material3MenuItemData(
-                                title = { Text(text = stringResource(R.string.details)) },
+                                title = { Text(text = stringResource(R.string.player_song_info)) },
                                 description = { Text(text = stringResource(R.string.details_desc)) },
                                 icon = {
                                     Icon(
@@ -704,8 +704,7 @@ fun PlayerMenu(
                                     )
                                 },
                                 onClick = {
-                                    onShowDetailsDialog()
-                                    onDismiss()
+                                    information = true
                                 },
                             ),
                         )

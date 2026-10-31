@@ -28,6 +28,8 @@ internal fun LocalAudioMenu(metadata: MediaMetadata, onDismiss: () -> Unit, onIn
     val song by database.song(metadata.id).collectAsStateWithLifecycle(initialValue = null)
     val volume by connection.service.playerVolume.collectAsStateWithLifecycle()
     var details by remember { mutableStateOf(false) }
+    var sharing by remember { mutableStateOf(false) }
+    if (sharing) com.metrolist.music.ui.player.SongShareSheet(metadata, { sharing = false })
     Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(metadata.title, style = MaterialTheme.typography.titleLarge)
         Text(stringResource(R.string.local_audio_network_notice), style = MaterialTheme.typography.bodySmall)
@@ -36,8 +38,9 @@ internal fun LocalAudioMenu(metadata: MediaMetadata, onDismiss: () -> Unit, onIn
         SongCanvasAction(metadata.id)
         VolumeSlider(value = volume, onValueChange = { connection.service.playerVolume.value = it }, modifier = Modifier.fillMaxWidth())
         Material3MenuGroup(items = listOf(
+            Material3MenuItemData(title = { Text(stringResource(R.string.share)) }, icon = { Icon(painterResource(R.drawable.share), null) }, onClick = { sharing = true }),
             Material3MenuItemData(title = { Text(stringResource(R.string.details)) }, icon = { Icon(painterResource(R.drawable.info), null) },
-                onClick = { if (onInfo != null) { onInfo(); onDismiss() } else details = true }),
+                onClick = { details = true }),
             Material3MenuItemData(title = { Text(stringResource(if (song?.song?.liked == true) R.string.tv_unfavorite else R.string.tv_favorite)) },
                 icon = { Icon(painterResource(R.drawable.favorite), null) }, onClick = {
                     scope.launch {
@@ -55,5 +58,5 @@ internal fun LocalAudioMenu(metadata: MediaMetadata, onDismiss: () -> Unit, onIn
                 onClick = { connection.addToQueue(metadata.toMediaItem()); onDismiss() }),
         ))
     }
-    if (details) DefaultDialog(onDismiss = { details = false }) { ShowMediaInfo(metadata.id) }
+    if (details) com.metrolist.music.ui.player.PlayerContextCards(metadata, {}, informationOnly = true, onDismissInformation = { details = false })
 }

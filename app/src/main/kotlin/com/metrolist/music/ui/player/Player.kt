@@ -1705,12 +1705,11 @@ fun BottomSheetPlayer(
                     }
                     Spacer(Modifier.height(16.dp))
                     mediaMetadata?.let { song ->
-                        PlayerContextCards(song, onNavigate = { route ->
+                        PlayerContextCards(song, beforeSongInfo = { PlayerNextCard(onOpenQueue = { queueSheetState.expandSoft() }) }, onNavigate = { route ->
                             state.collapseSoft()
                             navController.navigate(route)
                         })
                     }
-                    PlayerNextCard(onOpenQueue = { queueSheetState.expandSoft() })
                     Spacer(Modifier.height(30.dp))
                 }
             }

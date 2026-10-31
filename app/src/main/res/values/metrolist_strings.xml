@@ -1028,7 +1028,7 @@
     <string name="sourcify_licenses">Open-source licenses</string>
     <string name="sourcify_canvas_zoom">Canvas zoom</string>
     <string name="sourcify_canvas_zoom_description">Crop the edges to fill the screen. Increase zoom if the video itself contains black bars.</string>
-    <string name="sourcify_release_notes">Sourcify 13.7.5: Statistik-Karten mit echten Hördaten, weicher Farbverlauf in Playlist-Kopfleisten, durchgehend schwarzer Hintergrund unter den Player-Details, Als-Nächstes-Karte und beschriftete Warteschlangen-Steuerung für Shuffle, Wiederholen und Timer.\n\nSourcify 13.7.4: Neue Lossless-Kataloge unter Einstellungen → Integrationen für Tidal, Qobuz und Deezer. Kompatible API einrichten, Audiozugang prüfen und vollständige FLAC-Titel ohne Umwandlung offline speichern und abspielen. Deezer benötigt einen eigenen Resolver; Zugänge und erreichbare Anbieter-APIs werden vorausgesetzt.\n\nBisherige Änderungen:\nSourcify 13.7.3\n\nProfil links auf Startseite, Suche und Bibliothek. Statistik und Hörverlauf im Profil; Jam und gemeinsames Hören in den Einstellungen.\n\nRote Favoritenherzen und weiße Künstlernamen. Aufgeräumter Player mit Repeat neben Play, Schlaftimer im Menü, Cover in der kompakten Kopfleiste und richtigem Lyrics-Vollbildsymbol. Canvas pro Song an- und ausschalten.\n\nDownloads ergänzen verfügbare Lyrics, Songinfos, Credits und geeignete Canvas-Clips für offline. Unter Speicher lässt sich für neue Musik ein eigener Ordner wählen. Der Bildcache bietet jetzt Unbegrenzt.\n\nCanvas und zusätzliche Metadaten hängen von ihrer Verfügbarkeit ab. Vorabversion ohne abschließenden Smartphone-Hardwaretest.\n\nCredits: Vibecoded · MMXG\nGitHub: github.com/MMXGmodz/Sourcify</string>
+    <string name="sourcify_release_notes">Sourcify 13.7.6: Als Nächstes über den Songinfos; Songinfos und Details in einer Ansicht. Neue Suchbereiche und Playlist-Reihe. Song- und Lyrics-Teilenkarten mit Sourcify-Logo, Farben und Auswahl von bis zu drei Zeilen.\n\nSourcify 13.7.5: Statistik-Karten mit echten Hördaten, weicher Farbverlauf in Playlist-Kopfleisten, durchgehend schwarzer Hintergrund unter den Player-Details, Als-Nächstes-Karte und beschriftete Warteschlangen-Steuerung für Shuffle, Wiederholen und Timer.\n\nSourcify 13.7.4: Neue Lossless-Kataloge unter Einstellungen → Integrationen für Tidal, Qobuz und Deezer. Kompatible API einrichten, Audiozugang prüfen und vollständige FLAC-Titel ohne Umwandlung offline speichern und abspielen. Deezer benötigt einen eigenen Resolver; Zugänge und erreichbare Anbieter-APIs werden vorausgesetzt.\n\nBisherige Änderungen:\nSourcify 13.7.3\n\nProfil links auf Startseite, Suche und Bibliothek. Statistik und Hörverlauf im Profil; Jam und gemeinsames Hören in den Einstellungen.\n\nRote Favoritenherzen und weiße Künstlernamen. Aufgeräumter Player mit Repeat neben Play, Schlaftimer im Menü, Cover in der kompakten Kopfleiste und richtigem Lyrics-Vollbildsymbol. Canvas pro Song an- und ausschalten.\n\nDownloads ergänzen verfügbare Lyrics, Songinfos, Credits und geeignete Canvas-Clips für offline. Unter Speicher lässt sich für neue Musik ein eigener Ordner wählen. Der Bildcache bietet jetzt Unbegrenzt.\n\nCanvas und zusätzliche Metadaten hängen von ihrer Verfügbarkeit ab. Vorabversion ohne abschließenden Smartphone-Hardwaretest.\n\nCredits: Vibecoded · MMXG\nGitHub: github.com/MMXGmodz/Sourcify</string>
 
     <string name="sourcify_update_available_message">Sourcify Player %s is ready to download.</string>
     <string name="sourcify_kmp_upgrade_title">Sourcify Player KMP %s is available</string>
@@ -1233,4 +1233,36 @@
     <string name="ui_top_songs">Top-Songs</string>
     <string name="ui_stats_personal">Deine meistgehörten Titel</string>
     <string name="ui_stats_empty">Noch keine Hörstatistik</string>
+    <string name="s6_song">Song</string>
+    <string name="s6_lyrics">Lyrics</string>
+    <string name="s6_preview">Sourcify-Teilenkarte</string>
+    <string name="s6_edit_lyrics">Songtexte auswählen</string>
+    <string name="s6_share_lyrics">Lyrics teilen</string>
+    <string name="s6_select_lyrics">Eine bis drei Zeilen auswählen</string>
+    <string name="s6_copy_link">Link kopieren</string>
+    <string name="s6_share_image">Bild teilen</string>
+    <string name="s6_share_error">Die Teilenkarte konnte nicht erstellt werden. Bitte erneut versuchen.</string>
+    <string name="s6_audiobooks">Hörbücher</string>
+    <string name="s6_live">Live-Musik</string>
+    <string name="s6_video">Video-Shows</string>
+    <string name="s6_fitness">Fitness-Musik</string>
+    <string name="s6_playlists">Playlists, die du anschauen kannst</string>
+    <string name="s6_retry_playlists">Playlists laden · Erneut versuchen</string>
+    <string name="s6_more">Mehr Empfehlungen für dich</string>
+    <string name="s6_all">Alle anzeigen</string>
+    <string name="s6_genres">Genres</string>
+    <string name="s6_moods">Stimmungen &amp; Aktivitäten</string>
+    <string name="s6_listen">Reinhören</string>
+    <string name="s6_upcoming">Neue Musik entdecken</string>
+    <string name="s6_charts">Charts</string>
+    <string name="s6_party">Party</string>
+    <string name="s6_gaming">Gaming</string>
+    <string name="s6_mood">Stimmung</string>
+    <string name="s6_car">Im Auto</string>
+    <string name="s6_love">Liebe</string>
+    <string name="s6_relax">Entspannen</string>
+    <string name="s6_focus">Konzentration</string>
+    <string name="s6_decades">Jahrzehnte</string>
+    <string name="s6_radio">Radio</string>
+    <string name="s6_discover">Neue Entdeckungen</string>
 </resources>
