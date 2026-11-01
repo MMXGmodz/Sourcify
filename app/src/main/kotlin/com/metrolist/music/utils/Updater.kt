@@ -9,6 +9,7 @@ import com.metrolist.music.BuildConfig
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -31,7 +32,7 @@ data class ReleaseAsset(
 )
 
 object Updater {
-    private val client = HttpClient()
+    private val client = HttpClient { expectSuccess = true }
     var lastCheckTime = -1L
         private set
     
@@ -39,7 +40,7 @@ object Updater {
     private var cachedAllReleases: List<ReleaseInfo> = emptyList()
     
     private const val CHECK_INTERVAL_MILLIS = 2 * 60 * 60 * 1000L // 2 hours
-    private const val GITHUB_API_BASE = "https://api.github.com/repos/MetrolistGroup/Metrolist"
+    private const val GITHUB_API_BASE = "https://api.github.com/repos/MMXGmodz/Sourcify"
     private const val KMP_LATEST_RELEASE_URL = "https://api.github.com/repos/MetrolistGroup/Metrolist-KMP/releases/latest"
     private const val KMP_APK_NAME = "Metrolist.apk"
 
@@ -48,8 +49,8 @@ object Updater {
      * Returns: 1 if v1 > v2, -1 if v1 < v2, 0 if equal
      */
     fun compareVersions(v1: String, v2: String): Int {
-        val v1Parts = v1.removePrefix("v").split(".").map { it.toIntOrNull() ?: 0 }
-        val v2Parts = v2.removePrefix("v").split(".").map { it.toIntOrNull() ?: 0 }
+        val v1Parts = v1.removePrefix("android-tv-v").removePrefix("v").substringBefore("-").substringBefore("+").split(".").map { it.toIntOrNull() ?: 0 }
+        val v2Parts = v2.removePrefix("android-tv-v").removePrefix("v").substringBefore("-").substringBefore("+").split(".").map { it.toIntOrNull() ?: 0 }
         val maxLength = maxOf(v1Parts.size, v2Parts.size)
         
         for (i in 0 until maxLength) {
@@ -130,22 +131,14 @@ object Updater {
                     return@runCatching cachedReleaseInfo!!
                 }
                 
-                val response = client.get("$GITHUB_API_BASE/releases/latest")
-                    .bodyAsText()
-                val json = JSONObject(response)
-                
-                val releaseInfo = ReleaseInfo(
-                    tagName = json.getString("tag_name"),
-                    versionName = json.getString("name"),
-                    description = json.getString("body"),
-                    releaseDate = json.getString("published_at"),
-                    assets = parseAssets(json.getJSONArray("assets"))
-                )
-                
+                // /latest excludes prereleases; Sourcify also ships Android preview releases.
+                val releaseInfo = getAllReleases(forceRefresh).getOrThrow().firstOrNull()
+                    ?: error("No compatible Sourcify release available")
+
                 cachedReleaseInfo = releaseInfo
                 lastCheckTime = System.currentTimeMillis()
                 releaseInfo
-            }
+            }.onFailure { if (it is CancellationException) throw it }
         }
 
     /**
@@ -172,24 +165,50 @@ object Updater {
                         break
                     }
                     
-                    for (i in 0 until json.length()) {
-                        val releaseObj = json.getJSONObject(i)
-                        releases.add(ReleaseInfo(
-                            tagName = releaseObj.getString("tag_name"),
-                            versionName = releaseObj.getString("name"),
-                            description = releaseObj.getString("body"),
-                            releaseDate = releaseObj.getString("published_at"),
-                            assets = parseAssets(releaseObj.getJSONArray("assets"))
-                        ))
-                    }
-                    
+                    releases.addAll(parseSourcifyReleases(response))
+                    if (json.length() < 30) break
                     page++
                 }
                 
-                cachedAllReleases = releases
-                releases
-            }
+                val sorted = releases.sortedWith { a, b -> compareVersions(b.versionName, a.versionName) }
+                cachedAllReleases = sorted
+                sorted
+            }.onFailure { if (it is CancellationException) throw it }
         }
+
+    internal fun isSourcifyAsset(tag: String, asset: ReleaseAsset, tv: Boolean = BuildConfig.TV_INTERFACE): Boolean {
+        val prefix = if (tv) "android-tv-v" else "v"
+        val name = if (tv) "Sourcify-TV.apk" else "Sourcify.apk"
+        return Regex("${prefix}(\\d+\\.\\d+\\.\\d+)(?:-preview\\.[1-9]\\d*)?").matches(tag) &&
+            asset.name == name && asset.size > 0 &&
+            asset.downloadUrl == "https://github.com/MMXGmodz/Sourcify/releases/download/$tag/$name"
+    }
+
+    internal fun parseSourcifyReleases(response: String, tv: Boolean = BuildConfig.TV_INTERFACE): List<ReleaseInfo> {
+        val releases = JSONArray(response)
+        val prefix = if (tv) "android-tv-v" else "v"
+        val pattern = Regex("${prefix}(\\d+\\.\\d+\\.\\d+)(?:-preview\\.[1-9]\\d*)?")
+        return buildList {
+            for (i in 0 until releases.length()) {
+                val release = releases.getJSONObject(i)
+                if (release.optBoolean("draft")) continue
+                val tag = release.optString("tag_name")
+                val version = pattern.matchEntire(tag)?.groupValues?.get(1) ?: continue
+                val assets = release.optJSONArray("assets") ?: continue
+                val compatible = buildList {
+                    for (j in 0 until assets.length()) {
+                        val json = assets.getJSONObject(j)
+                        val asset = ReleaseAsset(json.optString("name"), json.optString("browser_download_url"),
+                            json.optLong("size"), "universal", "foss")
+                        if (isSourcifyAsset(tag, asset, tv)) add(asset)
+                    }
+                }
+                if (compatible.isNotEmpty()) add(ReleaseInfo(tag, version,
+                    release.optString("body").takeUnless { release.isNull("body") }.orEmpty(),
+                    release.optString("published_at"), compatible))
+            }
+        }.sortedWith { a, b -> compareVersions(b.versionName, a.versionName) }
+    }
 
     internal fun parseKmpRelease(response: String): ReleaseInfo? {
         val release = JSONObject(response)
@@ -212,18 +231,15 @@ object Updater {
         withContext(Dispatchers.IO) {
             runCatching {
                 parseKmpRelease(client.get(KMP_LATEST_RELEASE_URL).bodyAsText())
-            }
+            }.onFailure { if (it is CancellationException) throw it }
         }
 
     /**
      * Get the download URL for the correct app variant
      */
     fun getDownloadUrlForCurrentVariant(releaseInfo: ReleaseInfo): String? {
-        val (currentArch, currentVariant) = getCurrentAppVariant()
-        
-        return releaseInfo.assets
-            .find { it.architecture == currentArch && it.variant == currentVariant }
-            ?.downloadUrl
+        if (BuildConfig.CAST_AVAILABLE) return null
+        return releaseInfo.assets.firstOrNull { isSourcifyAsset(releaseInfo.tagName, it) }?.downloadUrl
     }
 
     /**
@@ -255,7 +271,7 @@ object Updater {
                 } else {
                     throw result.exceptionOrNull() ?: Exception("Unknown error")
                 }
-            }
+            }.onFailure { if (it is CancellationException) throw it }
         }
 
     /**

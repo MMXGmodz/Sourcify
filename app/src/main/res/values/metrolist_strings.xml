@@ -1329,4 +1329,7 @@
     <string name="s9_storage">Speicher</string>
     <string name="s9_remove_downloads">Alle Downloads entfernen</string>
     <string name="s9_remove_downloads_desc">Entfernt die heruntergeladenen Sourcify-Inhalte, um Speicherplatz freizugeben.</string>
+    <string name="s10_update_downloading">APK-Download gestartet. Den Fortschritt und die fertige Datei findest du in den Android-Downloads.</string>
+    <string name="s10_up_to_date">Sourcify ist bereits auf dem neuesten Stand.</string>
+    <string name="s10_update_failed">Update konnte nicht geprüft oder heruntergeladen werden. Prüfe deine Verbindung und versuche es erneut.</string>
 </resources>

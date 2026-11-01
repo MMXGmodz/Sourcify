@@ -24,6 +24,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.metrolist.music.R
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
+import com.metrolist.music.utils.Updater
+import com.metrolist.music.utils.UpdateDownload
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 internal fun ProfileDrawerContent(name: String, image: String?, loggedIn: Boolean, hasUpdate: Boolean,
@@ -55,14 +63,45 @@ internal fun ProfileDrawerContent(name: String, image: String?, loggedIn: Boolea
         ProfileDrawerRow(R.drawable.integration, stringResource(R.string.integrations), { onNavigate("settings/integrations") })
         ProfileDrawerRow(R.drawable.settings, stringResource(R.string.s7_settings_privacy), { onNavigate("settings") }, hasUpdate)
         ProfileDrawerRow(R.drawable.account, stringResource(R.string.s7_account_options), onAccountOptions)
-        if (hasUpdate) ProfileDrawerRow(R.drawable.update, stringResource(R.string.new_version_available), { onNavigate("settings/updater") }, true)
+        ProfileUpdateAction()
         Spacer(Modifier.height(24.dp))
     }
 }
 
 @Composable
-private fun ProfileDrawerRow(icon: Int, title: String, onClick: () -> Unit, badge: Boolean = false) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun ProfileUpdateAction() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var checking by remember { mutableStateOf(false) }
+    ProfileDrawerRow(R.drawable.update,
+        stringResource(if (checking) R.string.checking_for_updates else R.string.check_for_updates_button),
+        onClick = {
+            if (!checking) {
+                checking = true
+                scope.launch {
+                    try {
+                        val (release, available) = Updater.checkForUpdate(forceRefresh = true).getOrThrow()
+                        if (available && release != null) {
+                            withContext(Dispatchers.IO) { UpdateDownload.enqueue(context.applicationContext, release) }
+                            Toast.makeText(context, R.string.s10_update_downloading, Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(context, R.string.s10_up_to_date, Toast.LENGTH_LONG).show()
+                        }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        Toast.makeText(context, R.string.s10_update_failed, Toast.LENGTH_LONG).show()
+                    } finally {
+                        checking = false
+                    }
+                }
+            }
+        }, enabled = !checking)
+}
+
+@Composable
+private fun ProfileDrawerRow(icon: Int, title: String, onClick: () -> Unit, badge: Boolean = false, enabled: Boolean = true) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(enabled = enabled, onClick = onClick).padding(horizontal = 12.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(painterResource(icon), null, tint = Color.White, modifier = Modifier.size(24.dp))
         Spacer(Modifier.width(16.dp))
         Text(title, color = Color.White, modifier = Modifier.weight(1f))

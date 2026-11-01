@@ -1,5 +1,11 @@
 # Sourcify changelog
 
+## 13.7.10 — 1. November 2026 — Vorabversion
+
+- Unten im Profilmenü prüft „Check for updates“ frisch auf neue Sourcify-Versionen und startet den APK-Download automatisch.
+- Der Updater verwendet Sourcify-Releases einschließlich Android-Vorabversionen und wählt die passende APK für Telefon oder TV.
+- Android zeigt Downloadfortschritt und Fertigstellung an; laufende Downloads werden nicht doppelt gestartet.
+
 ## 13.7.9 — 1. November 2026 — Vorabversion
 
 - Kleiner, runder Fortschrittsgriff in Standard-/Slim-Player und Lyrics-Vollbild; die Suchleiste behält ihre normale Touchfläche.
