@@ -22,6 +22,7 @@ import com.metrolist.music.ui.player.*
 import com.metrolist.music.utils.*
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -37,8 +38,8 @@ internal class DownloadCompanionPreparer(
     private val lyrics by lazy { EntryPointAccessors.fromApplication(context.applicationContext, LyricsHelperEntryPoint::class.java).lyricsHelper() }
 
     suspend fun prepare(id: String, force: Boolean) = withContext(Dispatchers.IO) {
-        val download = lookup(id)?.takeIf { it.state == Download.STATE_COMPLETED } ?: return@withContext
-        val song = database.getSongByIdBlocking(id) ?: return@withContext
+        val download = lookup(id)?.takeIf { it.state == Download.STATE_COMPLETED } ?: return@withContext true
+        val song = database.getSongByIdBlocking(id) ?: return@withContext true
         val metadata = song.toMediaMetadata()
         runOptionalDownloadTasks({
             if (storage.record(id) != null && !storage.hasActiveReads(id) && storage.isReadable(id)) cache.removeResource(id)
@@ -57,7 +58,8 @@ internal class DownloadCompanionPreparer(
                 }
             }
         })
-        if (!hasDownloadInternet(context) || (!force && System.currentTimeMillis() - store.lastAttempt(id) < 86_400_000)) return@withContext
+        if (!hasDownloadInternet(context) || (!force && System.currentTimeMillis() - store.lastAttempt(id) < 86_400_000)) return@withContext true
+        val completed = DownloadNetworkPolicy.get(context).runAllowed {
         runOptionalDownloadTasks(
             {
                 if (store.info(id) == null) withTimeoutOrNull(12_000) {
@@ -104,7 +106,11 @@ internal class DownloadCompanionPreparer(
                 }
             },
         )
+        kotlinx.coroutines.currentCoroutineContext().ensureActive()
         store.markAttempt(id)
+        true
+        }
+        completed ?: false
     }
 }
 

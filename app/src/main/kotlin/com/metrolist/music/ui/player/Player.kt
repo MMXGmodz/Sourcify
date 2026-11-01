@@ -1178,9 +1178,12 @@ fun BottomSheetPlayer(
 
             when (if (useNewPlayerDesign && sliderStyle == SliderStyle.DEFAULT) SliderStyle.SLIM else sliderStyle) {
                 SliderStyle.DEFAULT -> {
+                    val range = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat())
+                    val progressState = remember(range) { SliderState(value = 0f, trackRange = range) }
+                    progressState.value = (sliderPosition ?: effectivePosition).toFloat()
                     Slider(
-                        value = (sliderPosition ?: effectivePosition).toFloat(),
-                        valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
+                        state = progressState,
+                        thumb = { com.metrolist.music.ui.component.PlayerProgressThumb(textButtonColor) },
                         onValueChange = {
                             if (!isListenTogetherGuest) {
                                 sliderPosition = it.toLong()
@@ -1285,7 +1288,7 @@ fun BottomSheetPlayer(
                             }
                         },
                         enabled = !isListenTogetherGuest,
-                        thumb = { Box(Modifier.size(8.dp).background(Color.White, CircleShape)) },
+                        thumb = { com.metrolist.music.ui.component.PlayerProgressThumb(Color.White) },
                         track = { sliderState ->
                             PlayerSliderTrack(
                                 sliderState = sliderState,

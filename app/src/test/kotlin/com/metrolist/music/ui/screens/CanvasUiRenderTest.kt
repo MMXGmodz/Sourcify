@@ -81,6 +81,16 @@ class CanvasUiRenderTest {
                     com.metrolist.music.models.MediaMetadata("track", "Next Song", listOf(com.metrolist.music.models.MediaMetadata.Artist(null, "Artist")), 180), {})
             }
         }
+        render("content-display-settings") {
+            CompositionLocalProvider(LocalPlayerAwareWindowInsets provides WindowInsets(bottom = 96.dp)) {
+                com.metrolist.music.ui.screens.settings.ContentDisplaySettings(rememberNavController())
+            }
+        }
+        render("data-offline-settings") {
+            CompositionLocalProvider(LocalPlayerConnection provides null, LocalPlayerAwareWindowInsets provides WindowInsets(bottom = 96.dp)) {
+                com.metrolist.music.ui.screens.settings.DataOfflineSettings(rememberNavController())
+            }
+        }
         render("stats-dashboard") {
             com.metrolist.music.ui.screens.StatsDashboard(133, "Artist", null, "Top Song", null, emptyList(), {}, {}, {})
         }

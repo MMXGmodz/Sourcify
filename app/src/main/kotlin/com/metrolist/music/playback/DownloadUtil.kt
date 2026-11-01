@@ -41,6 +41,18 @@ import com.metrolist.music.utils.DownloadArtworkStore
 import com.metrolist.music.utils.DownloadCompanionStore
 import com.metrolist.music.utils.DownloadStorage
 import com.metrolist.music.utils.enumPreference
+import com.metrolist.music.utils.dataStore
+import com.metrolist.music.utils.DownloadNetworkPolicy
+import com.metrolist.music.utils.downloadNetworkRequirements
+import com.metrolist.music.utils.downloadPolicyStopReason
+import com.metrolist.music.constants.DownloadMobileAllowedKey
+import com.metrolist.music.constants.DownloadBackgroundAllowedKey
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.media3.exoplayer.scheduler.Requirements
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -82,6 +94,11 @@ constructor(
 ) {
     private val TAG = "DownloadUtil"
     private val connectivityManager = context.getSystemService<ConnectivityManager>()!!
+    private val initialDownloadPolicy = runBlocking(Dispatchers.IO) {
+        context.dataStore.data.first().let { (it[DownloadMobileAllowedKey] ?: true) to (it[DownloadBackgroundAllowedKey] ?: true) }
+    }
+    @Volatile private var backgroundAllowed = initialDownloadPolicy.second
+    @Volatile private var appForeground = ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
     private val audioQuality by enumPreference(context, AudioQualityKey, AudioQuality.AUTO)
     private val songUrlCache = StreamUrlCache()
     private val streamHttpClient =
@@ -97,6 +114,7 @@ constructor(
             .build()
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val extraDownloadPolicy = DownloadNetworkPolicy.get(context)
     private val downloadPreparations = Semaphore(3)
     private val removalTasks = java.util.concurrent.ConcurrentHashMap<String, CompletableDeferred<Unit>>()
     private val companionStore = DownloadCompanionStore.get(context)
@@ -277,13 +295,16 @@ constructor(
             Executor(Runnable::run)
         ).apply {
             maxParallelDownloads = 3
+            setRequirements(Requirements(downloadNetworkRequirements(initialDownloadPolicy.first)))
             addListener(
                 object : DownloadManager.Listener {
+                    override fun onInitialized(downloadManager: DownloadManager) { applyBackgroundPolicy(downloadManager) }
                     override fun onDownloadChanged(
                         downloadManager: DownloadManager,
                         download: Download,
                         finalException: Exception?,
                     ) {
+                        applyBackgroundPolicy(downloadManager)
                         if (download.state == Download.STATE_FAILED && finalException.isExpiredStreamError()) {
                             songUrlCache.invalidate(download.request.id)
                         }
@@ -340,7 +361,33 @@ constructor(
             )
         }
 
+    private fun applyBackgroundPolicy(manager: DownloadManager) {
+        var resumed = false
+        manager.currentDownloads.filter { it.state in listOf(Download.STATE_QUEUED, Download.STATE_DOWNLOADING, Download.STATE_STOPPED) }.forEach {
+            val target = downloadPolicyStopReason(it.stopReason, backgroundAllowed, appForeground)
+            if (target != it.stopReason) { manager.setStopReason(it.request.id, target); if (target == 0) resumed = true }
+        }
+        if (resumed && appForeground) runCatching { DownloadService.start(context, ExoDownloadService::class.java) }
+    }
+
     init {
+        scope.launch {
+            extraDownloadPolicy.allowed.collect { allowed ->
+                if (allowed) {
+                    artworkRepairs.trySend(Unit)
+                    downloads.value.values.filter { it.state == Download.STATE_COMPLETED }.forEach { enqueueCompanions(it.request.id, false) }
+                }
+            }
+        }
+        scope.launch(Dispatchers.Main.immediate) {
+            combine(context.dataStore.data, ProcessLifecycleOwner.get().lifecycle.currentStateFlow) { prefs, state ->
+                Triple(prefs[DownloadMobileAllowedKey] ?: true, prefs[DownloadBackgroundAllowedKey] ?: true, state.isAtLeast(Lifecycle.State.STARTED))
+            }.distinctUntilChanged().collect { (mobile, background, foreground) ->
+                backgroundAllowed = background; appForeground = foreground
+                downloadManager.setRequirements(Requirements(downloadNetworkRequirements(mobile)))
+                applyBackgroundPolicy(downloadManager)
+            }
+        }
         val result = mutableMapOf<String, Download>()
         downloadManager.downloadIndex.getDownloads().use { cursor ->
             while (cursor.moveToNext()) {
@@ -356,13 +403,15 @@ constructor(
             for (ignored in companionSignal) {
                 while (true) {
                     val id = companionQueue.pollFirst() ?: break
+                    var deferred = false
                     try {
-                        preparer.prepare(id, companionForced.remove(id))
+                        deferred = !preparer.prepare(id, companionForced.remove(id))
                     } catch (error: kotlinx.coroutines.CancellationException) { throw error }
                     catch (_: Exception) { Timber.tag(TAG).w("Could not finish optional download files") }
                     finally {
                         companionPending.remove(id)
                         if (companionForced.contains(id)) enqueueCompanions(id, true)
+                        else if (deferred && extraDownloadPolicy.allowed.value) enqueueCompanions(id, false)
                         extraDownloads.value = companionPending.toSet()
                     }
                 }
@@ -497,12 +546,11 @@ constructor(
         scope.cancel()
     }
 
-    private fun hasArtworkNetwork(): Boolean = connectivityManager
-        .getNetworkCapabilities(connectivityManager.activeNetwork)
-        ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
+    private fun hasArtworkNetwork(): Boolean = extraDownloadPolicy.allowed.value
 
     private suspend fun storeDownloadArtwork(songId: String, urls: List<String>) {
         artworkStore.retain(songId, urls)
+        extraDownloadPolicy.runAllowed {
         for (url in urls) {
             currentCoroutineContext().ensureActive()
             if (artworkStore.fileFor(url) != null || !hasArtworkNetwork()) continue
@@ -510,15 +558,20 @@ constructor(
                 if (artworkStore.fileFor(url) != null) return@withPermit
                 runCatching {
                     val request = okhttp3.Request.Builder().url(url).get().build()
-                    artworkHttpClient.newCall(request).execute().use { response ->
+                    val call = artworkHttpClient.newCall(request)
+                    kotlinx.coroutines.coroutineScope {
+                    val watcher = launch { try { extraDownloadPolicy.allowed.first { !it } } finally { call.cancel() } }
+                    try { call.execute().use { response ->
                         if (response.isSuccessful) {
                             response.body?.let { body ->
                                 artworkStore.save(url, body.contentType()?.toString(), body.contentLength(), body.byteStream())
                             }
                         }
+                    } } finally { watcher.cancel(); call.cancel() }
                     }
                 }.onFailure { Timber.tag(TAG).w("Could not fetch downloaded artwork") }
             }
+        }
         }
         if (downloads.value[songId]?.state == Download.STATE_REMOVING ||
             downloadManager.downloadIndex.getDownload(songId) == null

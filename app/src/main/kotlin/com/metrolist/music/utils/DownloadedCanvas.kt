@@ -40,7 +40,7 @@ private suspend fun copyCanvasSource(context: Context, source: CanvasVideoSource
     val client = OkHttpClient.Builder().proxy(YouTube.proxy)
         .proxyAuthenticator { _, response -> YouTube.proxyAuth?.let { response.request.newBuilder().header("Proxy-Authorization", it).build() } }
         .connectTimeout(10, TimeUnit.SECONDS).readTimeout(10, TimeUnit.SECONDS).callTimeout(20, TimeUnit.SECONDS).build()
-    val factory = CanvasNetworkPolicy.get(context).guard(DefaultDataSource.Factory(context, OkHttpDataSource.Factory(client)))
+    val factory = DownloadNetworkPolicy.get(context).guard(CanvasNetworkPolicy.get(context).guard(DefaultDataSource.Factory(context, OkHttpDataSource.Factory(client))))
     val stream = source.stream?.let { CachedStreamUrl(source.uri.toString(), it.headers, it.clientName,
         it.requireBoundedRange, it.rangeChunkSizeBytes, it.useRangeChunks) }
     copyCanvasBytes(factory, source.uri, stream, file)

@@ -730,3 +730,6 @@ val StreamingWifiQualityKey = stringPreferencesKey("streamingWifiQuality")
 val StreamingMobileQualityKey = stringPreferencesKey("streamingMobileQuality")
 val CanvasWifiHeightKey = intPreferencesKey("canvasWifiHeight")
 val CanvasMobileHeightKey = intPreferencesKey("canvasMobileHeight")
+
+val DownloadMobileAllowedKey = booleanPreferencesKey("downloadMobileAllowed")
+val DownloadBackgroundAllowedKey = booleanPreferencesKey("downloadBackgroundAllowed")

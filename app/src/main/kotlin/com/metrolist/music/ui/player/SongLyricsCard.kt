@@ -186,7 +186,10 @@ fun SongLyricsCard(song: MediaMetadata, position: Long, onSeekRequested: ((Long)
             }
             var scrub by remember { mutableStateOf<Float?>(null) }
             val total = (if (casting) cast?.castDuration?.value else song.duration * 1000L)?.coerceAtLeast(1L) ?: 1L
-            Slider(value = scrub ?: livePosition.coerceIn(0, total).toFloat(), valueRange = 0f..total.toFloat(), enabled = !guest,
+            val progressState = remember(total) { SliderState(value = 0f, trackRange = 0f..total.toFloat()) }
+            progressState.value = scrub ?: livePosition.coerceIn(0, total).toFloat()
+            Slider(state = progressState, enabled = !guest,
+                thumb = { com.metrolist.music.ui.component.PlayerProgressThumb(Color.White) },
                 onValueChange = { scrub = it }, onValueChangeFinished = { scrub?.let { seek(it.toLong()) }; scrub = null },
                 colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.White, inactiveTrackColor = Color.White.copy(alpha = .3f)))
             FilledIconButton(onClick = connection::togglePlayPause, enabled = !guest,

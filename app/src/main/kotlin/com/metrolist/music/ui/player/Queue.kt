@@ -642,20 +642,7 @@ fun Queue(
                         overflow = TextOverflow.Ellipsis)
                 }
 
-                AnimatedVisibility(
-                    visible = !inSelectMode,
-                    enter = fadeIn() + slideInVertically { it },
-                    exit = fadeOut() + slideOutVertically { it },
-                ) {
-                    Row {
-                        androidx.compose.material3.TextButton(
-                            onClick = { locked = !locked },
-                            modifier = Modifier.padding(horizontal = 6.dp),
-                        ) {
-                            Text(stringResource(if (locked) R.string.ui_queue_edit else R.string.ui_queue_done))
-                        }
-                    }
-                }
+
 
 
             }
@@ -745,9 +732,10 @@ fun Queue(
             QueueControl(if (repeatMode == Player.REPEAT_MODE_ONE) R.drawable.repeat_one else R.drawable.repeat,
                 stringResource(R.string.ui_queue_repeat), repeatMode != Player.REPEAT_MODE_OFF, !isListenTogetherGuest,
                 Modifier.weight(1f), playerConnection.player::toggleRepeatMode)
-            com.metrolist.music.ui.menu.PlayerSleepTimerAction(trigger = { open ->
-                QueueControl(R.drawable.bedtime, stringResource(R.string.sleep_timer), false, true, Modifier.weight(1f), open)
-            })
+            QueueControl(if (locked) R.drawable.edit else R.drawable.check,
+                stringResource(if (locked) R.string.ui_queue_edit else R.string.ui_queue_done), !locked,
+                !isListenTogetherGuest && !inSelectMode, Modifier.weight(1f)) { locked = !locked }
+
         }
 
         SnackbarHost(

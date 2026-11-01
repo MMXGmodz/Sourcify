@@ -363,8 +363,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
 
     composable("settings/content") {
-        ContentSettings(navController)
+        com.metrolist.music.ui.screens.settings.ContentDisplaySettings(navController)
     }
+    composable("settings/content/advanced") { ContentSettings(navController) }
 
     composable("settings/content/romanization") {
         RomanizationSettings(navController)
@@ -387,8 +388,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
 
     composable("settings/storage") {
-        StorageSettings(navController)
+        com.metrolist.music.ui.screens.settings.DataOfflineSettings(navController)
     }
+    composable("settings/storage/advanced") { StorageSettings(navController) }
 
     composable("settings/privacy") {
         PrivacySettings(navController)

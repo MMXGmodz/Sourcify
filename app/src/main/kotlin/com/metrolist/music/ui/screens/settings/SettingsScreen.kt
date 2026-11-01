@@ -116,7 +116,7 @@ fun SettingsScreen(
                 ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.language),
-                    title = { Text(stringResource(R.string.content)) },
+                    title = { Text(stringResource(R.string.s9_content)) },
                     onClick = { navController.navigate("settings/content") }
                 ),
 
@@ -161,7 +161,7 @@ fun SettingsScreen(
             items = listOf(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.storage),
-                    title = { Text(stringResource(R.string.storage)) },
+                    title = { Text(stringResource(R.string.s9_data)) },
                     onClick = { navController.navigate("settings/storage") }
                 ),
                 Material3SettingsItem(

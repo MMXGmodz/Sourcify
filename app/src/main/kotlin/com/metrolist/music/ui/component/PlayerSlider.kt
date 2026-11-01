@@ -6,6 +6,10 @@
 package com.metrolist.music.ui.component
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -115,3 +119,8 @@ private fun stepsToTickFractions(steps: Int): FloatArray {
 
 private fun calcFraction(a: Float, b: Float, pos: Float) =
     (if (b - a == 0f) 0f else (pos - a) / (b - a)).coerceIn(0f, 1f)
+
+@Composable
+internal fun PlayerProgressThumb(color: Color) {
+    androidx.compose.foundation.layout.Box(Modifier.requiredSize(6.dp).background(color, CircleShape))
+}

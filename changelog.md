@@ -1,5 +1,14 @@
 # Sourcify changelog
 
+## 13.7.9 — 1. November 2026 — Vorabversion
+
+- Kleiner, runder Fortschrittsgriff in Standard-/Slim-Player und Lyrics-Vollbild; die Suchleiste behält ihre normale Touchfläche.
+- Warteschlange: Bearbeiten/Fertig ersetzt den Timer unten. Bestehende Sortiersperre, Auswahl und Gastbeschränkung bleiben erhalten; der Timer steht weiterhin im Playermenü.
+- Datenvolumen/Offline und Inhalte/Darstellung als dunkle Listen mit grünen Schaltern, Speicherübersicht und direkten bestätigten Bereinigungsaktionen. Erweiterte bisherige Einstellungen bleiben erreichbar.
+- Neue echte Downloadregeln für mobile/getaktete Verbindungen und Hintergrundbetrieb. Sie gelten auch für Cover, Lyrics, Songinfos und Canvas-Zusatzdateien. Nur von der Regel pausierte Downloads werden automatisch fortgesetzt.
+- Regelmäßig aktualisierte interne Speicherwerte mit Audio-/Bild-/Canvas-Cache; Originaldateien im eigenen Downloadordner werden separat ausgewiesen. Cache leeren erhält Downloads, Offline-Cover und importierte lokale Dateien.
+
+
 ## 13.7.8 — 1. November 2026 — Vorabversion
 
 - Lyrics im Vollbild über Songtext wechseln suchen, von einem anderen Anbieter auswählen oder bearbeiten. Bestehende Such-/Speicherfunktion wiederverwendet; Song-ID bleibt an die Auswahl gebunden.
