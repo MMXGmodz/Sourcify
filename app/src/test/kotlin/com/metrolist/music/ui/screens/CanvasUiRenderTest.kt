@@ -66,6 +66,21 @@ class CanvasUiRenderTest {
                 com.metrolist.music.models.MediaMetadata("track", "Test Song", listOf(com.metrolist.music.models.MediaMetadata.Artist("artist", "Test Artist")), 180),
                 1f, Color(0xFF302822), true, true, .4f, {}, {}, {}, {})
         }
+        render("media-quality") {
+            com.metrolist.music.ui.screens.settings.MediaQualityContent(
+                wifi = com.metrolist.music.constants.AudioQuality.AUTO, mobile = com.metrolist.music.constants.AudioQuality.LOW,
+                download = com.metrolist.music.constants.AudioQuality.HIGH, wifiHeight = 720, mobileHeight = 240,
+                onWifi = {}, onMobile = {}, onDownload = {}, onWifiVideo = {}, onMobileVideo = {}, onBack = {}, onLossless = {})
+        }
+        render("next-card-width", verify = { bitmap ->
+            assertTrue("Next card must reach the same left margin as context cards", bitmap.getPixel(35, 100) == android.graphics.Color.rgb(40, 40, 40))
+            assertTrue("Next card must reach the same right margin as context cards", bitmap.getPixel(789, 100) == android.graphics.Color.rgb(40, 40, 40))
+        }) {
+            Column(Modifier.padding(16.dp)) {
+                com.metrolist.music.ui.player.NextQueueCardContent(
+                    com.metrolist.music.models.MediaMetadata("track", "Next Song", listOf(com.metrolist.music.models.MediaMetadata.Artist(null, "Artist")), 180), {})
+            }
+        }
         render("stats-dashboard") {
             com.metrolist.music.ui.screens.StatsDashboard(133, "Artist", null, "Top Song", null, emptyList(), {}, {}, {})
         }

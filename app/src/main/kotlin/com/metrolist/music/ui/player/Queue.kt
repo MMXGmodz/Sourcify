@@ -234,17 +234,7 @@ fun Queue(
         background = {
             Box(Modifier.fillMaxSize().background(background))
         },
-        collapsedContent = {
-            Row(Modifier.fillMaxWidth().background(background).padding(horizontal = 24.dp, vertical = 8.dp)
-                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)),
-                horizontalArrangement = Arrangement.Center) {
-                TextButton(onClick = { state.expandSoft() }) {
-                    Icon(painterResource(R.drawable.queue_music), null, tint = onBackgroundColor)
-                    Spacer(Modifier.width(10.dp))
-                    Text(stringResource(R.string.queue), color = onBackgroundColor)
-                }
-            }
-        },
+        collapsedContent = {},
     ) {
         val queueTitle by playerConnection.queueTitle.collectAsStateWithLifecycle()
         val queueWindows by playerConnection.queueWindows.collectAsStateWithLifecycle()

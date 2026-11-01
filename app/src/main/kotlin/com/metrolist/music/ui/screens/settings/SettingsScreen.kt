@@ -105,6 +105,11 @@ fun SettingsScreen(
                     onClick = { navController.navigate("settings/canvas") }
                 ),
                 Material3SettingsItem(
+                    icon = painterResource(R.drawable.graphic_eq),
+                    title = { Text(stringResource(R.string.s8_media_quality)) },
+                    onClick = { navController.navigate("settings/media_quality") }
+                ),
+                Material3SettingsItem(
                     icon = painterResource(R.drawable.play),
                     title = { Text(stringResource(R.string.player_and_audio)) },
                     onClick = { navController.navigate("settings/player") }

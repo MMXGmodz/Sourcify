@@ -725,3 +725,8 @@ val CountryCodeToName =
     )
 
 val CanvasBrightnessKey = androidx.datastore.preferences.core.floatPreferencesKey("canvas_brightness")
+
+val StreamingWifiQualityKey = stringPreferencesKey("streamingWifiQuality")
+val StreamingMobileQualityKey = stringPreferencesKey("streamingMobileQuality")
+val CanvasWifiHeightKey = intPreferencesKey("canvasWifiHeight")
+val CanvasMobileHeightKey = intPreferencesKey("canvasMobileHeight")

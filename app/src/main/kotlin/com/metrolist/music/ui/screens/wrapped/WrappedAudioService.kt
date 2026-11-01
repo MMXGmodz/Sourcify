@@ -5,6 +5,8 @@
 
 package com.metrolist.music.ui.screens.wrapped
 
+import kotlinx.coroutines.flow.first
+
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Uri
@@ -103,10 +105,8 @@ class WrappedAudioService(
         }
 
         return try {
-            val audioQuality = context.dataStore.get(com.metrolist.music.constants.AudioQualityKey).let { value ->
-                if (value == "VERY_HIGH") AudioQuality.HIGH
-                else AudioQuality.entries.find { it.name == value } ?: AudioQuality.AUTO
-            }
+            val audioQuality = com.metrolist.music.utils.streamingAudioQuality(context.dataStore.data.first(),
+                com.metrolist.music.utils.networkUsesMobileQuality(connectivityManager))
             val playbackData = withContext(Dispatchers.IO) {
                 InnerTubeXPlayer.playerResponseForPlayback(
                     videoId = songId,

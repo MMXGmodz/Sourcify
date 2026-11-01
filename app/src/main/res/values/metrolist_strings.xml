@@ -1271,4 +1271,26 @@
     <string name="s7_add_account">Konto hinzufügen</string>
     <string name="s7_settings_privacy">Einstellungen und Datenschutz</string>
     <string name="s7_account_options">Kontooptionen und Synchronisierung</string>
+    <string name="s8_change_lyrics">Songtext wechseln</string>
+    <string name="s8_media_quality">Medienqualität</string>
+    <string name="s8_media_summary">WLAN, mobile Daten, Downloads und Canvas-Video</string>
+    <string name="s8_this_device">Dieses Gerät</string>
+    <string name="s8_device_only">Änderungen gelten nur für dieses Gerät</string>
+    <string name="s8_audio_streaming">Audiostreamingqualität</string>
+    <string name="s8_audio_note">Die Auswahl gilt für neu angeforderte Quellen. Bereits heruntergeladene Songs behalten ihre Originalqualität. YouTube Music liefert AAC oder Opus; die verfügbaren Stufen hängen von der Quelle ab.</string>
+    <string name="s8_wifi_stream">Qualität beim Streamen über WLAN</string>
+    <string name="s8_mobile_stream">Qualität beim Streamen über mobile Daten</string>
+    <string name="s8_download_quality">Downloadqualität</string>
+    <string name="s8_download_audio">Downloadqualität (Audio)</string>
+    <string name="s8_download_note">Vorhandene Downloads und bereits zwischengespeicherte Audiodaten bleiben erhalten. Neue Quellen verwenden die gewählte Qualität.</string>
+    <string name="s8_lossless_note">Verlustfreie Originaldateien über Anbieter-Verbindungen oder lokale FLAC-Dateien. Anbieter unter Integrationen öffnen.</string>
+    <string name="s8_video_quality">Canvas-Videostreamingqualität</string>
+    <string name="s8_video_note">Höhere Videoqualität benötigt mehr Daten. Gilt für neu geladene Canvas-Quellen; lokale Videos und gespeicherte Clips behalten ihr Originalformat.</string>
+    <string name="s8_quality_auto">Passt die Quellenauswahl an deine Verbindung an.</string>
+    <string name="s8_quality_low">Datensparend: niedrigste verfügbare Audiostufe.</string>
+    <string name="s8_quality_high">Beste verfügbare Audiostufe dieser Quelle.</string>
+    <string name="s8_quality_normal">Normal</string>
+    <string name="s8_quality_very_high">Sehr hoch</string>
+    <string name="s8_video_height">Bis zu %1$d p, je nach verfügbarer Quelle</string>
+    <string name="s8_lossless">Lossless · FLAC</string>
 </resources>

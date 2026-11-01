@@ -81,6 +81,7 @@ internal class AutomaticCanvasResolver(
         }
     },
     private val now: () -> Long = System::currentTimeMillis,
+    private val videoHeight: suspend () -> Int = { InnerTubeXPlayer.currentCanvasVideoHeight() },
 ) {
     private data class Entry(val source: CanvasVideoSource?, val expiresAt: Long)
     private val cache = LruCache<String, Entry>(30)
@@ -89,7 +90,8 @@ internal class AutomaticCanvasResolver(
 
     suspend fun resolve(song: MediaMetadata): CanvasVideoSource? = mutex.withLock {
         if (song.isEpisode || LocalAudioStore.isLocalId(song.id)) return@withLock null
-        cache.get(song.id)?.takeIf { it.expiresAt > now() }?.let { return@withLock it.source }
+        val cacheKey = "${song.id}:${videoHeight()}"
+        cache.get(cacheKey)?.takeIf { it.expiresAt > now() }?.let { return@withLock it.source }
         val source = withTimeoutOrNull(30_000) {
             val videos = if (song.isVideoSong) emptyList() else try {
                 withTimeoutOrNull(10_000) {
@@ -116,7 +118,7 @@ internal class AutomaticCanvasResolver(
         }
         val expiry = source?.stream?.expiresAt?.toEpochMilliseconds()?.minus(30_000)
             ?: (now() + if (source == null) 60_000 else 5 * 60_000)
-        cache.put(song.id, Entry(source, expiry))
+        cache.put(cacheKey, Entry(source, expiry))
         source
     }
 
@@ -131,8 +133,10 @@ internal fun rememberAutomaticCanvas(song: MediaMetadata?, enabled: Boolean): Ca
     val resolver = sharedCanvasResolver
     val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
     val remoteAllowed by CanvasNetworkPolicy.get(LocalContext.current).remoteAllowed.collectAsStateWithLifecycle()
+    val wifiHeight by rememberPreference(com.metrolist.music.constants.CanvasWifiHeightKey, 720)
+    val mobileHeight by rememberPreference(com.metrolist.music.constants.CanvasMobileHeightKey, 720)
     val active = enabled && remoteAllowed && lifecycleState.isAtLeast(Lifecycle.State.RESUMED)
-    val result by produceState<Pair<String, CanvasVideoSource?>?>(null, song?.id, active) {
+    val result by produceState<Pair<String, CanvasVideoSource?>?>(null, song?.id, active, wifiHeight, mobileHeight) {
         value = null
         if (song != null && active) {
             val source = withContext(Dispatchers.IO) { resolver.resolve(song) }
@@ -146,9 +150,11 @@ internal fun rememberAutomaticCanvas(song: MediaMetadata?, enabled: Boolean): Ca
 internal fun rememberSelectedCanvas(selection: CanvasSelection?, enabled: Boolean): CanvasVideoSource? {
     val state by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
     val remoteAllowed by CanvasNetworkPolicy.get(LocalContext.current).remoteAllowed.collectAsStateWithLifecycle()
+    val wifiHeight by rememberPreference(com.metrolist.music.constants.CanvasWifiHeightKey, 720)
+    val mobileHeight by rememberPreference(com.metrolist.music.constants.CanvasMobileHeightKey, 720)
     val ownVideo = selection?.uri?.scheme in listOf("content", "file")
     val active = enabled && (ownVideo || remoteAllowed) && state.isAtLeast(Lifecycle.State.RESUMED)
-    val source by produceState<Pair<CanvasSelection, CanvasVideoSource?>?>(null, selection, active) {
+    val source by produceState<Pair<CanvasSelection, CanvasVideoSource?>?>(null, selection, active, wifiHeight, mobileHeight) {
         value = null
         if (active && selection != null) {
             val resolved = if (selection.uri != null) CanvasVideoSource(selection.uri, selection.startMs, selection.endMs)

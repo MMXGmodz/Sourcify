@@ -697,7 +697,7 @@ fun BottomSheetPlayer(
         }
     }
 
-    val dismissedBound = QueuePeekHeight + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
+    val dismissedBound = 0.dp
 
     val queueSheetState =
         rememberBottomSheetState(
@@ -1331,7 +1331,7 @@ fun BottomSheetPlayer(
                 enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                 exit = shrinkVertically(shrinkTowards = Alignment.Top) + slideOutVertically(targetOffsetY = { it }) + fadeOut(),
             ) {
-                Column {
+                PlayerTransportActions(useNewPlayerDesign, { queueSheetState.expandSoft() }) {
                     if (useNewPlayerDesign) {
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1452,7 +1452,7 @@ fun BottomSheetPlayer(
                             }
                             IconButton(onClick = { playerConnection.player.toggleRepeatMode() }, enabled = !isListenTogetherGuest, modifier = Modifier.size(40.dp)) {
                                 Icon(painterResource(if (repeatMode == Player.REPEAT_MODE_ONE) R.drawable.repeat_one else R.drawable.repeat),
-                                    stringResource(R.string.sourcify_player_repeat), tint = if (repeatMode == Player.REPEAT_MODE_OFF) Color.White.copy(alpha = 0.5f) else Color.White)
+                                    stringResource(R.string.sourcify_player_repeat), tint = if (repeatMode == Player.REPEAT_MODE_OFF) Color.White.copy(alpha = .5f) else Color.White)
                             }
 
                         }
@@ -1668,7 +1668,7 @@ fun BottomSheetPlayer(
 
             else -> {
                 val bottomPadding by animateDpAsState(
-                    targetValue = if (isFullScreen) 0.dp else queueSheetState.collapsedBound,
+                    targetValue = if (isFullScreen) 0.dp else WindowInsets.systemBars.asPaddingValues().calculateBottomPadding() + 16.dp,
                     label = "bottomPadding",
                 )
                 Column(

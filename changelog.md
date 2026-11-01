@@ -1,5 +1,14 @@
 # Sourcify changelog
 
+## 13.7.8 — 1. November 2026 — Vorabversion
+
+- Lyrics im Vollbild über Songtext wechseln suchen, von einem anderen Anbieter auswählen oder bearbeiten. Bestehende Such-/Speicherfunktion wiederverwendet; Song-ID bleibt an die Auswahl gebunden.
+- Vorschauzeilen mit einzelnem Ein-/Ausblenden und gleitenden Übergängen, auch beim Zurückspringen; aktuelle Zeile wechselt ihre Hervorhebung weich.
+- Ein Tipp auf die freie Canvas-Vollbildfläche kehrt zum normalen Player zurück; Favorit und Wiedergabe behalten ihre eigenen Aktionen.
+- Breite feste Warteschlangenleiste durch ein Symbol unter Repeat ersetzt; vollständige Warteschlange bleibt erreichbar. Als-Nächstes-Karte mit denselben Seitenabständen wie die übrigen Detailkarten.
+- Medienqualität im flachen dunklen Listenstil: getrennte WLAN-/Mobilfunkprofile für Streaming, bisherige Qualitätsauswahl für Downloads und Canvas-Videolimits bis 240/360/480/720p. Die echte Quelle bestimmt Codec/Bitrate; Lossless verknüpft die vorhandenen Anbieter-Verbindungen. Bestehende Downloads/Originaldateien bleiben erhalten.
+
+
 ## 13.7.7 — 31. Oktober 2026 — Vorabversion
 
 - Canvas mit einem Tipp auf die Videofläche oder das Vollbildsymbol bildschirmfüllend ansehen. Derselbe stumme Videoplayer läuft weiter; kompakte Songsteuerung unten, Zurück verlässt zuerst Vollbild.

@@ -749,10 +749,8 @@ class MusicService :
 
         audioManager.registerAudioDeviceCallback(audioDeviceCallback, null)
 
-        audioQuality = startupPrefs!![AudioQualityKey]?.let { value ->
-            if (value == "VERY_HIGH") com.metrolist.music.constants.AudioQuality.HIGH
-            else com.metrolist.music.constants.AudioQuality.entries.find { it.name == value }
-        } ?: com.metrolist.music.constants.AudioQuality.AUTO
+        audioQuality = com.metrolist.music.utils.streamingAudioQuality(startupPrefs!!,
+            com.metrolist.music.utils.networkUsesMobileQuality(connectivityManager))
         playerVolume = MutableStateFlow((startupPrefs!![PlayerVolumeKey] ?: 1f).coerceIn(0f, 1f))
 
         initializeCast()
@@ -796,10 +794,8 @@ class MusicService :
         scope.launch {
             dataStore.data
                 .map {
-                    it[AudioQualityKey]?.let { value ->
-                        if (value == "VERY_HIGH") com.metrolist.music.constants.AudioQuality.HIGH
-                        else com.metrolist.music.constants.AudioQuality.entries.find { it.name == value }
-                    } ?: com.metrolist.music.constants.AudioQuality.AUTO
+                    com.metrolist.music.utils.streamingAudioQuality(it,
+                        com.metrolist.music.utils.networkUsesMobileQuality(connectivityManager))
                 }.distinctUntilChanged()
                 .collect { newQuality ->
                     val oldQuality = audioQuality
@@ -3854,7 +3850,8 @@ class MusicService :
                     val song = database.songEntity(mediaId)
                     InnerTubeXPlayer.playerResponseForPlayback(
                         mediaId,
-                        audioQuality = audioQuality,
+                        audioQuality = com.metrolist.music.utils.streamingAudioQuality(dataStore.data.first(),
+                            com.metrolist.music.utils.networkUsesMobileQuality(connectivityManager)),
                         connectivityManager = connectivityManager,
                         contentHints = ContentHints(
                             isExplicit = song?.explicit,
@@ -4799,7 +4796,8 @@ class MusicService :
                     InnerTubeXPlayer
                         .playerResponseForPlayback(
                             videoId = mediaId,
-                            audioQuality = audioQuality,
+                            audioQuality = com.metrolist.music.utils.streamingAudioQuality(dataStore.data.first(),
+                            com.metrolist.music.utils.networkUsesMobileQuality(connectivityManager)),
                             connectivityManager = connectivityManager,
                             contentHints = ContentHints(
                                 isExplicit = song?.explicit,

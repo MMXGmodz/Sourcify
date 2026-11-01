@@ -32,10 +32,15 @@ internal fun PlayerNextCard(onOpenQueue: () -> Unit) {
     val next = remember(windows, index, shuffle, repeat) {
         nextQueueItem(connection.player)?.metadata
     }
-    Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
-        shape = RoundedCornerShape(24.dp), color = androidx.compose.ui.graphics.Color(0xFF272727), contentColor = androidx.compose.ui.graphics.Color.White) {
+    NextQueueCardContent(next, onOpenQueue)
+}
+
+@Composable
+internal fun NextQueueCardContent(next: com.metrolist.music.models.MediaMetadata?, onOpenQueue: () -> Unit) {
+    Surface(Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp), color = androidx.compose.ui.graphics.Color(0xFF282828), contentColor = androidx.compose.ui.graphics.Color.White) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Text(stringResource(R.string.ui_next), fontWeight = FontWeight.Bold)
                 TextButton(onClick = onOpenQueue, contentPadding = PaddingValues(0.dp)) { Text(stringResource(R.string.ui_open_queue)) }
             }

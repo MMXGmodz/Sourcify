@@ -1,6 +1,7 @@
 package com.metrolist.music.ui.player
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -66,7 +67,7 @@ internal fun PlayerScrollHeader(song: MediaMetadata, fraction: Float, background
 @Composable
 internal fun CanvasFullscreenControls(song: MediaMetadata, liked: Boolean, playing: Boolean, progress: Float,
     onExit: () -> Unit, onLike: () -> Unit, onPlay: () -> Unit) {
-    Column(Modifier.fillMaxSize().systemBarsPadding().padding(16.dp)) {
+    Column(Modifier.fillMaxSize().clickable(onClickLabel = stringResource(R.string.sourcify_exit_fullscreen), onClick = onExit).systemBarsPadding().padding(16.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onExit) { Icon(painterResource(R.drawable.fullscreen_exit), stringResource(R.string.sourcify_exit_fullscreen), tint = Color.White) }
             Text(stringResource(R.string.sourcify_wordmark), color = Color.White, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
@@ -77,5 +78,18 @@ internal fun CanvasFullscreenControls(song: MediaMetadata, liked: Boolean, playi
         Spacer(Modifier.height(12.dp))
         LinearProgressIndicator(progress = { progress.coerceIn(0f, 1f) }, color = Color.White, trackColor = Color.White.copy(alpha = .3f), modifier = Modifier.fillMaxWidth().height(2.dp))
         Spacer(Modifier.height(12.dp))
+    }
+}
+
+@Composable
+internal fun PlayerTransportActions(newDesign: Boolean, onOpenQueue: () -> Unit, content: @Composable () -> Unit) {
+    Column(Modifier.fillMaxWidth()) {
+        content()
+        Row(Modifier.fillMaxWidth().padding(horizontal = com.metrolist.music.constants.PlayerHorizontalPadding),
+            horizontalArrangement = if (newDesign) Arrangement.End else Arrangement.Start) {
+            IconButton(onClick = onOpenQueue, modifier = Modifier.size(40.dp)) {
+                Icon(painterResource(R.drawable.queue_music), stringResource(R.string.queue), tint = Color.White)
+            }
+        }
     }
 }

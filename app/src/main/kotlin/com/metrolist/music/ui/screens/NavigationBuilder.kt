@@ -378,6 +378,10 @@ fun NavGraphBuilder.navigationBuilder(
         com.metrolist.music.ui.screens.settings.CanvasSettings(navController)
     }
 
+    composable("settings/media_quality") {
+        com.metrolist.music.ui.screens.settings.MediaQualitySettings(navController)
+    }
+
     composable("settings/player") {
         PlayerSettings(navController)
     }

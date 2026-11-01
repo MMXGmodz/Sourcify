@@ -97,10 +97,6 @@ import com.metrolist.music.ui.utils.getLoudnessLevelLabel
 fun PlayerSettings(
     navController: NavController
 ) {
-    val (audioQuality, onAudioQualityChange) = rememberEnumPreference(
-        AudioQualityKey,
-        defaultValue = AudioQuality.AUTO
-    )
     val (crossfadeEnabled, onCrossfadeEnabledChange) = rememberPreference(
         CrossfadeEnabledKey,
         defaultValue = false
@@ -225,32 +221,8 @@ fun PlayerSettings(
         defaultValue = 30f
     )
 
-    var showAudioQualityDialog by remember {
-        mutableStateOf(false)
-    }
-
     var showLoudnessLevelDialog by remember {
         mutableStateOf(false)
-    }
-
-    if (showAudioQualityDialog) {
-        EnumDialog(
-            onDismiss = { showAudioQualityDialog = false },
-            onSelect = {
-                onAudioQualityChange(it)
-                showAudioQualityDialog = false
-            },
-            title = stringResource(R.string.audio_quality),
-            current = audioQuality,
-            values = AudioQuality.values().toList(),
-            valueText = {
-                when (it) {
-                    AudioQuality.AUTO -> stringResource(R.string.audio_quality_auto)
-                    AudioQuality.HIGH -> stringResource(R.string.audio_quality_high)
-                    AudioQuality.LOW -> stringResource(R.string.audio_quality_low)
-                }
-            }
-        )
     }
 
     if (showLoudnessLevelDialog) {
@@ -290,17 +262,9 @@ fun PlayerSettings(
             items = buildList {
                 add(Material3SettingsItem(
                     icon = painterResource(R.drawable.graphic_eq),
-                    title = { Text(stringResource(R.string.audio_quality)) },
-                    description = {
-                        Text(
-                            when (audioQuality) {
-                                AudioQuality.AUTO -> stringResource(R.string.audio_quality_auto)
-                                AudioQuality.HIGH -> stringResource(R.string.audio_quality_high)
-                                AudioQuality.LOW -> stringResource(R.string.audio_quality_low)
-                            } + "\n" + stringResource(R.string.audio_source_online_note)
-                        )
-                    },
-                    onClick = { showAudioQualityDialog = true }
+                    title = { Text(stringResource(R.string.s8_media_quality)) },
+                    description = { Text(stringResource(R.string.s8_media_summary)) },
+                    onClick = { navController.navigate("settings/media_quality") }
                 ))
                 add(Material3SettingsItem(
                     icon = painterResource(R.drawable.linear_scale),

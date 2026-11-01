@@ -26,6 +26,7 @@ import com.metrolist.innertubex.extraction.strategy.PoTokenProviderKind
 import com.metrolist.music.constants.AudioQuality
 import com.metrolist.music.utils.potoken.PoTokenGenerator
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
@@ -53,10 +54,16 @@ object InnerTubeXPlayer {
 
     suspend fun prewarm() = bundle().extractor.prewarm()
 
+    internal suspend fun currentCanvasVideoHeight(): Int {
+        val context = applicationContext ?: return 720
+        val manager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        return canvasVideoHeight(context.dataStore.data.first(), networkUsesMobileQuality(manager))
+    }
+
     internal suspend fun videoStreamForCanvas(videoId: String): ExtractedStream? =
         bundle().extractor.extract(
             videoId = videoId,
-            hints = ContentHints(wantVideo = true, maxVideoHeight = 720)
+            hints = ContentHints(wantVideo = true, maxVideoHeight = currentCanvasVideoHeight())
                 .withStreamCapabilities(allowHls = false, allowSabr = false),
             audioQuality = InnerTubeXAudioQuality.LOW,
             clientPlaybackNonce = generateClientPlaybackNonce(),

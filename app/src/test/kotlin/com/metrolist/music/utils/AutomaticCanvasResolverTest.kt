@@ -18,6 +18,16 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33], application = android.app.Application::class)
 class AutomaticCanvasResolverTest {
+    @Test fun switchingVideoQualityCannotReuseThePreviousHeightSource() = runBlocking {
+        var height = 720
+        val resolver = AutomaticCanvasResolver(search = { emptyList() }, videoHeight = { height },
+            resolveVideo = { CanvasVideoSource(Uri.parse("https://example.com/$height.mp4")) })
+        val selected = MediaMetadata("abcdefghijk", "Song", emptyList(), 100, musicVideoType = "MUSIC_VIDEO_TYPE_OMV")
+        assertEquals("https://example.com/720.mp4", resolver.resolve(selected)?.uri.toString())
+        height = 240
+        assertEquals("https://example.com/240.mp4", resolver.resolve(selected)?.uri.toString())
+    }
+
     private val song = MediaMetadata("audio", "Hello", listOf(MediaMetadata.Artist(null, "Adele")), 295)
     private fun video(id: String, title: String, artist: String = "Adele") = SongItem(
         id = id, title = title, artists = listOf(Artist(artist, null)), duration = 300,

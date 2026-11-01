@@ -9,6 +9,8 @@ class LyricsPreviewTest {
         val current = lyricsPreviewWindow(raw, 3500)
         assertEquals(listOf("First", "Second", "Third"), current.lines)
         assertEquals(1, current.activeLine)
+        assertEquals(1, lyricsPreviewWindow(raw, 5500).startIndex)
+        assertEquals(0, lyricsPreviewWindow(raw, 1500).startIndex)
         assertEquals(-1, lyricsPreviewWindow(raw, 0).activeLine)
         assertEquals(0, lyricsPreviewWindow(raw, 1500).activeLine)
     }

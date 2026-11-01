@@ -99,6 +99,7 @@ fun LyricsMenu(
     onDismiss: () -> Unit,
     onShowOffsetDialog: () -> Unit = {},
     viewModel: LyricsMenuViewModel = hiltViewModel(),
+    initiallySearch: Boolean = false,
 ) {
     val context = LocalContext.current
     val database = LocalDatabase.current
@@ -146,7 +147,7 @@ fun LyricsMenu(
     }
 
     var showSearchDialog by rememberSaveable {
-        mutableStateOf(false)
+        mutableStateOf(initiallySearch)
     }
     var showSearchResultDialog by rememberSaveable {
         mutableStateOf(false)

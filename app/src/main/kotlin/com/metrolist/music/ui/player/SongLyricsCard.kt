@@ -4,6 +4,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -65,16 +73,17 @@ internal fun lyricsPreviewLines(raw: String?, position: Long): List<String> {
     return lines.drop(current).take(4).map { it.text }
 }
 
-internal data class LyricsPreviewWindow(val lines: List<String>, val activeLine: Int)
+internal data class LyricsPreviewWindow(val lines: List<String>, val activeLine: Int, val startIndex: Int = 0)
 internal fun lyricsPreviewWindow(raw: String?, position: Long): LyricsPreviewWindow {
     if (raw.isNullOrBlank() || raw == LyricsEntity.LYRICS_NOT_FOUND) return LyricsPreviewWindow(emptyList(), -1)
     if (!com.metrolist.music.lyrics.lyricsTextLooksSynced(raw)) return LyricsPreviewWindow(raw.lines().filter(String::isNotBlank).take(5), -1)
     val entries = LyricsUtils.parseLyrics(raw).filter { it.text.isNotBlank() }
     val active = activeLyricsLine(entries.map { it.time }, position)
     val start = (active - 1).coerceAtLeast(0)
-    return LyricsPreviewWindow(entries.drop(start).take(5).map { it.text }, if (active < 0) -1 else active - start)
+    return LyricsPreviewWindow(entries.drop(start).take(5).map { it.text }, if (active < 0) -1 else active - start, start)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SongLyricsCard(song: MediaMetadata, position: Long, onSeekRequested: ((Long) -> Unit)? = null) {
     val connection = LocalPlayerConnection.current ?: return
@@ -101,6 +110,8 @@ fun SongLyricsCard(song: MediaMetadata, position: Long, onSeekRequested: ((Long)
     var sharing by rememberSaveable(song.id) { mutableStateOf(false) }
     if (sharing) SongShareSheet(song, { sharing = false }, startWithLyrics = true)
     var fullScreen by rememberSaveable(song.id) { mutableStateOf(false) }
+    var lyricsOptions by rememberSaveable(song.id) { mutableStateOf(false) }
+    var offsetEditor by rememberSaveable(song.id) { mutableStateOf(false) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(fullScreen, song.id, lifecycle) {
         if (fullScreen) lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -132,7 +143,7 @@ fun SongLyricsCard(song: MediaMetadata, position: Long, onSeekRequested: ((Long)
     val raw = lyrics?.takeIf { it.id == song.id }?.lyrics
     val window = remember(raw, position / 500, offset) { lyricsPreviewWindow(raw, position + offset) }
     val synced = com.metrolist.music.lyrics.lyricsTextLooksSynced(raw)
-    LyricsPreviewCard(window.lines, color, onFullscreen = { fullScreen = true }, activeLine = window.activeLine)
+    LyricsPreviewCard(window.lines, color, onFullscreen = { fullScreen = true }, activeLine = window.activeLine, startIndex = window.startIndex)
     if (fullScreen) Dialog(onDismissRequest = { fullScreen = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(lerp(color, Color.Black, 0.4f), color))).systemBarsPadding().padding(24.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -147,6 +158,11 @@ fun SongLyricsCard(song: MediaMetadata, position: Long, onSeekRequested: ((Long)
                     Icon(painterResource(R.drawable.fullscreen_exit), stringResource(R.string.sourcify_exit_fullscreen), tint = Color.White)
                 }
             }
+            TextButton(onClick = { lyricsOptions = true }) {
+                Icon(painterResource(R.drawable.search), null, tint = Color.White)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.s8_change_lyrics), color = Color.White)
+            }
             val entries = remember(raw) {
                 if (raw.isNullOrBlank() || raw == LyricsEntity.LYRICS_NOT_FOUND) emptyList()
                 else if (synced) LyricsUtils.parseLyrics(raw).filter { it.text.isNotBlank() }
@@ -154,7 +170,7 @@ fun SongLyricsCard(song: MediaMetadata, position: Long, onSeekRequested: ((Long)
             }
             val active = if (synced) activeLyricsLine(entries.map { it.time }, livePosition + offset) else -1
             val listState = rememberLazyListState()
-            LaunchedEffect(active) {
+            LaunchedEffect(raw, active) {
                 if (active >= 0 && !listState.isScrollInProgress) listState.animateScrollToItem((active - 1).coerceAtLeast(0))
             }
             if (!synced) Text(stringResource(R.string.lyrics_unsynced), color = Color.White.copy(alpha = 0.75f))
@@ -179,6 +195,20 @@ fun SongLyricsCard(song: MediaMetadata, position: Long, onSeekRequested: ((Long)
                 Icon(painterResource(if (activePlayback) R.drawable.pause else R.drawable.play), stringResource(if (activePlayback) R.string.pause else R.string.play))
             }
         }
+        if (lyricsOptions) ModalBottomSheet(onDismissRequest = { lyricsOptions = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+            Box(Modifier.fillMaxWidth().heightIn(max = 600.dp)) {
+                androidx.compose.runtime.key(song.id) {
+                    com.metrolist.music.ui.menu.LyricsMenu(lyricsProvider = { lyrics?.takeIf { it.id == song.id } },
+                        songProvider = { currentSong?.song?.takeIf { it.id == song.id } }, mediaMetadataProvider = { song },
+                        onDismiss = { lyricsOptions = false }, onShowOffsetDialog = { offsetEditor = true }, initiallySearch = true)
+                }
+            }
+        }
+        if (offsetEditor) com.metrolist.music.ui.component.DefaultDialog(onDismiss = { offsetEditor = false },
+            title = { Text(stringResource(R.string.lyrics_offset)) },
+            content = { com.metrolist.music.ui.utils.ShowOffsetDialog { currentSong?.song?.takeIf { it.id == song.id } } },
+            buttons = { TextButton(onClick = { offsetEditor = false }) { Text(stringResource(android.R.string.ok)) } })
     }
 }
 
@@ -194,7 +224,7 @@ internal fun FullscreenLyricsLine(text: String, active: Boolean, seekEnabled: Bo
 internal val PlayerLyricsFont = FontFamily(Font(R.font.lato_bold, FontWeight.Bold))
 
 @Composable
-internal fun LyricsPreviewCard(preview: List<String>, color: Color, onFullscreen: () -> Unit, highlightFirst: Boolean = true, activeLine: Int = if (highlightFirst) 0 else -1) {
+internal fun LyricsPreviewCard(preview: List<String>, color: Color, onFullscreen: () -> Unit, highlightFirst: Boolean = true, activeLine: Int = if (highlightFirst) 0 else -1, startIndex: Int = 0) {
     val top = lerp(color, Color.Black, 0.45f)
     val bottom = lerp(color, Color.Black, 0.12f)
     Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp), shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
@@ -210,9 +240,15 @@ internal fun LyricsPreviewCard(preview: List<String>, color: Color, onFullscreen
                 }, verticalArrangement = Arrangement.spacedBy(22.dp)) {
                 if (preview.isEmpty()) Text(stringResource(R.string.lyrics_not_found))
                 else preview.forEachIndexed { index, line ->
-                    Text(line, fontFamily = PlayerLyricsFont, fontWeight = FontWeight.Bold, fontSize = 21.sp,
-                        lineHeight = 27.sp, letterSpacing = (-0.35).sp,
-                        color = Color.White.copy(alpha = if (activeLine < 0 || index == activeLine) 1f else 0.65f))
+                    val ink by animateColorAsState(Color.White.copy(alpha = if (activeLine < 0 || index == activeLine) 1f else .65f), tween(250), label = "lyricsHighlight")
+                    AnimatedContent(targetState = startIndex to line, label = "previewLine$index", transitionSpec = {
+                        val direction = if (targetState.first >= initialState.first) 1 else -1
+                        (slideInVertically(tween(260)) { direction * it / 3 } + fadeIn(tween(260))) togetherWith
+                            (slideOutVertically(tween(200)) { -direction * it / 3 } + fadeOut(tween(180)))
+                    }) { (_, text) ->
+                        Text(text, fontFamily = PlayerLyricsFont, fontWeight = FontWeight.Bold, fontSize = 21.sp,
+                            lineHeight = 27.sp, letterSpacing = (-.35).sp, color = ink)
+                    }
                 }
             }
             Spacer(Modifier.height(16.dp))
