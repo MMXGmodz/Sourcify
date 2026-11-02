@@ -122,7 +122,8 @@ private fun calculateThumbnailDimensions(
     isLandscape: Boolean = false
 ): ThumbnailDimensions {
     // Inline lyrics reduce the available height in portrait as well.
-    val effectiveSize = (minOf(containerWidth, containerHeight) - (horizontalPadding * 2)).coerceAtLeast(0.dp)
+    val effectiveSize = (if (isLandscape) minOf(containerWidth, containerHeight) - horizontalPadding * 2
+        else minOf(containerWidth - horizontalPadding * 2, containerHeight)).coerceAtLeast(0.dp)
     return ThumbnailDimensions(
         itemWidth = containerWidth,
         containerSize = containerWidth,
@@ -198,6 +199,7 @@ fun Thumbnail(
     isPlayerExpanded: () -> Boolean = { true },
     isLandscape: Boolean = false,
     isListenTogetherGuest: Boolean = false,
+    compactLyrics: Boolean = false,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
@@ -322,7 +324,7 @@ fun Thumbnail(
             exit = fadeOut(),
             modifier = Modifier
                 .fillMaxSize()
-                .then(if (!isLandscape) Modifier.statusBarsPadding() else Modifier),
+                .then(if (!isLandscape && !compactLyrics) Modifier.statusBarsPadding() else Modifier),
         ) {
             Column(
                 modifier = Modifier.fillMaxSize(),

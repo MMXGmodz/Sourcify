@@ -32,7 +32,7 @@ internal fun CoverLyricsFrame(enabled: Boolean, modifier: Modifier = Modifier, l
         Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) { artwork() }
         AnimatedVisibility(enabled, enter = expandVertically(tween(280)) + fadeIn(tween(200)),
             exit = shrinkVertically(tween(280)) + fadeOut(tween(160))) {
-            Box(Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 32.dp), contentAlignment = Alignment.TopStart) { lyrics() }
+            Box(Modifier.fillMaxWidth().height(80.dp).padding(start = 24.dp, end = 24.dp, top = 12.dp), contentAlignment = Alignment.TopStart) { lyrics() }
         }
     }
 }
@@ -57,6 +57,6 @@ internal fun CoverLyricsText(text: String) {
             (fadeOut(tween(160)) + slideOutVertically(tween(160)) { -it / 4 })
     }, label = "coverLyricsLine") { line ->
         Text(line, color = Color.White, fontFamily = PlayerLyricsFont, fontWeight = FontWeight.Bold,
-            fontSize = 14.sp, lineHeight = 18.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            fontSize = 16.sp, lineHeight = 22.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
     }
 }

@@ -1,5 +1,10 @@
 # Sourcify changelog
 
+## 13.7.12 — 2. November 2026 — Vorabversion
+
+- Größeres Cover im Lyrics-Modus durch korrigierte Ränder und eine an der Bildschirmbreite ausgerichtete Cover-Fläche.
+- Größere Lyrics direkt unter dem Cover und kompaktere Abstände in der Wiedergabesteuerung.
+
 ## 13.7.11 — 2. November 2026 — Vorabversion
 
 - „Lyrics · Ein/Aus“ im Player-Menü blendet die aktuelle Textzeile animiert direkt unter dem kleineren Cover ein.

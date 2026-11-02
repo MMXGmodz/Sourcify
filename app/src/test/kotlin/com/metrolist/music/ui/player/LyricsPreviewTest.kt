@@ -4,6 +4,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class LyricsPreviewTest {
+    @Test fun coverUsesAvailableHeightWithoutSubtractingHorizontalMarginsTwice() {
+        val method = Class.forName("com.metrolist.music.ui.player.ThumbnailKt").declaredMethods
+            .single { it.name.startsWith("calculateThumbnailDimensions-") && it.parameterCount == 5 }
+        method.isAccessible = true
+        val size = method.invoke(null, 390f, 326f, 32f, 8f, false) as ThumbnailDimensions
+        assertEquals(326f, size.thumbnailSize.value, .1f)
+    }
+
     @Test fun portraitCoverFitsReducedLyricsPane() {
         val method = Class.forName("com.metrolist.music.ui.player.ThumbnailKt").declaredMethods
             .single { it.name.startsWith("calculateThumbnailDimensions-") && it.parameterCount == 5 }

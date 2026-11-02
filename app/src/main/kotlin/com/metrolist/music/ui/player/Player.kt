@@ -1177,7 +1177,7 @@ fun BottomSheetPlayer(
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(if (coverLyricsEnabled) 12.dp else 24.dp))
 
             when (if (useNewPlayerDesign && sliderStyle == SliderStyle.DEFAULT) SliderStyle.SLIM else sliderStyle) {
                 SliderStyle.DEFAULT -> {
@@ -1330,7 +1330,7 @@ fun BottomSheetPlayer(
                 )
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(if (coverLyricsEnabled) 12.dp else 24.dp))
 
             AnimatedVisibility(
                 visible = !isFullScreen,
@@ -1651,6 +1651,7 @@ fun BottomSheetPlayer(
                                     isPlayerExpanded = isExpandedProvider,
                                     isLandscape = true,
                                     isListenTogetherGuest = isListenTogetherGuest,
+                                    compactLyrics = coverLyricsEnabled,
                                 )
                             }
                         }
@@ -1692,7 +1693,7 @@ fun BottomSheetPlayer(
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxWidth().height((LocalConfiguration.current.screenHeightDp * 0.46f).dp),
+                        modifier = Modifier.fillMaxWidth().height(if (coverLyricsEnabled) (LocalConfiguration.current.screenWidthDp + 32).dp else (LocalConfiguration.current.screenHeightDp * 0.46f).dp),
                     ) {
                         // Remember lambdas to prevent unnecessary recomposition
                         val currentSliderPosition by rememberUpdatedState(sliderPosition)
@@ -1720,6 +1721,7 @@ fun BottomSheetPlayer(
                                     modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
                                     isPlayerExpanded = isExpandedProvider,
                                     isListenTogetherGuest = isListenTogetherGuest,
+                                    compactLyrics = coverLyricsEnabled,
                                 )
                             }
                         }
@@ -1730,7 +1732,7 @@ fun BottomSheetPlayer(
                         controlsContent(it)
                     }
 
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(if (coverLyricsEnabled) 12.dp else 24.dp))
                     mediaMetadata?.let { song ->
                         SongLyricsCard(song, effectivePosition, onSeekRequested = onLyricsSeek)
                     }
