@@ -733,3 +733,5 @@ val CanvasMobileHeightKey = intPreferencesKey("canvasMobileHeight")
 
 val DownloadMobileAllowedKey = booleanPreferencesKey("downloadMobileAllowed")
 val DownloadBackgroundAllowedKey = booleanPreferencesKey("downloadBackgroundAllowed")
+
+val CoverLyricsEnabledKey = booleanPreferencesKey("coverLyricsEnabled")

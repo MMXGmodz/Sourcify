@@ -1332,4 +1332,6 @@
     <string name="s10_update_downloading">APK-Download gestartet. Den Fortschritt und die fertige Datei findest du in den Android-Downloads.</string>
     <string name="s10_up_to_date">Sourcify ist bereits auf dem neuesten Stand.</string>
     <string name="s10_update_failed">Update konnte nicht geprüft oder heruntergeladen werden. Prüfe deine Verbindung und versuche es erneut.</string>
+    <string name="s11_lyrics_on">Lyrics · Ein</string>
+    <string name="s11_lyrics_off">Lyrics · Aus</string>
 </resources>

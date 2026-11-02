@@ -226,6 +226,7 @@ fun BottomSheetPlayer(
     val bottomSheetPageState = LocalBottomSheetPageState.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    mediaMetadata?.let { EnsureSongLyrics(it) }
     val playbackShuffle by playerConnection.shuffleModeEnabled.collectAsStateWithLifecycle()
     val playerScrollState = rememberScrollState()
     val compactThreshold = with(LocalDensity.current) { (LocalConfiguration.current.screenHeightDp * 0.7f).dp.toPx() }
@@ -262,6 +263,8 @@ fun BottomSheetPlayer(
     val (hidePlayerThumbnail, onHidePlayerThumbnailChange) = rememberPreference(HidePlayerThumbnailKey, false)
     val (hideStatusBarOnFullscreen) = rememberPreference(HideStatusBarOnFullscreenKey, false)
     val cropAlbumArt by rememberPreference(CropAlbumArtKey, false)
+
+    val coverLyricsEnabled by rememberPreference(com.metrolist.music.constants.CoverLyricsEnabledKey, false)
 
     var showInlineLyrics by rememberSaveable {
         mutableStateOf(false)
@@ -1625,6 +1628,9 @@ fun BottomSheetPlayer(
                         val currentSliderPosition by rememberUpdatedState(sliderPosition)
                         val sliderPositionProvider = remember { { currentSliderPosition } }
                         val isExpandedProvider = remember(state) { { state.isExpanded } }
+                        CoverLyricsFrame(enabled = coverLyricsEnabled && !showInlineLyrics,
+                            modifier = Modifier.fillMaxSize(),
+                            lyrics = { mediaMetadata?.let { CoverLyricsDisplay(it, effectivePosition) } }) {
                         AnimatedContent(
                             targetState = showInlineLyrics,
                             label = "Lyrics",
@@ -1632,7 +1638,7 @@ fun BottomSheetPlayer(
                         ) { showLyrics ->
                             if (showLyrics) {
                                 mediaMetadata?.let { SongLyricsCard(it, effectivePosition, onSeekRequested = onLyricsSeek) }
-                            } else if (showCanvas) {
+                            } else if (showCanvas && !coverLyricsEnabled) {
                                 Box(Modifier.fillMaxSize().clickable(onClickLabel = stringResource(R.string.s7_canvas_fullscreen)) { canvasFullscreen = true }) {
                                     IconButton(onClick = { canvasFullscreen = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
                                         Icon(painterResource(R.drawable.fullscreen), stringResource(R.string.s7_canvas_fullscreen), tint = Color.White)
@@ -1647,6 +1653,7 @@ fun BottomSheetPlayer(
                                     isListenTogetherGuest = isListenTogetherGuest,
                                 )
                             }
+                        }
                         }
                     }
 
@@ -1691,6 +1698,9 @@ fun BottomSheetPlayer(
                         val currentSliderPosition by rememberUpdatedState(sliderPosition)
                         val sliderPositionProvider = remember { { currentSliderPosition } }
                         val isExpandedProvider = remember(state) { { state.isExpanded } }
+                        CoverLyricsFrame(enabled = coverLyricsEnabled && !showInlineLyrics,
+                            modifier = Modifier.fillMaxSize(),
+                            lyrics = { mediaMetadata?.let { CoverLyricsDisplay(it, effectivePosition) } }) {
                         AnimatedContent(
                             targetState = showInlineLyrics,
                             label = "Lyrics",
@@ -1698,7 +1708,7 @@ fun BottomSheetPlayer(
                         ) { showLyrics ->
                             if (showLyrics) {
                                 mediaMetadata?.let { SongLyricsCard(it, effectivePosition, onSeekRequested = onLyricsSeek) }
-                            } else if (showCanvas) {
+                            } else if (showCanvas && !coverLyricsEnabled) {
                                 Box(Modifier.fillMaxSize().clickable(onClickLabel = stringResource(R.string.s7_canvas_fullscreen)) { canvasFullscreen = true }) {
                                     IconButton(onClick = { canvasFullscreen = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
                                         Icon(painterResource(R.drawable.fullscreen), stringResource(R.string.s7_canvas_fullscreen), tint = Color.White)
@@ -1712,6 +1722,7 @@ fun BottomSheetPlayer(
                                     isListenTogetherGuest = isListenTogetherGuest,
                                 )
                             }
+                        }
                         }
                     }
 

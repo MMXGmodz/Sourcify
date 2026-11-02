@@ -1,5 +1,10 @@
 # Sourcify changelog
 
+## 13.7.11 — 2. November 2026 — Vorabversion
+
+- „Lyrics · Ein/Aus“ im Player-Menü blendet die aktuelle Textzeile animiert direkt unter dem kleineren Cover ein.
+- Die Anzeige folgt Wiedergabe, Spulen und Lyrics-Zeitversatz. Die Auswahl bleibt gespeichert; Lyrics-Vorschau und Vollbild bleiben verfügbar.
+
 ## 13.7.10 — 1. November 2026 — Vorabversion
 
 - Unten im Profilmenü prüft „Check for updates“ frisch auf neue Sourcify-Versionen und startet den APK-Download automatisch.

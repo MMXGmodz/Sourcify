@@ -39,6 +39,15 @@ import java.time.Duration
 class CanvasUiRenderTest {
     @Test
     fun settingsAndPlaylistHeaderRenderOnPhone() {
+        for (enabled in listOf(false, true)) render("cover-lyrics-$enabled") {
+            Box(Modifier.fillMaxSize().background(Color(0xFF222222))) {
+                com.metrolist.music.ui.player.CoverLyricsFrame(enabled, Modifier.fillMaxWidth().height(400.dp),
+                    lyrics = { com.metrolist.music.ui.player.CoverLyricsText("Die aktuelle Textzeile erscheint direkt unter dem Cover") }) {
+                    Box(Modifier.fillMaxHeight().aspectRatio(1f).background(Brush.linearGradient(listOf(Color(0xFF435579), Color(0xFFABCDEF)))))
+                }
+            }
+        }
+
         render("canvas-settings") {
             CompositionLocalProvider(LocalPlayerConnection provides null, LocalPlayerAwareWindowInsets provides WindowInsets(top = 64.dp)) {
                 CanvasSettings(rememberNavController())

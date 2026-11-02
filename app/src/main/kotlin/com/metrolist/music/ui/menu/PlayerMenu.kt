@@ -314,6 +314,7 @@ fun PlayerMenu(
             ),
     ) {
         item { RenameSongAction(mediaMetadata, onDismiss) }
+        item { CoverLyricsAction(onDismiss) }
         item { PlayerSleepTimerAction() }
         item { SongCanvasAction(mediaMetadata.id) }
         item { DownloadExtrasAction(mediaMetadata.id) }

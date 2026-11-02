@@ -121,12 +121,8 @@ private fun calculateThumbnailDimensions(
     cornerRadius: Dp = ThumbnailCornerRadius,
     isLandscape: Boolean = false
 ): ThumbnailDimensions {
-    // In landscape, use height as the constraining dimension for a square thumbnail
-    val effectiveSize = if (isLandscape) {
-        minOf(containerWidth, containerHeight) - (horizontalPadding * 2)
-    } else {
-        containerWidth - (horizontalPadding * 2)
-    }
+    // Inline lyrics reduce the available height in portrait as well.
+    val effectiveSize = (minOf(containerWidth, containerHeight) - (horizontalPadding * 2)).coerceAtLeast(0.dp)
     return ThumbnailDimensions(
         itemWidth = containerWidth,
         containerSize = containerWidth,

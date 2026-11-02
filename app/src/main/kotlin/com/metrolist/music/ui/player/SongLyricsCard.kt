@@ -83,13 +83,32 @@ internal fun lyricsPreviewWindow(raw: String?, position: Long): LyricsPreviewWin
     return LyricsPreviewWindow(entries.drop(start).take(5).map { it.text }, if (active < 0) -1 else active - start, start)
 }
 
+@Composable
+internal fun EnsureSongLyrics(song: MediaMetadata) {
+    val database = LocalDatabase.current
+    val context = LocalContext.current
+    LaunchedEffect(song.id) {
+        withContext(Dispatchers.IO) {
+            try {
+                if (database.lyrics(song.id).first()?.lyrics.let { it == null || it == LyricsEntity.LYRICS_NOT_FOUND }) {
+                    val helper = EntryPointAccessors.fromApplication(context.applicationContext,
+                        com.metrolist.music.di.LyricsHelperEntryPoint::class.java).lyricsHelper()
+                    val result = helper.getLyrics(song)
+                    if (result.lyrics.isNotBlank() && result.lyrics != LyricsEntity.LYRICS_NOT_FOUND) {
+                        database.saveFetchedLyricsIfMissing(LyricsEntity(song.id, result.lyrics, result.provider))
+                    }
+                }
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { /* The preview remains unavailable; playback continues. */ }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SongLyricsCard(song: MediaMetadata, position: Long, onSeekRequested: ((Long) -> Unit)? = null) {
     val connection = LocalPlayerConnection.current ?: return
     val lyrics by connection.currentLyrics.collectAsStateWithLifecycle()
-    val database = LocalDatabase.current
-    val context = LocalContext.current
     val currentSong by connection.currentSong.collectAsStateWithLifecycle(initialValue = null)
     val offset = currentSong?.takeIf { it.song.id == song.id }?.song?.lyricsOffset ?: 0
     val clickEnabled by com.metrolist.music.utils.rememberPreference(com.metrolist.music.constants.LyricsClickKey, true)
@@ -123,21 +142,6 @@ fun SongLyricsCard(song: MediaMetadata, position: Long, onSeekRequested: ((Long)
                     android.os.SystemClock.elapsedRealtime() - (pending?.second ?: 0L))
                 delay(100)
             }
-        }
-    }
-    LaunchedEffect(song.id) {
-        withContext(Dispatchers.IO) {
-            try {
-                if (database.lyrics(song.id).first()?.lyrics.let { it == null || it == LyricsEntity.LYRICS_NOT_FOUND }) {
-                    val helper = EntryPointAccessors.fromApplication(context.applicationContext,
-                        com.metrolist.music.di.LyricsHelperEntryPoint::class.java).lyricsHelper()
-                    val result = helper.getLyrics(song)
-                    if (result.lyrics.isNotBlank() && result.lyrics != LyricsEntity.LYRICS_NOT_FOUND) {
-                        database.saveFetchedLyricsIfMissing(LyricsEntity(song.id, result.lyrics, result.provider))
-                    }
-                }
-            } catch (e: CancellationException) { throw e }
-            catch (_: Exception) { /* The preview remains unavailable; playback continues. */ }
         }
     }
     val raw = lyrics?.takeIf { it.id == song.id }?.lyrics

@@ -4,6 +4,24 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class LyricsPreviewTest {
+    @Test fun portraitCoverFitsReducedLyricsPane() {
+        val method = Class.forName("com.metrolist.music.ui.player.ThumbnailKt").declaredMethods
+            .single { it.name.startsWith("calculateThumbnailDimensions-") && it.parameterCount == 5 }
+        method.isAccessible = true
+        val size = method.invoke(null, 390f, 280f, 32f, 8f, false) as ThumbnailDimensions
+        org.junit.Assert.assertTrue("Square cover must fit the available height", size.thumbnailSize.value <= 280f)
+    }
+
+    @Test fun coverLineFollowsPlaybackOffsetAndBackwardSeek() {
+        val raw = "[00:01.00]First\n[00:03.00]Second\n[00:05.00]Third"
+        assertNull(coverLyricsText(raw, 0, 0))
+        assertEquals("Second", coverLyricsText(raw, 3500, 0))
+        assertEquals("First", coverLyricsText(raw, 1500, 0))
+        assertEquals("Second", coverLyricsText(raw, 2500, 500))
+        assertNull(coverLyricsText("First\nSecond", 3500, 0))
+        assertNull(coverLyricsText(null, 3500, 0))
+    }
+
     @Test fun previewIncludesPreviousLineAndHighlightsCurrentLineAfterSeeking() {
         val raw = "[00:01.00]First\n[00:03.00]Second\n[00:05.00]Third"
         val current = lyricsPreviewWindow(raw, 3500)
