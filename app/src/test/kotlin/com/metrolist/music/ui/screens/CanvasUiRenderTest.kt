@@ -40,6 +40,27 @@ class CanvasUiRenderTest {
     @Test
     @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
     fun settingsAndPlaylistHeaderRenderOnPhone() {
+        render("dynamic-soft-wave", verify = { bitmap ->
+            var top = bitmap.height
+            var bottom = -1
+            for (y in 0 until 128) for (x in 0 until bitmap.width) {
+                val pixel = bitmap.getPixel(x, y)
+                if (android.graphics.Color.red(pixel) > 20 || android.graphics.Color.green(pixel) > 20 || android.graphics.Color.blue(pixel) > 20) {
+                    top = minOf(top, y); bottom = maxOf(bottom, y)
+                }
+            }
+            assertTrue("Dynamic bar must be visible", bottom >= top)
+            assertTrue("Dynamic bar must keep its waves and glow low like the reference", bottom - top <= 64)
+        }) {
+            Box(Modifier.fillMaxSize().background(Color.Black)) {
+                Box(Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 32.dp), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                    com.metrolist.music.ui.component.DynamicSlider(
+                        state = androidx.compose.runtime.remember { androidx.compose.material3.SliderState(value = .72f, trackRange = 0f..1f) },
+                        amplitude = 1f, color = Color(0xFF4673C3), onValueChange = {}, onValueChangeFinished = {})
+                }
+            }
+        }
+
         render("unified-lyrics-settings") {
             CompositionLocalProvider(LocalPlayerAwareWindowInsets provides WindowInsets(bottom = 80.dp)) {
                 com.metrolist.music.ui.screens.settings.LyricsSettings(rememberNavController())
@@ -256,7 +277,7 @@ class CanvasUiRenderTest {
             for (y in (if (name == "player-compact-header") 0 else 150) until 1500 step 10) for (x in 10 until 800 step 10) colors += bitmap.getPixel(x, y)
             val output = File("build/ui-previews/$name.png").apply { parentFile?.mkdirs() }
             output.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-            assertTrue("Expected painted UI for $name, not an empty window", colors.size > 10 || name == "canvas-backdrop-hidden" || name in listOf("dynamic-red", "dynamic-blue"))
+            assertTrue("Expected painted UI for $name, not an empty window", colors.size > 10 || name == "canvas-backdrop-hidden" || name in listOf("dynamic-red", "dynamic-blue", "dynamic-soft-wave"))
             if (name == "canvas-settings") {
                 var titlePixels = 0
                 for (y in 35 until 125) for (x in 100 until 400) {

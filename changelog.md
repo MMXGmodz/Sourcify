@@ -1,5 +1,11 @@
 # Sourcify changelog
 
+## 13.8.1 — Dynamic progressbar — 2. November 2026 — Vorabversion
+
+- Flacher Dynamic-Balken mit mehreren sanften, transparenten Wellen über dem abgespielten Bereich.
+- Kleinerer weißer Ringregler mit dunklem, coverfarbenem Inneren und dezenterem Leuchten.
+- Musikreaktion, automatische Coverfarben und der Modus nur Leuchten bleiben erhalten.
+
 ## 13.8.0 — 2. November 2026 — Vorabversion
 
 - Künstlerseiten mit neuen Veröffentlichungen, deinen favorisierten Songs und kompaktem Radio-Symbol; Drei-Punkte-Menü zum Folgen, Teilen, Kopieren, zu Konzerten und zum Blockieren. Blockierte Künstler lassen sich in den Einstellungen wieder freigeben.
