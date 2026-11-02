@@ -418,6 +418,9 @@ class MusicService :
     private val _playerFlow = MutableStateFlow<ExoPlayer?>(null)
     val playerFlow = _playerFlow.asStateFlow()
 
+    fun dynamicAudioLevel(): Float = playerSilenceProcessors[player]?.let { it.meterEnabled = true; it.audioLevel } ?: 0f
+    fun stopDynamicAudioMeter() { playerSilenceProcessors.values.forEach { it.meterEnabled = false } }
+
     private val playerSilenceProcessors = HashMap<Player, SilenceDetectorAudioProcessor>()
 
     private val instantSilenceSkipEnabled = MutableStateFlow(false)

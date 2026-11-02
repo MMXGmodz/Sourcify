@@ -1,5 +1,10 @@
 # Sourcify changelog
 
+## 13.7.13 — Dynamic progressbar — 2. November 2026 — Vorabversion
+
+- Neuer neon-grüner Fortschrittsbalken mit Leuchtrand, rundem Regler und Welle.
+- Wahlweise Reaktion auf das lokale Audiosignal oder nur Leuchten, ohne Mikrofonberechtigung.
+
 ## 13.7.12 — 2. November 2026 — Vorabversion
 
 - Größeres Cover im Lyrics-Modus durch korrigierte Ränder und eine an der Bildschirmbreite ausgerichtete Cover-Fläche.

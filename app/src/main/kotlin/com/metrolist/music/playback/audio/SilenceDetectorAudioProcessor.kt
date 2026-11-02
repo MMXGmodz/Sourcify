@@ -24,6 +24,10 @@ class SilenceDetectorAudioProcessor(
     private val silenceThreshold: Int = 256,
     private val onLongSilence: () -> Unit,
 ) : BaseAudioProcessor() {
+    @Volatile var meterEnabled = false
+    @Volatile private var meterLevel = 0f
+    @Volatile private var meterNanos = 0L
+    val audioLevel: Float get() = if (meterEnabled && System.nanoTime() - meterNanos < 250_000_000L) meterLevel else 0f
     private var sampleRate = 0
     private var channelCount = 0
 
@@ -49,6 +53,26 @@ class SilenceDetectorAudioProcessor(
 
     override fun queueInput(inputBuffer: ByteBuffer) {
         if (!inputBuffer.hasRemaining()) return
+
+        if (meterEnabled) {
+            inputBuffer.order(ByteOrder.LITTLE_ENDIAN)
+            var energy = 0.0
+            var count = 0
+            var index = inputBuffer.position()
+            while (index + 1 < inputBuffer.limit()) {
+                for (channel in 0 until channelCount.coerceAtLeast(1)) {
+                    val offset = index + channel * 2
+                    if (offset + 1 < inputBuffer.limit()) {
+                        val value = inputBuffer.getShort(offset).toDouble() / 32768.0
+                        energy += value * value
+                        count++
+                    }
+                }
+                index += channelCount.coerceAtLeast(1) * 16
+            }
+            meterLevel = if (count > 0) (kotlin.math.sqrt(energy / count) * 1.4).toFloat().coerceIn(0f, 1f) else 0f
+            meterNanos = System.nanoTime()
+        } else meterLevel = 0f
 
         if (instantModeEnabled && sampleRate > 0 && channelCount > 0) {
             detectSilence(inputBuffer)
@@ -100,7 +124,7 @@ class SilenceDetectorAudioProcessor(
 
     fun isCurrentlySilent(): Boolean = inSilence
 
-    override fun onFlush(streamMetadata: AudioProcessor.StreamMetadata) = clearSilenceState()
+    override fun onFlush(streamMetadata: AudioProcessor.StreamMetadata) { meterLevel = 0f; clearSilenceState() }
 
     override fun onReset() {
         sampleRate = 0

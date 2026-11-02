@@ -5,6 +5,8 @@
 
 package com.metrolist.music.ui.player
 
+import androidx.lifecycle.repeatOnLifecycle
+
 import androidx.activity.compose.BackHandler
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -1179,6 +1181,22 @@ fun BottomSheetPlayer(
 
             Spacer(Modifier.height(if (coverLyricsEnabled) 12.dp else 24.dp))
 
+            val dynamicMusic by rememberPreference(com.metrolist.music.constants.DynamicProgressMusicKey, true)
+            var dynamicAmplitude by remember { mutableFloatStateOf(0f) }
+            val dynamicLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+            LaunchedEffect(sliderStyle, dynamicMusic, effectiveIsPlaying, isCasting, state.isExpanded, dynamicLifecycle) {
+                if (sliderStyle == SliderStyle.DYNAMIC && dynamicMusic && effectiveIsPlaying && !isCasting && state.isExpanded) {
+                    dynamicLifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                        try {
+                            while (true) {
+                                dynamicAmplitude = playerConnection.service.dynamicAudioLevel()
+                                kotlinx.coroutines.delay(50)
+                            }
+                        } finally { dynamicAmplitude = 0f; playerConnection.service.stopDynamicAudioMeter() }
+                    }
+                } else { dynamicAmplitude = 0f; playerConnection.service.stopDynamicAudioMeter() }
+            }
+
             when (if (useNewPlayerDesign && sliderStyle == SliderStyle.DEFAULT) SliderStyle.SLIM else sliderStyle) {
                 SliderStyle.DEFAULT -> {
                     val range = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat())
@@ -1262,6 +1280,39 @@ fun BottomSheetPlayer(
                     }
                 }
 
+                SliderStyle.DYNAMIC -> {
+                    val sliderValue = (sliderPosition ?: effectivePosition).toFloat()
+                    val sliderRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat())
+                    val sliderState = remember(sliderRange) {
+                        SliderState(value = sliderValue, trackRange = sliderRange)
+                    }
+                    sliderState.value = sliderValue
+                    com.metrolist.music.ui.component.DynamicSlider(
+                        amplitude = dynamicAmplitude,
+                        state = sliderState,
+                        onValueChange = {
+                            if (!isListenTogetherGuest) {
+                                sliderPosition = it.toLong()
+                            }
+                        },
+                        onValueChangeFinished = {
+                            if (!isListenTogetherGuest) {
+                                sliderPosition?.let {
+                                    if (isCasting) {
+                                        castHandler?.seekTo(it)
+                                        lastManualSeekTime = System.currentTimeMillis()
+                                    } else {
+                                        playerConnection.player.seekTo(it)
+                                    }
+                                    position = it
+                                }
+                                sliderPosition = null
+                            }
+                        },
+                        enabled = !isListenTogetherGuest,
+                        modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                    )
+                }
                 SliderStyle.SLIM -> {
                     val sliderValue = (sliderPosition ?: effectivePosition).toFloat()
                     val sliderRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat())

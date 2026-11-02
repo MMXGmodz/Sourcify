@@ -249,6 +249,7 @@ fun AppearanceSettings(
     var showLyricsTextSizeDialog by remember { mutableStateOf(false) }
     var showLyricsLineSpacingDialog by remember { mutableStateOf(false) }
 
+    val (dynamicMusic, setDynamicMusic) = rememberPreference(com.metrolist.music.constants.DynamicProgressMusicKey, true)
     val (sliderStyle, onSliderStyleChange) =
         rememberEnumPreference(
             SliderStyleKey,
@@ -727,6 +728,9 @@ fun AppearanceSettings(
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                TextButton(onClick = { onSliderStyleChange(SliderStyle.DYNAMIC); showSliderOptionDialog = false }) {
+                    Text(stringResource(R.string.s13_dynamic))
+                }
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
@@ -1188,6 +1192,7 @@ fun AppearanceSettings(
                         description = {
                             Text(
                                 when (sliderStyle) {
+                                    SliderStyle.DYNAMIC -> stringResource(R.string.s13_dynamic)
                                     SliderStyle.DEFAULT -> {
                                         stringResource(R.string.default_)
                                     }
@@ -1209,6 +1214,12 @@ fun AppearanceSettings(
                             )
                         },
                         onClick = { showSliderOptionDialog = true },
+                    ),
+                    Material3SettingsItem(
+                        title = { Text(stringResource(R.string.s13_music)) },
+                        description = { Text(stringResource(R.string.s13_music_desc)) },
+                        trailingContent = { Switch(checked = dynamicMusic, onCheckedChange = setDynamicMusic) },
+                        onClick = { setDynamicMusic(!dynamicMusic) },
                     ),
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.swipe),

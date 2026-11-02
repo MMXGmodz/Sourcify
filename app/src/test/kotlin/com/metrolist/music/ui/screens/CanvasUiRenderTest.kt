@@ -38,7 +38,20 @@ import java.time.Duration
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class CanvasUiRenderTest {
     @Test
+    @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
     fun settingsAndPlaylistHeaderRenderOnPhone() {
+        render("dynamic-progressbar") {
+            androidx.compose.foundation.layout.Column(Modifier.fillMaxSize().background(Color(0xFF071711)).padding(32.dp)) {
+                androidx.compose.material3.Text("Dynamic progressbar", color = Color.White)
+                com.metrolist.music.ui.component.DynamicSlider(
+                    state = androidx.compose.runtime.remember { androidx.compose.material3.SliderState(value = .28f, trackRange = 0f..1f) },
+                    amplitude = .85f, onValueChange = {}, onValueChangeFinished = {})
+                com.metrolist.music.ui.component.DynamicSlider(
+                    state = androidx.compose.runtime.remember { androidx.compose.material3.SliderState(value = .60f, trackRange = 0f..1f) },
+                    amplitude = 0f, onValueChange = {}, onValueChangeFinished = {})
+            }
+        }
+
         for (enabled in listOf(false, true)) render("cover-lyrics-$enabled") {
             Box(Modifier.fillMaxSize().background(Color(0xFF222222))) {
                 com.metrolist.music.ui.player.CoverLyricsFrame(enabled, Modifier.fillMaxWidth().height(400.dp),

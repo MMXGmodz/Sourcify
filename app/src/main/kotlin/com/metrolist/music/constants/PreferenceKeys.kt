@@ -75,6 +75,7 @@ val AlarmNextTriggerAtKey = longPreferencesKey("alarmNextTriggerAt")
 val AlarmEntriesKey = stringPreferencesKey("alarmEntries")
 
 enum class SliderStyle {
+    DYNAMIC,
     DEFAULT,
     WAVY,
     SLIM,
@@ -735,3 +736,5 @@ val DownloadMobileAllowedKey = booleanPreferencesKey("downloadMobileAllowed")
 val DownloadBackgroundAllowedKey = booleanPreferencesKey("downloadBackgroundAllowed")
 
 val CoverLyricsEnabledKey = booleanPreferencesKey("coverLyricsEnabled")
+
+val DynamicProgressMusicKey = booleanPreferencesKey("dynamicProgressMusic")

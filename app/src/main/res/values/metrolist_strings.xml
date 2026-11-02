@@ -1334,4 +1334,7 @@
     <string name="s10_update_failed">Update konnte nicht geprüft oder heruntergeladen werden. Prüfe deine Verbindung und versuche es erneut.</string>
     <string name="s11_lyrics_on">Lyrics · Ein</string>
     <string name="s11_lyrics_off">Lyrics · Aus</string>
+    <string name="s13_dynamic">Dynamic progressbar</string>
+    <string name="s13_music">Dynamic progressbar: Auf Musik reagieren</string>
+    <string name="s13_music_desc">Ein: Die Welle reagiert auf das lokale Audiosignal. Aus: nur Leuchten. Bei Pause und Cast bleibt die Welle ruhig.</string>
 </resources>
