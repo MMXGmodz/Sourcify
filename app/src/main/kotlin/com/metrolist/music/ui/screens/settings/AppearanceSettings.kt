@@ -249,7 +249,6 @@ fun AppearanceSettings(
     var showLyricsTextSizeDialog by remember { mutableStateOf(false) }
     var showLyricsLineSpacingDialog by remember { mutableStateOf(false) }
 
-    val (dynamicMusic, setDynamicMusic) = rememberPreference(com.metrolist.music.constants.DynamicProgressMusicKey, true)
     val (sliderStyle, onSliderStyleChange) =
         rememberEnumPreference(
             SliderStyleKey,
@@ -344,6 +343,9 @@ fun AppearanceSettings(
             key = ChipSortTypeKey,
             defaultValue = LibraryFilter.LIBRARY,
         )
+
+    var showDynamicDialog by rememberSaveable { mutableStateOf(false) }
+    if (showDynamicDialog) DynamicProgressDialog { showDynamicDialog = false }
 
     var showSliderOptionDialog by rememberSaveable {
         mutableStateOf(false)
@@ -728,7 +730,7 @@ fun AppearanceSettings(
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                TextButton(onClick = { onSliderStyleChange(SliderStyle.DYNAMIC); showSliderOptionDialog = false }) {
+                TextButton(onClick = { showSliderOptionDialog = false; showDynamicDialog = true }) {
                     Text(stringResource(R.string.s13_dynamic))
                 }
                 Row(
@@ -1216,10 +1218,9 @@ fun AppearanceSettings(
                         onClick = { showSliderOptionDialog = true },
                     ),
                     Material3SettingsItem(
-                        title = { Text(stringResource(R.string.s13_music)) },
-                        description = { Text(stringResource(R.string.s13_music_desc)) },
-                        trailingContent = { Switch(checked = dynamicMusic, onCheckedChange = setDynamicMusic) },
-                        onClick = { setDynamicMusic(!dynamicMusic) },
+                        title = { Text(stringResource(R.string.s13_dynamic)) },
+                        description = { Text(stringResource(R.string.s14_dynamic_options)) },
+                        onClick = { showDynamicDialog = true },
                     ),
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.swipe),

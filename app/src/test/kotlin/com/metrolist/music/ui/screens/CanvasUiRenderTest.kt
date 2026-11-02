@@ -40,6 +40,31 @@ class CanvasUiRenderTest {
     @Test
     @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
     fun settingsAndPlaylistHeaderRenderOnPhone() {
+        for ((name, color) in listOf("red" to Color.Red, "blue" to Color.Blue)) render("dynamic-$name", verify = { bitmap ->
+            var matching = 0
+            for (y in 0 until bitmap.height step 2) for (x in 0 until bitmap.width step 2) {
+                val pixel = bitmap.getPixel(x, y)
+                val wanted = if (name == "red") android.graphics.Color.red(pixel) else android.graphics.Color.blue(pixel)
+                val other = if (name == "red") android.graphics.Color.blue(pixel) else android.graphics.Color.red(pixel)
+                if (wanted > 120 && wanted > other * 1.5) matching++
+            }
+            assertTrue("Cover color must reach the painted progressbar", matching > 100)
+        }) {
+            Column(Modifier.fillMaxSize().background(Color.Black).padding(32.dp)) {
+                com.metrolist.music.ui.component.DynamicSlider(
+                    state = androidx.compose.runtime.remember { androidx.compose.material3.SliderState(value = .6f, trackRange = 0f..1f) },
+                    amplitude = .8f, color = color, onValueChange = {}, onValueChangeFinished = {})
+            }
+        }
+        render("dynamic-options") {
+            CompositionLocalProvider(com.metrolist.music.ui.theme.LocalSongColor provides Color(0xFFDF5577)) {
+                Surface(Modifier.fillMaxSize()) {
+                    Column(Modifier.padding(24.dp)) {
+                        com.metrolist.music.ui.screens.settings.DynamicProgressOptions(true, true, {}, {})
+                    }
+                }
+            }
+        }
         render("dynamic-progressbar") {
             androidx.compose.foundation.layout.Column(Modifier.fillMaxSize().background(Color(0xFF071711)).padding(32.dp)) {
                 androidx.compose.material3.Text("Dynamic progressbar", color = Color.White)
@@ -207,7 +232,7 @@ class CanvasUiRenderTest {
             for (y in (if (name == "player-compact-header") 0 else 150) until 1500 step 10) for (x in 10 until 800 step 10) colors += bitmap.getPixel(x, y)
             val output = File("build/ui-previews/$name.png").apply { parentFile?.mkdirs() }
             output.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-            assertTrue("Expected painted UI, not an empty window", colors.size > 10 || name == "canvas-backdrop-hidden")
+            assertTrue("Expected painted UI for $name, not an empty window", colors.size > 10 || name == "canvas-backdrop-hidden" || name in listOf("dynamic-red", "dynamic-blue"))
             if (name == "canvas-settings") {
                 var titlePixels = 0
                 for (y in 35 until 125) for (x in 100 until 400) {

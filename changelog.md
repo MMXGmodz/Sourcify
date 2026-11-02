@@ -1,5 +1,10 @@
 # Sourcify changelog
 
+## 13.7.14 — Dynamic progressbar — 2. November 2026 — Vorabversion
+
+- Eigenes Einstellungsfenster mit Vorschau, Stilaktivierung und Musikreaktion/Leuchten.
+- Balken, Welle und Leuchtrand übernehmen automatisch die aktuelle Coverfarbe mit weichem Farbübergang.
+
 ## 13.7.13 — Dynamic progressbar — 2. November 2026 — Vorabversion
 
 - Neuer neon-grüner Fortschrittsbalken mit Leuchtrand, rundem Regler und Welle.

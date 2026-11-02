@@ -1289,6 +1289,7 @@ fun BottomSheetPlayer(
                     sliderState.value = sliderValue
                     com.metrolist.music.ui.component.DynamicSlider(
                         amplitude = dynamicAmplitude,
+                        color = songColor,
                         state = sliderState,
                         onValueChange = {
                             if (!isListenTogetherGuest) {

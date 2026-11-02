@@ -1,5 +1,6 @@
 package com.metrolist.music.ui.component
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -15,9 +16,10 @@ import kotlin.math.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DynamicSlider(state: SliderState, amplitude: Float, onValueChange: (Float) -> Unit,
-    onValueChangeFinished: () -> Unit, enabled: Boolean = true, modifier: Modifier = Modifier) {
+    onValueChangeFinished: () -> Unit, enabled: Boolean = true, modifier: Modifier = Modifier,
+    color: Color = com.metrolist.music.ui.theme.LocalSongColor.current) {
     val level by animateFloatAsState(amplitude.coerceIn(0f, 1f), tween(85), label = "audioWave")
-    val green = Color(0xFF00FF88)
+    val green by animateColorAsState(lerp(color, Color.White, if (color.luminance() < .15f) .35f else .08f), tween(400), label = "coverProgressColor")
     Slider(state = state, onValueChange = onValueChange, onValueChangeFinished = onValueChangeFinished,
         enabled = enabled, modifier = modifier.heightIn(min = 48.dp),
         thumb = {
@@ -44,7 +46,7 @@ fun DynamicSlider(state: SliderState, amplitude: Float, onValueChange: (Float) -
                         }
                         lineTo(end, y); close()
                     }
-                    drawPath(path, Brush.verticalGradient(listOf(Color(0xFF62FFD5), green.copy(alpha = .8f))))
+                    drawPath(path, Brush.verticalGradient(listOf(lerp(green, Color.White, .45f), green.copy(alpha = .8f))))
                     drawLine(green.copy(alpha = .10f), Offset(0f, y), Offset(end, y), 18.dp.toPx(), StrokeCap.Round)
                     drawLine(green.copy(alpha = .20f), Offset(0f, y), Offset(end, y), 12.dp.toPx(), StrokeCap.Round)
                     drawLine(green, Offset(0f, y), Offset(end, y), 6.dp.toPx(), StrokeCap.Round)

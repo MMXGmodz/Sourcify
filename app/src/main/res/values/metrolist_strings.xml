@@ -1337,4 +1337,8 @@
     <string name="s13_dynamic">Dynamic progressbar</string>
     <string name="s13_music">Dynamic progressbar: Auf Musik reagieren</string>
     <string name="s13_music_desc">Ein: Die Welle reagiert auf das lokale Audiosignal. Aus: nur Leuchten. Bei Pause und Cast bleibt die Welle ruhig.</string>
+    <string name="s14_dynamic_options">Vorschau, Coverfarben und Musikreaktion</string>
+    <string name="s14_cover_color">Die Farbe passt sich automatisch dem aktuellen Albumcover an.</string>
+    <string name="s14_use_dynamic">Im Player verwenden</string>
+    <string name="s14_dynamic_selected">Im Player ausgewählt</string>
 </resources>
