@@ -81,7 +81,7 @@ import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalDownloadUtil
 import com.metrolist.music.LocalListenTogetherManager
 import com.metrolist.music.LocalPlayerConnection
-import com.metrolist.music.ui.component.RenameSongAction
+import com.metrolist.music.ui.component.SongEditAction
 import com.metrolist.music.R
 import com.metrolist.music.constants.ListItemHeight
 import com.metrolist.music.constants.VarispeedKey
@@ -313,7 +313,7 @@ fun PlayerMenu(
                 bottom = 8.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding(),
             ),
     ) {
-        item { RenameSongAction(mediaMetadata, onDismiss) }
+        item { SongEditAction(mediaMetadata, onDismiss) }
         item { CoverLyricsAction(onDismiss) }
         item { PlayerSleepTimerAction() }
         item { SongCanvasAction(mediaMetadata.id) }

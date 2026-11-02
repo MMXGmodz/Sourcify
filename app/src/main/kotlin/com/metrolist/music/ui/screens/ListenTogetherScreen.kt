@@ -88,7 +88,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.metrolist.music.LocalListenTogetherManager
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
-import com.metrolist.music.constants.AppBarHeight
 import com.metrolist.music.constants.ListenTogetherInTopBarKey
 import com.metrolist.music.constants.ListenTogetherUsernameKey
 import com.metrolist.music.listentogether.ConnectionState
@@ -252,19 +251,19 @@ fun ListenTogetherScreen(
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .then(if (embedded) Modifier else Modifier.background(MaterialTheme.colorScheme.background))
                 .imePadding(),
         contentPadding =
             PaddingValues(
                 start = 16.dp,
                 end = 16.dp,
                 top = if (embedded) 12.dp else windowInsets.asPaddingValues().calculateTopPadding() + 16.dp,
-                bottom = windowInsets.asPaddingValues().calculateBottomPadding() + 16.dp + AppBarHeight,
+                bottom = windowInsets.asPaddingValues().calculateBottomPadding() + 24.dp,
             ),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         // Header
-        item {
+        if (!embedded) item {
             HeaderSection(isInRoom = isInRoom)
         }
 
@@ -675,7 +674,7 @@ private fun RoomStatusCard(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -687,10 +686,10 @@ private fun RoomStatusCard(
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = roomCode,
-                style = MaterialTheme.typography.displaySmall,
+                style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 6.sp,
+                letterSpacing = 3.sp,
                 textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -1089,8 +1088,8 @@ private fun JoinCreateRoomSection(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                    .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Username input
@@ -1237,52 +1236,28 @@ private fun JoinCreateRoomSection(
                 }
             }
 
-            // Action buttons
             val hasUsername = usernameInput.trim().isNotBlank() || savedUsername.isNotBlank()
             val hasRoomCode = roomCodeInput.length == 8
 
-            // Create Room button - visible when username is provided
-            AnimatedVisibility(visible = hasUsername && !hasRoomCode) {
-                Button(
-                    onClick = onCreateRoom,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = hasUsername,
-                    shape = RoundedCornerShape(16.dp),
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                        ),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.add),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.create_room), fontWeight = FontWeight.SemiBold)
-                }
+            Button(
+                onClick = onCreateRoom,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = hasUsername,
+                shape = RoundedCornerShape(16.dp),
+            ) {
+                Icon(painterResource(R.drawable.add), contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.create_room), fontWeight = FontWeight.SemiBold)
             }
-
-            // Join Room button - visible when username and room code are provided
-            AnimatedVisibility(visible = hasUsername && hasRoomCode) {
-                Button(
-                    onClick = onJoinRoom,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = hasUsername && hasRoomCode,
-                    shape = RoundedCornerShape(16.dp),
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.tertiary,
-                        ),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.login),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.join_room), fontWeight = FontWeight.SemiBold)
-                }
+            OutlinedButton(
+                onClick = onJoinRoom,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = hasUsername && hasRoomCode,
+                shape = RoundedCornerShape(16.dp),
+            ) {
+                Icon(painterResource(R.drawable.login), contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.join_room), fontWeight = FontWeight.SemiBold)
             }
         }
     }

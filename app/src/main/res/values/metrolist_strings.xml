@@ -1028,7 +1028,7 @@
     <string name="sourcify_licenses">Open-source licenses</string>
     <string name="sourcify_canvas_zoom">Canvas zoom</string>
     <string name="sourcify_canvas_zoom_description">Crop the edges to fill the screen. Increase zoom if the video itself contains black bars.</string>
-    <string name="sourcify_release_notes">Sourcify 13.8.1: Dynamic progressbar mit flachen, mehrlagigen Wellen und kleinerem Ringregler.\n\nSourcify 13.8.0\n\nKünstleroptionen mit Teilen, Konzerten und Blockieren; neue Veröffentlichungen und deine favorisierten Songs auf Künstlerseiten. Passende Konzerte aus MusicBrainz und Suche bei Konzertanbietern. Empfehlungen berücksichtigen Hörverlauf und Statistiken.\n\nBibliothek: Suche und Plus rechts oben, anpinnbare Playlists mit grüner Stecknadel. Updates öffnen nach geprüftem Download die Android-Installation; Bestätigung durch Android bleibt erforderlich. Neue Versionen werden per Profil-Symbol und Benachrichtigung angezeigt.\n\nErscheinungsbild und Inhalte sowie alle Lyrics-Einstellungen sind zusammengeführt. Einheitliche Einstellungsseiten, korrigierte Player-Hintergründe.\n\nCredits: MMXG · ChatGPT / Codex (KI-unterstützte Entwicklung) · Kokosr (Android TV)\nGitHub: github.com/MMXGmodz/Sourcify · github.com/Kokosr</string>
+    <string name="sourcify_release_notes">Sourcify 13.8.2: Dynamic progressbar mit 0–100 % Wellenintensität und passender Stilvorschau. Updates und Änderungsprotokoll in einem Bereich; App-Sprache direkt in den Einstellungen.\n\nPlayer: kleines Albumcover bei aktivem Canvas. Unter Edit lassen sich Songname, Künstlernamen, Cover und Canvas mit eigenen Bildern oder Videos ändern und zurücksetzen. Die Änderungen bleiben auf diesem Gerät gespeichert.\n\nJam &amp; gemeinsam hören: einheitlicher Hintergrund, kompaktere Raumverwaltung und klarere Internet-/WLAN-Auswahl. Künstlerlinks warten auf die Navigation und öffnen die Künstlerseite auch bei geöffnetem Player.\n\nSourcify 13.8.1: flache mehrlagige Dynamic-Wellen mit kleinem Ringregler.\n\nSourcify 13.8.0: Künstleroptionen, Konzerte, persönliche Empfehlungen, anpinnbare Playlists und geprüfte APK-Updates. Die Android-Installationsbestätigung bleibt erforderlich.\n\nCredits: MMXG · ChatGPT / Codex (KI-unterstützte Entwicklung) · Kokosr (Android TV)\nGitHub: github.com/MMXGmodz/Sourcify · github.com/Kokosr</string>
 
     <string name="sourcify_update_available_message">Sourcify Player %s is ready to download.</string>
     <string name="sourcify_kmp_upgrade_title">Sourcify Player KMP %s is available</string>
@@ -1398,4 +1398,28 @@
 <string name="s80_chatgpt_codex_role">KI-unterstützte Entwicklung</string>
 <string name="s80_kokosr">Kokosr</string>
 <string name="s80_kokosr_role">Android-TV-App und Weiterentwicklung</string>
+    <string name="s1382_dynamic_intensity">Wellenintensität: %1$d %%</string>
+    <string name="s1382_dynamic_intensity_desc">0 % zeigt eine flache Fortschrittsleiste. Die Leuchtfarbe bleibt erhalten.</string>
+    <string name="s1382_app_language">App-Sprache</string>
+    <string name="s1382_updates">Updates und Änderungsprotokoll</string>
+    <string name="s1382_current_changelog">Änderungen dieser Version</string>
+    <string name="s1382_auto_updates">Automatisch nach Updates suchen</string>
+    <string name="sourcify_edit_song">Edit</string>
+    <string name="sourcify_edit_title">Songname</string>
+    <string name="sourcify_edit_artists">Künstlernamen</string>
+    <string name="sourcify_edit_artists_hint">Ein Künstlername pro Zeile. Änderungen gelten nur für diesen Song.</string>
+    <string name="sourcify_edit_cover">Cover</string>
+    <string name="sourcify_edit_canvas">Canvas</string>
+    <string name="sourcify_edit_choose_image">Bild auswählen</string>
+    <string name="sourcify_edit_choose_canvas">Bild oder Video auswählen</string>
+    <string name="sourcify_edit_custom_selected">Eigenes Bild ausgewählt</string>
+    <string name="sourcify_edit_image_selected">Eigenes Canvas-Bild ausgewählt</string>
+    <string name="sourcify_edit_video_selected">Eigenes Canvas-Video ausgewählt</string>
+    <string name="sourcify_edit_original">Standard</string>
+    <string name="sourcify_edit_reset">Zurücksetzen</string>
+    <string name="sourcify_edit_reset_all">Alle Songänderungen zurücksetzen</string>
+    <string name="sourcify_edit_save">Speichern</string>
+    <string name="sourcify_edit_local_only">Auf diesem Gerät gespeichert, auch für die Offline-Wiedergabe. Bilder bis 20 MB; Videos bis 200 MB.</string>
+    <string name="sourcify_edit_failed">Songänderungen konnten nicht gespeichert werden. Bitte versuche es erneut.</string>
+    <string name="sourcify_edit_media_failed">Datei konnte nicht importiert werden. Wähle ein gültiges Bild bis 20 MB oder ein Video bis 200 MB.</string>
 </resources>

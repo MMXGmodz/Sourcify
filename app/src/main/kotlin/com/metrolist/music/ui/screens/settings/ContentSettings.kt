@@ -7,9 +7,6 @@ package com.metrolist.music.ui.screens.settings
 
 import androidx.compose.foundation.background
 
-import android.content.Intent
-import android.os.Build
-import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -47,18 +44,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.navigation.NavController
 import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
 import com.metrolist.music.constants.AddToPlaylistPosition
 import com.metrolist.music.constants.AddToPlaylistPositionKey
-import com.metrolist.music.constants.AppLanguageKey
 import com.metrolist.music.constants.ContentCountryKey
 import com.metrolist.music.constants.ContentLanguageKey
 import com.metrolist.music.constants.CountryCodeToName
@@ -95,10 +89,7 @@ import java.net.Proxy
 fun ContentSettings(
     navController: NavController
 ) {
-    val context = LocalContext.current
     val database = LocalDatabase.current
-    // Used only before Android 13
-    val (appLanguage, onAppLanguageChange) = rememberPreference(key = AppLanguageKey, defaultValue = SYSTEM_DEFAULT)
 
     val (contentLanguage, onContentLanguageChange) = rememberPreference(key = ContentLanguageKey, defaultValue = "system")
     val (contentCountry, onContentCountryChange) = rememberPreference(key = ContentCountryKey, defaultValue = "system")
@@ -307,26 +298,6 @@ fun ContentSettings(
             values = (listOf(SYSTEM_DEFAULT) + CountryCodeToName.keys.toList()),
             valueText = {
                 CountryCodeToName.getOrElse(it) { stringResource(R.string.system_default) }
-            }
-        )
-    }
-
-    var showAppLanguageDialog by rememberSaveable {
-        mutableStateOf(false)
-    }
-
-    if (showAppLanguageDialog) {
-        EnumDialog(
-            onDismiss = { showAppLanguageDialog = false },
-            onSelect = {
-                onAppLanguageChange(it)
-                showAppLanguageDialog = false
-            },
-            title = stringResource(R.string.app_language),
-            current = appLanguage,
-            values = (listOf(SYSTEM_DEFAULT) + LanguageCodeToName.keys.toList()),
-            valueText = {
-                LanguageCodeToName.getOrElse(it) { stringResource(R.string.system_default) }
             }
         )
     }
@@ -605,34 +576,8 @@ fun ContentSettings(
         Spacer(modifier = Modifier.height(27.dp))
 
         Material3SettingsGroup(
-            title = stringResource(R.string.app_language),
-            items = listOf(
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.language),
-                        title = { Text(stringResource(R.string.app_language)) },
-                        onClick = {
-                            context.startActivity(
-                                Intent(
-                                    Settings.ACTION_APP_LOCALE_SETTINGS,
-                                    "package:${context.packageName}".toUri()
-                                )
-                            )
-                        }
-                    )
-                } else {
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.language),
-                        title = { Text(stringResource(R.string.app_language)) },
-                        description = {
-                            Text(
-                                LanguageCodeToName.getOrElse(appLanguage) { stringResource(R.string.system_default) }
-                            )
-                        },
-                        onClick = { showAppLanguageDialog = true }
-                    )
-                }
-            )
+            title = stringResource(R.string.s1382_app_language),
+            items = listOf(appLanguageSettingsItem()),
         )
 
         Spacer(modifier = Modifier.height(27.dp))

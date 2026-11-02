@@ -239,22 +239,24 @@ fun BottomSheetPlayer(
     var canvasFullscreen by rememberSaveable(mediaMetadata?.id) { mutableStateOf(false) }
 
     val automaticCanvasEnabled by rememberPreference(AutomaticCanvasKey, true)
+    val editedCanvas = com.metrolist.music.utils.rememberSongEditCanvas(mediaMetadata?.id)
     val canvasSelection = com.metrolist.music.utils.rememberPlaybackCanvasSelection(mediaMetadata?.id, automaticCanvasEnabled)
     val canvasGlobalEnabled by rememberPreference(CanvasEnabledKey, true)
     val canvasEnabled = canvasGlobalEnabled && com.metrolist.music.utils.rememberCanvasEnabled(mediaMetadata?.id)
     val automaticCanvas = rememberAutomaticCanvas(
         mediaMetadata,
-        canvasEnabled && automaticCanvasEnabled && canvasSelection == null,
+        canvasEnabled && automaticCanvasEnabled && canvasSelection == null && editedCanvas == null,
     )
-    val selectedCanvas = rememberSelectedCanvas(canvasSelection, canvasEnabled)
-    val canvasSource = if (canvasSelection != null) selectedCanvas else automaticCanvas
-    var canvasFailed by remember(mediaMetadata?.id, canvasSource) { mutableStateOf(false) }
+    val selectedCanvas = rememberSelectedCanvas(canvasSelection, canvasEnabled && editedCanvas == null)
+    val canvasSource = editedCanvas?.takeUnless { it.isImage }?.let { CanvasVideoSource(it.uri) }
+        ?: if (editedCanvas == null) { if (canvasSelection != null) selectedCanvas else automaticCanvas } else null
+    var canvasFailed by remember(mediaMetadata?.id, canvasSource, editedCanvas) { mutableStateOf(false) }
     var canvasAttempt by remember(canvasSource) { mutableStateOf(0) }
     val songColor = com.metrolist.music.ui.theme.LocalSongColor.current
     val portrait = LocalConfiguration.current.orientation != Configuration.ORIENTATION_LANDSCAPE
     val canvasViewport = with(LocalDensity.current) { LocalConfiguration.current.screenHeightDp.dp.toPx() }
     val canvasInView by remember(portrait, canvasViewport) { derivedStateOf { !portrait || playerScrollState.value < canvasViewport } }
-    val showCanvas = canvasEnabled && canvasSource != null && !canvasFailed && state.isExpanded
+    val showCanvas = canvasEnabled && (canvasSource != null || editedCanvas?.isImage == true) && !canvasFailed && state.isExpanded
     LaunchedEffect(showCanvas) { if (!showCanvas) canvasFullscreen = false }
 
     val (useNewPlayerDesign, onUseNewPlayerDesignChange) =
@@ -817,12 +819,16 @@ fun BottomSheetPlayer(
                 if (showCanvas) {
                     CanvasBackdrop(scrollOffset = { if (portrait && !canvasFullscreen) playerScrollState.value.toFloat() else 0f }, fullscreen = canvasFullscreen) {
                         androidx.compose.runtime.key(mediaMetadata?.id, canvasAttempt) {
-                            CanvasVideoBackground(
-                                source = canvasSource,
-                                isPlaying = isPlaying && (canvasInView || canvasFullscreen),
-                                onError = { if (canvasAttempt == 0) canvasAttempt++ else canvasFailed = true },
-                                modifier = Modifier.fillMaxSize(),
-                            )
+                            if (editedCanvas?.isImage == true) {
+                                CanvasImageBackground(editedCanvas.uri, onError = { canvasFailed = true })
+                            } else if (canvasSource != null) {
+                                CanvasVideoBackground(
+                                    source = canvasSource,
+                                    isPlaying = isPlaying && (canvasInView || canvasFullscreen),
+                                    onError = { if (canvasAttempt == 0) canvasAttempt++ else canvasFailed = true },
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
                         }
                     }
                 }
@@ -867,12 +873,12 @@ fun BottomSheetPlayer(
                         .padding(horizontal = PlayerHorizontalPadding),
             ) {
                 AnimatedContent(
-                    targetState = showInlineLyrics,
+                    targetState = showCanvas,
                     label = "ThumbnailAnimation",
                 ) { showLyrics ->
                     if (showLyrics) {
                         Row {
-                            if (hidePlayerThumbnail) {
+                            if (hidePlayerThumbnail && !showCanvas) {
                                 Box(
                                     modifier =
                                         Modifier
@@ -1182,10 +1188,11 @@ fun BottomSheetPlayer(
             Spacer(Modifier.height(if (coverLyricsEnabled) 12.dp else 24.dp))
 
             val dynamicMusic by rememberPreference(com.metrolist.music.constants.DynamicProgressMusicKey, true)
+            val dynamicIntensity by rememberPreference(com.metrolist.music.constants.DynamicProgressIntensityKey, 100)
             var dynamicAmplitude by remember { mutableFloatStateOf(0f) }
             val dynamicLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
-            LaunchedEffect(sliderStyle, dynamicMusic, effectiveIsPlaying, isCasting, state.isExpanded, dynamicLifecycle) {
-                if (sliderStyle == SliderStyle.DYNAMIC && dynamicMusic && effectiveIsPlaying && !isCasting && state.isExpanded) {
+            LaunchedEffect(sliderStyle, dynamicMusic, dynamicIntensity > 0, effectiveIsPlaying, isCasting, state.isExpanded, dynamicLifecycle) {
+                if (sliderStyle == SliderStyle.DYNAMIC && dynamicMusic && dynamicIntensity > 0 && effectiveIsPlaying && !isCasting && state.isExpanded) {
                     dynamicLifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
                         try {
                             while (true) {
@@ -1288,7 +1295,7 @@ fun BottomSheetPlayer(
                     }
                     sliderState.value = sliderValue
                     com.metrolist.music.ui.component.DynamicSlider(
-                        amplitude = dynamicAmplitude,
+                        amplitude = dynamicAmplitude * dynamicIntensity.coerceIn(0, 100) / 100f,
                         color = songColor,
                         state = sliderState,
                         onValueChange = {

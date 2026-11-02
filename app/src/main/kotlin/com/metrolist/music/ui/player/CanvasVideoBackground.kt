@@ -17,6 +17,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -169,5 +171,24 @@ fun CanvasVideoBackground(
                 1f to Color.Black.copy(alpha = 0.78f),
             ),
         ))
+    }
+}
+
+@Composable
+internal fun CanvasImageBackground(uri: android.net.Uri, onError: () -> Unit) {
+    val zoom by rememberPreference(CanvasZoomKey, 1.35f)
+    val brightness by rememberPreference(com.metrolist.music.constants.CanvasBrightnessKey, 0.65f)
+    Box(Modifier.fillMaxSize().clipToBounds()) {
+        coil3.compose.AsyncImage(
+            model = uri,
+            contentDescription = null,
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            onError = { onError() },
+            modifier = Modifier.fillMaxSize().graphicsLayer {
+                scaleX = zoom.coerceIn(1f, 2f)
+                scaleY = zoom.coerceIn(1f, 2f)
+            },
+        )
+        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = canvasDimAlpha(brightness))))
     }
 }

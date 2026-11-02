@@ -738,3 +738,5 @@ val DownloadBackgroundAllowedKey = booleanPreferencesKey("downloadBackgroundAllo
 val CoverLyricsEnabledKey = booleanPreferencesKey("coverLyricsEnabled")
 
 val DynamicProgressMusicKey = booleanPreferencesKey("dynamicProgressMusic")
+
+val DynamicProgressIntensityKey = intPreferencesKey("dynamicProgressIntensity")

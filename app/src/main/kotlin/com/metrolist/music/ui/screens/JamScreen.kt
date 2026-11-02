@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -24,6 +26,7 @@ import com.metrolist.music.LocalListenTogetherManager
 import com.metrolist.music.R
 import com.metrolist.music.jam.JamServer
 import com.metrolist.music.jam.AndroidJam
+import com.metrolist.music.ui.theme.screenHeaderBrush
 import kotlinx.coroutines.delay
 import org.json.JSONObject
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -41,28 +44,57 @@ fun JamScreen(navController: NavController, showTopBar: Boolean = false,
         if (room != null) online = true else if (localActive) online = false
     }
     val insets = LocalPlayerAwareWindowInsets.current
-    Column(Modifier.fillMaxSize()) {
-        if (showTopBar) TopAppBar(title = { Text(stringResource(R.string.sourcify_jam_hub_title)) }, navigationIcon = {
-            IconButton(onClick = { navController.popBackStack() }) {
-                Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.back))
-            }
-        })
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(
-            top = if (showTopBar) 8.dp else insets.asPaddingValues().calculateTopPadding() + 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = online, onClick = { online = true }, enabled = !localActive,
-                label = { Text(stringResource(R.string.sourcify_jam_online)) }, modifier = Modifier.weight(1f))
-            FilterChip(selected = !online, onClick = { online = false }, enabled = room == null,
-                label = { Text(stringResource(R.string.sourcify_jam_wifi)) }, modifier = Modifier.weight(1f))
+    Column(Modifier.fillMaxSize().background(screenHeaderBrush())) {
+        if (showTopBar) {
+            TopAppBar(
+                title = { Text(stringResource(R.string.sourcify_jam_hub_title)) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.back))
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent,
+                ),
+            )
         }
-        if (online) {
-            Text(stringResource(R.string.sourcify_jam_online_description), Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                style = MaterialTheme.typography.bodyMedium)
-            TextButton(onClick = { navController.navigate("settings/integrations/listen_together") }, Modifier.padding(horizontal = 12.dp)) {
-                Text(stringResource(R.string.sourcify_jam_server_settings))
+        Column(
+            Modifier.fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
+                .padding(horizontal = 16.dp)
+                .padding(top = if (showTopBar) 8.dp else insets.asPaddingValues().calculateTopPadding() + 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().height(56.dp)) {
+                SegmentedButton(
+                    selected = online,
+                    modifier = Modifier.fillMaxHeight(),
+                    onClick = { online = true },
+                    enabled = !localActive,
+                    shape = SegmentedButtonDefaults.itemShape(0, 2),
+                    icon = {},
+                    label = { Text(stringResource(R.string.sourcify_jam_online)) },
+                )
+                SegmentedButton(
+                    selected = !online,
+                    modifier = Modifier.fillMaxHeight(),
+                    onClick = { online = false },
+                    enabled = room == null,
+                    shape = SegmentedButtonDefaults.itemShape(1, 2),
+                    icon = {},
+                    label = { Text(stringResource(R.string.sourcify_jam_wifi)) },
+                )
+            }
+            if (online) {
+                Text(
+                    stringResource(R.string.sourcify_jam_online_description),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
-        Box(Modifier.weight(1f)) {
+        Box(Modifier.weight(1f).windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))) {
             if (online) ListenTogetherScreen(navController, embedded = true)
             else LocalJamScreen(jam, embedded = true)
         }
@@ -95,20 +127,20 @@ private fun LocalJamScreen(jam: AndroidJam?, embedded: Boolean = false) {
     Column(Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = if (embedded) 12.dp else windowInsets.asPaddingValues().calculateTopPadding() + 12.dp,
-                bottom = windowInsets.asPaddingValues().calculateBottomPadding() + 32.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = if (embedded) 12.dp else windowInsets.asPaddingValues().calculateTopPadding() + 12.dp,
+                bottom = windowInsets.asPaddingValues().calculateBottomPadding() + 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                Text(stringResource(R.string.sourcify_jam_heading), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.sourcify_jam_heading), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
-                Text(stringResource(R.string.sourcify_jam_description), style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(R.string.sourcify_jam_description), style = MaterialTheme.typography.bodyMedium)
             }
             if (error.isNotEmpty()) item { Text(error, color = MaterialTheme.colorScheme.error) }
             if (!active) {
                 item {
                     Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             OutlinedTextField(name, { name = it.take(32) }, label = { Text(stringResource(R.string.sourcify_jam_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                             Button(onClick = { perform { jam!!.start(name) } }, enabled = jam != null && name.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
                                 Text(stringResource(R.string.sourcify_jam_start))
@@ -118,7 +150,7 @@ private fun LocalJamScreen(jam: AndroidJam?, embedded: Boolean = false) {
                 }
                 item {
                     Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(stringResource(R.string.sourcify_jam_join), style = MaterialTheme.typography.titleLarge)
                             Text(stringResource(R.string.sourcify_jam_join_description))
                             OutlinedTextField(invitation, { invitation = it }, label = { Text(linkLabel) }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -132,7 +164,7 @@ private fun LocalJamScreen(jam: AndroidJam?, embedded: Boolean = false) {
             } else {
                 item {
                     Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(stringResource(R.string.sourcify_jam_code, snapshot.optString("code")), style = MaterialTheme.typography.headlineSmall)
                             val link = snapshot.getJSONArray("links").optString(0)
                             Text(link, style = MaterialTheme.typography.bodySmall)

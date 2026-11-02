@@ -108,7 +108,6 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
-import androidx.core.util.Consumer
 import androidx.core.view.WindowCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -259,8 +258,7 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var listenTogetherManager: com.metrolist.music.listentogether.ListenTogetherManager
 
-    private lateinit var navController: NavHostController
-    private var pendingIntent: Intent? = null
+    private var pendingIntent by mutableStateOf<Intent?>(null)
     private var latestVersionName by mutableStateOf(BuildConfig.BASE_VERSION_NAME)
 
     // Keep PlayerConnection as regular property - NOT mutableStateOf to prevent UI recomposition
@@ -379,18 +377,15 @@ class MainActivity : FragmentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (::navController.isInitialized) {
-            handleWidgetTargetIntent(intent, navController)
-            handleDeepLinkIntent(intent, navController)
-        } else {
-            pendingIntent = intent
-        }
+        setIntent(intent)
+        pendingIntent = Intent(intent)
     }
 
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pendingIntent = Intent(intent)
         window.decorView.layoutDirection = View.LAYOUT_DIRECTION_LTR
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
@@ -950,29 +945,23 @@ class MainActivity : FragmentActivity() {
                 }
                 val snackbarHostState = remember { SnackbarHostState() }
 
-                LaunchedEffect(Unit) {
-                    if (pendingIntent != null) {
-                        handleWidgetTargetIntent(pendingIntent!!, navController)
-                        handleRecognitionIntent(pendingIntent!!, navController)
-                        handleDeepLinkIntent(pendingIntent!!, navController)
-                        pendingIntent = null
-                    } else {
-                        handleWidgetTargetIntent(intent, navController)
-                        handleRecognitionIntent(intent, navController)
-                        handleDeepLinkIntent(intent, navController)
+                // Wait for the graph before consuming cold or warm external intents.
+                LaunchedEffect(pendingIntent, navBackStackEntry?.destination?.id) {
+                    val incoming = pendingIntent ?: return@LaunchedEffect
+                    if (navBackStackEntry == null) return@LaunchedEffect
+                    pendingIntent = null
+                    // Do not replay an already-consumed link after a configuration change.
+                    setIntent(Intent(intent).apply {
+                        data = null
+                        removeExtra(Intent.EXTRA_TEXT)
+                        if (action == ACTION_RECOGNITION || action == ACTION_OPEN_WIDGET_TARGET) action = null
+                    })
+                    handleWidgetTargetIntent(incoming, navController)
+                    handleRecognitionIntent(incoming, navController)
+                    handleDeepLinkIntent(incoming, navController) {
+                        if (playerBottomSheetState.isExpanded) playerBottomSheetState.collapseSoft()
+                        coroutineScope.launch { profileDrawerState.close() }
                     }
-                }
-
-                DisposableEffect(Unit) {
-                    val listener =
-                        Consumer<Intent> { intent ->
-                            handleWidgetTargetIntent(intent, navController)
-                            handleRecognitionIntent(intent, navController)
-                            handleDeepLinkIntent(intent, navController)
-                        }
-
-                    addOnNewIntentListener(listener)
-                    onDispose { removeOnNewIntentListener(listener) }
                 }
 
                 val currentTitleRes =
@@ -1512,8 +1501,9 @@ class MainActivity : FragmentActivity() {
     private fun handleDeepLinkIntent(
         intent: Intent,
         navController: NavHostController,
+        revealDestination: () -> Unit,
     ) {
-        val uri = intent.data ?: intent.extras?.getString(Intent.EXTRA_TEXT)?.toUri() ?: return
+        val uri = com.metrolist.music.utils.externalLinkUri(intent) ?: return
         intent.data = null
         intent.removeExtra(Intent.EXTRA_TEXT)
         val coroutineScope = lifecycle.coroutineScope
@@ -1526,6 +1516,12 @@ class MainActivity : FragmentActivity() {
         if (!listenCode.isNullOrBlank() && isListenLink) {
             val username = dataStore.get(ListenTogetherUsernameKey, "").ifBlank { "Guest" }
             listenTogetherManager.joinRoom(listenCode, username)
+            return
+        }
+
+        com.metrolist.music.utils.artistRouteFromLink(uri)?.let { route ->
+            revealDestination()
+            navController.navigate(route) { launchSingleTop = true }
             return
         }
 
@@ -1560,11 +1556,6 @@ class MainActivity : FragmentActivity() {
                 }
             }
 
-            "channel", "c" -> {
-                uri.lastPathSegment?.let { artistId ->
-                    navController.navigate("artist/$artistId")
-                }
-            }
 
             "search" -> {
                 uri.getQueryParameter("q")?.let {

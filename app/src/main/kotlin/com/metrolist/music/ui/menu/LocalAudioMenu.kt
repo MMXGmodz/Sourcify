@@ -33,7 +33,7 @@ internal fun LocalAudioMenu(metadata: MediaMetadata, onDismiss: () -> Unit, onIn
     Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(metadata.title, style = MaterialTheme.typography.titleLarge)
         Text(stringResource(R.string.local_audio_network_notice), style = MaterialTheme.typography.bodySmall)
-        RenameSongAction(metadata, onDismiss)
+        SongEditAction(metadata, onDismiss)
         PlayerSleepTimerAction()
         SongCanvasAction(metadata.id)
         VolumeSlider(value = volume, onValueChange = { connection.service.playerVolume.value = it }, modifier = Modifier.fillMaxWidth())

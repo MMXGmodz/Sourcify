@@ -48,8 +48,12 @@ fun RenameSongAction(metadata: MediaMetadata, onDismiss: () -> Unit) {
             if (!saving) scope.launch {
                 saving = true
                 try {
-                    val song = database.renameSong(metadata, title)
-                    if (com.metrolist.music.utils.LocalAudioStore.isLocalId(metadata.id)) {
+                    val edits = com.metrolist.music.utils.SongEditStore.get(context)
+                    val hasEdits = edits.hasEdits(metadata.id)
+                    val song = if (hasEdits) edits.updateSong(database, metadata, title,
+                        edits.resolve(metadata).artists.map { it.name }, edits.cover(metadata.id), edits.canvas(metadata.id))
+                    else database.renameSong(metadata, title)
+                    if (com.metrolist.music.utils.LocalAudioStore.isLocalId(metadata.id) && !hasEdits) {
                         com.metrolist.music.utils.LocalAudioStore.get(context).rename(metadata.id, title)
                     }
                     playerConnection?.refreshSongMetadata(song)

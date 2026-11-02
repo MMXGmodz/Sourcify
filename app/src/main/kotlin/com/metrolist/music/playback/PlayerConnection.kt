@@ -37,6 +37,7 @@ import com.metrolist.music.playback.queues.Queue
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.get
 import com.metrolist.music.utils.reportException
+import com.metrolist.music.utils.SongEditStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -208,10 +209,14 @@ class PlayerConnection(
 
     init {
         scope.launch {
-            combine(mediaMetadata, currentSong) { metadata, song ->
-                song?.takeIf { metadata?.id == it.id && metadata.title != it.song.title }
+            combine(mediaMetadata, currentSong, SongEditStore.get(context).revision) { metadata, song, _ ->
+                song?.takeIf {
+                    if (metadata == null || metadata.id != it.id) false else {
+                        val edited = SongEditStore.apply(it.toMediaMetadata())
+                        metadata.title != edited.title || metadata.artists != edited.artists || metadata.thumbnailUrl != edited.thumbnailUrl
+                    }
+                }
             }.collect { song ->
-                // A new queue can contain remote titles; retain the user's saved local name.
                 if (song != null) refreshSongMetadata(song)
             }
         }
@@ -266,7 +271,7 @@ class PlayerConnection(
 
     fun refreshSongMetadata(song: Song) {
         val player = getPlayerOrNull() ?: return
-        val updatedMetadata = song.toMediaMetadata()
+        val updatedMetadata = SongEditStore.apply(song.toMediaMetadata())
         repeat(player.mediaItemCount) { index ->
             val mediaItem = player.getMediaItemAt(index)
             if (mediaItem.mediaId == song.id) {

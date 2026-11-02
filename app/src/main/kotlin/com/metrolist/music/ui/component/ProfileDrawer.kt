@@ -24,8 +24,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.metrolist.music.R
-import androidx.compose.ui.platform.LocalContext
-import com.metrolist.music.UpdateActivity
 
 @Composable
 internal fun ProfileDrawerContent(name: String, image: String?, loggedIn: Boolean, hasUpdate: Boolean,
@@ -57,17 +55,10 @@ internal fun ProfileDrawerContent(name: String, image: String?, loggedIn: Boolea
         ProfileDrawerRow(R.drawable.integration, stringResource(R.string.integrations), { onNavigate("settings/integrations") })
         ProfileDrawerRow(R.drawable.settings, stringResource(R.string.s7_settings_privacy), { onNavigate("settings") }, hasUpdate)
         ProfileDrawerRow(R.drawable.account, stringResource(R.string.s7_account_options), onAccountOptions)
-        ProfileUpdateAction(hasUpdate)
+        ProfileDrawerRow(R.drawable.update, stringResource(R.string.s1382_updates),
+            { onNavigate("settings/updater") }, hasUpdate)
         Spacer(Modifier.height(24.dp))
     }
-}
-
-@Composable
-private fun ProfileUpdateAction(hasUpdate: Boolean) {
-    val context = LocalContext.current
-    ProfileDrawerRow(R.drawable.update,
-        stringResource(if (hasUpdate) R.string.update_action else R.string.check_for_updates_button),
-        onClick = { context.startActivity(UpdateActivity.createIntent(context)) }, badge = hasUpdate)
 }
 
 @Composable

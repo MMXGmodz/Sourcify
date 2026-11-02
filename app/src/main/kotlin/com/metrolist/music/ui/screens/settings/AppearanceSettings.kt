@@ -60,6 +60,8 @@ import com.metrolist.music.constants.CropAlbumArtKey
 import com.metrolist.music.constants.DefaultOpenTabKey
 import com.metrolist.music.constants.DensityScale
 import com.metrolist.music.constants.DensityScaleKey
+import com.metrolist.music.constants.DynamicProgressIntensityKey
+import com.metrolist.music.constants.DynamicProgressMusicKey
 import com.metrolist.music.constants.DynamicThemeKey
 import com.metrolist.music.constants.EnableDynamicIconKey
 import com.metrolist.music.constants.EnableHighRefreshRateKey
@@ -99,6 +101,7 @@ import com.metrolist.music.ui.component.EnumDialog
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
+import com.metrolist.music.ui.component.DynamicSlider
 import com.metrolist.music.ui.component.PlayerSliderTrack
 import com.metrolist.music.ui.component.SquigglySlider
 import com.metrolist.music.ui.component.WavySlider
@@ -303,6 +306,8 @@ fun AppearanceSettings(
             defaultValue = LibraryFilter.LIBRARY,
         )
 
+    val (dynamicIntensity) = rememberPreference(DynamicProgressIntensityKey, 100)
+    val (dynamicMusic) = rememberPreference(DynamicProgressMusicKey, true)
     var showDynamicDialog by rememberSaveable { mutableStateOf(false) }
     if (showDynamicDialog) DynamicProgressDialog { showDynamicDialog = false }
 
@@ -516,9 +521,6 @@ fun AppearanceSettings(
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                TextButton(onClick = { showSliderOptionDialog = false; showDynamicDialog = true }) {
-                    Text(stringResource(R.string.s13_dynamic))
-                }
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
@@ -694,6 +696,40 @@ fun AppearanceSettings(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
+                }
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(2f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .border(
+                            1.dp,
+                            if (sliderStyle == SliderStyle.DYNAMIC) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outlineVariant,
+                            RoundedCornerShape(16.dp),
+                        )
+                        .clickable {
+                            showSliderOptionDialog = false
+                            showDynamicDialog = true
+                        }
+                        .padding(12.dp),
+                ) {
+                    DynamicSlider(
+                        state = remember { SliderState(value = .55f, trackRange = 0f..1f) },
+                        amplitude = if (dynamicMusic) .8f * dynamicIntensity.coerceIn(0, 100) / 100f else 0f,
+                        onValueChange = {},
+                        onValueChangeFinished = {},
+                        enabled = false,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        stringResource(R.string.s13_dynamic),
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }

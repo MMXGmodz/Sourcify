@@ -57,7 +57,9 @@ fun MediaMetadata.withResolvedArtistNameAliases(): MediaMetadata {
         artists.map { artist ->
             artist.copy(name = ArtistNameAliases.resolve(artist.id, artist.name))
         }
-    return if (resolvedArtists == artists) this else copy(artists = resolvedArtists)
+    return com.metrolist.music.utils.SongEditStore.apply(
+        if (resolvedArtists == artists) this else copy(artists = resolvedArtists),
+    )
 }
 
 fun MediaItem.withUpdatedMetadata(updatedMetadata: MediaMetadata): MediaItem {

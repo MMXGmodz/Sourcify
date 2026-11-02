@@ -77,18 +77,13 @@ fun UpdaterScreen(
         coroutineScope.launch {
             isChecking = true
             checkError = null
-            withContext(Dispatchers.IO) {
-                Updater
-                    .checkForUpdate(forceRefresh = true)
-                    .onSuccess { (releaseInfo, hasUpdate) ->
-                        if (releaseInfo != null) {
-                            latestVersion = releaseInfo.versionName
-                            updateAvailable = hasUpdate
-                            changelogContent = releaseInfo.description
-                        }
-                    }.onFailure {
-                        checkError = String.format(failedToCheckUpdatesTemplate, it.message ?: "Unknown error")
-                    }
+            val result = withContext(Dispatchers.IO) { Updater.checkForUpdate(forceRefresh = true) }
+            result.onSuccess { (releaseInfo, hasUpdate) ->
+                latestVersion = releaseInfo?.versionName
+                updateAvailable = hasUpdate && releaseInfo != null
+                changelogContent = releaseInfo?.description
+            }.onFailure {
+                checkError = String.format(failedToCheckUpdatesTemplate, it.message ?: "Unknown error")
             }
             isChecking = false
         }
@@ -141,7 +136,7 @@ fun UpdaterScreen(
                 buildList {
                     add(
                         Material3SettingsItem(
-                            title = { Text(stringResource(R.string.check_for_updates)) },
+                            title = { Text(stringResource(R.string.s1382_auto_updates)) },
                             icon = painterResource(R.drawable.update),
                             trailingContent = {
                                 Switch(
@@ -249,13 +244,27 @@ fun UpdaterScreen(
             }
         }
 
+        Spacer(Modifier.height(16.dp))
+
+        Material3SettingsGroup(
+            title = stringResource(R.string.s1382_current_changelog),
+            items = listOf(
+                Material3SettingsItem(
+                    title = { Text(stringResource(R.string.version_format, BuildConfig.VERSION_NAME)) },
+                    description = { Text(stringResource(R.string.sourcify_release_notes)) },
+                ),
+            ),
+        )
+
+        Spacer(Modifier.height(16.dp))
+
         Spacer(Modifier.height(32.dp))
     }
 
     TopAppBar(
         modifier = androidx.compose.ui.Modifier.background(com.metrolist.music.ui.theme.screenHeaderBrush()),
         colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent, scrolledContainerColor = androidx.compose.ui.graphics.Color.Transparent),
-        title = { Text(stringResource(R.string.updater)) },
+        title = { Text(stringResource(R.string.s1382_updates)) },
         navigationIcon = {
             IconButton(
                 onClick = navController::navigateUp,
