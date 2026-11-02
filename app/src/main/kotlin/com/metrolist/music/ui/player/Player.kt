@@ -1802,6 +1802,15 @@ fun BottomSheetPlayer(
                     }
                     Spacer(Modifier.height(16.dp))
                     mediaMetadata?.let { song ->
+                        com.metrolist.music.ui.screens.artist.PlayerConcertCard(
+                            song = song,
+                            enabled = state.isExpanded,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
+                            onAllEvents = { artist ->
+                                state.collapseSoft()
+                                navController.navigate("concerts?artist=${android.net.Uri.encode(artist)}")
+                            },
+                        )
                         PlayerContextCards(song, beforeSongInfo = { PlayerNextCard(onOpenQueue = { queueSheetState.expandSoft() }) }, onNavigate = { route ->
                             state.collapseSoft()
                             navController.navigate(route)

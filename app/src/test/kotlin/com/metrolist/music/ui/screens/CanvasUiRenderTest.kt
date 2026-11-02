@@ -50,7 +50,7 @@ class CanvasUiRenderTest {
                 }
             }
             assertTrue("Dynamic bar must be visible", bottom >= top)
-            assertTrue("Dynamic bar must keep its waves and glow low like the reference", bottom - top <= 64)
+            assertTrue("Dynamic waves and halo must fit the player control row", bottom - top <= 124)
         }) {
             Box(Modifier.fillMaxSize().background(Color.Black)) {
                 Box(Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 32.dp), contentAlignment = androidx.compose.ui.Alignment.Center) {

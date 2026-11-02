@@ -1042,11 +1042,6 @@ fun AppearanceSettings(
                         onClick = { showSliderOptionDialog = true },
                     ),
                     Material3SettingsItem(
-                        title = { Text(stringResource(R.string.s13_dynamic)) },
-                        description = { Text(stringResource(R.string.s14_dynamic_options)) },
-                        onClick = { showDynamicDialog = true },
-                    ),
-                    Material3SettingsItem(
                         icon = painterResource(R.drawable.swipe),
                         title = { Text(stringResource(R.string.enable_swipe_thumbnail)) },
                         trailingContent = {

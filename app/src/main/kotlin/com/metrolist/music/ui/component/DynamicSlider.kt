@@ -23,15 +23,20 @@ fun DynamicSlider(state: SliderState, amplitude: Float, onValueChange: (Float) -
     val slow by animateFloatAsState(amplitude.coerceIn(0f, 1f), tween(280), label = "audioWaveBack")
     val accent by animateColorAsState(lerp(color, Color.White, if (color.luminance() < .15f) .35f else .08f), tween(400), label = "coverProgressColor")
     Slider(state = state, onValueChange = onValueChange, onValueChangeFinished = onValueChangeFinished,
-        enabled = enabled, modifier = modifier.heightIn(min = 48.dp),
+        enabled = enabled, modifier = modifier.heightIn(min = 64.dp),
         thumb = {
             Canvas(Modifier.size(20.dp)) {
-                drawCircle(Brush.radialGradient(listOf(accent.copy(alpha = .18f), Color.Transparent), center, 15.dp.toPx()), 15.dp.toPx())
+                drawCircle(Brush.radialGradient(
+                    0f to accent.copy(alpha = .95f),
+                    .38f to accent.copy(alpha = .72f),
+                    .7f to accent.copy(alpha = .28f),
+                    1f to Color.Transparent,
+                    center = center, radius = 25.dp.toPx()), 25.dp.toPx())
                 drawCircle(Color.White, 9.dp.toPx())
-                drawCircle(lerp(accent, Color.Black, .65f), 7.3.dp.toPx())
+                drawCircle(lerp(accent, Color.White, .12f), 7.3.dp.toPx())
             }
         }, track = {
-            Canvas(Modifier.fillMaxWidth().height(40.dp)) {
+            Canvas(Modifier.fillMaxWidth().height(64.dp)) {
                 val fraction = if (state.trackRange.endInclusive > state.trackRange.start)
                     ((state.value - state.trackRange.start) / (state.trackRange.endInclusive - state.trackRange.start)).coerceIn(0f, 1f) else 0f
                 val end = size.width * fraction
@@ -53,9 +58,9 @@ fun DynamicSlider(state: SliderState, amplitude: Float, onValueChange: (Float) -
                         }
                         drawPath(path, ink)
                     }
-                    wave(slow, .08f, 8.dp.toPx(), accent.copy(alpha = .28f))
-                    wave(middle, .33f, 7.dp.toPx(), lerp(accent, Color.White, .55f).copy(alpha = .42f))
-                    wave(fast, -.15f, 5.5.dp.toPx(), Color.White.copy(alpha = .58f))
+                    wave(slow, .08f, 28.dp.toPx(), accent.copy(alpha = .48f))
+                    wave(middle, .33f, 24.dp.toPx(), lerp(accent, Color.White, .55f).copy(alpha = .55f))
+                    wave(fast, -.15f, 20.dp.toPx(), Color.White.copy(alpha = .68f))
                     drawLine(accent.copy(alpha = .07f), Offset(0f, y), Offset(end, y), 8.dp.toPx(), StrokeCap.Round)
                     drawLine(accent, Offset(0f, y), Offset(end, y), 3.dp.toPx(), StrokeCap.Round)
                 }

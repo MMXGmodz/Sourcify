@@ -126,6 +126,7 @@ import com.metrolist.music.ui.utils.fadingEdge
 import com.metrolist.music.ui.utils.isScrollingUp
 import com.metrolist.music.ui.utils.resize
 import com.metrolist.music.utils.ArtistNameAliases
+import com.metrolist.music.utils.concertProviderArtistName
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.ArtistViewModel
 import com.valentinilk.shimmer.shimmer
@@ -158,6 +159,11 @@ fun ArtistScreen(
             viewModel.artistId,
             artistPage?.artist?.title ?: libraryArtist?.artist?.name.orEmpty(),
         ).ifEmpty { null }
+    val concertArtistName = remember(artistPage?.artist?.title, libraryArtist?.artist, artistNameAliases) {
+        artistPage?.artist?.title?.takeIf(String::isNotBlank) ?: concertProviderArtistName(
+            viewModel.artistId, libraryArtist?.artist?.name ?: displayArtistName.orEmpty(), libraryArtist?.artist, artistNameAliases,
+        )
+    }
     val librarySongs by viewModel.librarySongs.collectAsStateWithLifecycle()
     val libraryAlbums by viewModel.libraryAlbums.collectAsStateWithLifecycle()
     val isChannelSubscribed by viewModel.isChannelSubscribed.collectAsStateWithLifecycle()
@@ -170,12 +176,14 @@ fun ArtistScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showLocal by rememberSaveable { mutableStateOf(false) }
     var artistOptions by rememberSaveable { mutableStateOf(false) }
+    var eventsSelected by rememberSaveable(viewModel.artistId) { mutableStateOf(false) }
     val likedArtistSongs by remember(viewModel.artistId) {
         database.likedSongsByCreateDateAsc().map { songs -> com.metrolist.music.utils.artistFavoriteSongs(songs, viewModel.artistId) }
     }.collectAsStateWithLifecycle(initialValue = emptyList())
     if (artistOptions) ArtistOptions(displayArtistName.orEmpty(), viewModel.artistId, isChannelSubscribed,
         viewModel::toggleChannelSubscription, {
-            navController.navigate("concerts?artist=${android.net.Uri.encode(artistPage?.artist?.title ?: displayArtistName.orEmpty())}")
+            if (concertArtistName.isBlank()) eventsSelected = true
+            else navController.navigate("concerts?artist=${android.net.Uri.encode(concertArtistName)}")
         }, { artistOptions = false }, shareLink = artistPage?.artist?.shareLink ?: libraryArtist?.artist?.channelId?.let { "https://music.youtube.com/channel/$it" })
     val density = LocalDensity.current
 
@@ -449,6 +457,16 @@ fun ArtistScreen(
                     }
                 }
 
+                item(key = "artist_content_tabs") {
+                    ArtistContentTabs(eventsSelected, { eventsSelected = it })
+                }
+                if (eventsSelected) {
+                    item(key = "artist_events") {
+                        ArtistEventsSection(concertArtistName) {
+                            navController.navigate("concerts?artist=${android.net.Uri.encode(concertArtistName)}")
+                        }
+                    }
+                } else {
                 item(key = "artist_personal_highlights") {
                     val latest = artistPage?.sections?.firstOrNull { section ->
                         Regex("latest|new release|neueste|neue veröffentlich|nouveaut|últim", RegexOption.IGNORE_CASE).containsMatchIn(section.title)
@@ -864,11 +882,12 @@ fun ArtistScreen(
                         }
                     }
                 }
+                }
             }
         }
 
         val isScrollingUp = lazyListState.isScrollingUp()
-        val showLocalFab = librarySongs.isNotEmpty() && libraryArtist?.artist?.isLocal != true
+        val showLocalFab = !eventsSelected && librarySongs.isNotEmpty() && libraryArtist?.artist?.isLocal != true
 
         // Library/Local Toggle FAB
         HideOnScrollFAB(
@@ -883,7 +902,7 @@ fun ArtistScreen(
 
         // Play All FAB (Stacked above Library/Local FAB if visible)
         val canPlayAll =
-            !isGuest && (
+            !eventsSelected && !isGuest && (
                 (showLocal && librarySongs.isNotEmpty()) ||
                     (
                         !showLocal && artistPage?.sections?.any {
