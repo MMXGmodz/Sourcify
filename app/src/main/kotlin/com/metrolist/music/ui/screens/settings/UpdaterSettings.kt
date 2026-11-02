@@ -48,6 +48,7 @@ import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.utils.Updater
+import com.metrolist.music.UpdateActivity
 import com.metrolist.music.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -218,6 +219,13 @@ fun UpdaterScreen(
 
         if (updateAvailable && latestVersion != null) {
             Spacer(Modifier.height(16.dp))
+            Button(
+                onClick = { context.startActivity(UpdateActivity.createIntent(context)) },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            ) {
+                Text(stringResource(R.string.s1380_update_install))
+            }
+            Spacer(Modifier.height(8.dp))
             Button(
                 onClick = { showChangelog = !showChangelog },
                 modifier =

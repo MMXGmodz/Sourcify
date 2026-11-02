@@ -5,6 +5,7 @@
 
 package com.metrolist.music.ui.screens.settings.integrations
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -66,6 +67,11 @@ fun IntegrationScreen(
     }
 
     TopAppBar(
+        modifier = Modifier.background(com.metrolist.music.ui.theme.screenHeaderBrush()),
+        colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+            scrolledContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+        ),
         title = { Text(stringResource(R.string.integrations)) },
         navigationIcon = {
             IconButton(

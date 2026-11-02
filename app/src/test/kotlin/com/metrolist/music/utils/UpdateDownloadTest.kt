@@ -29,7 +29,7 @@ class UpdateDownloadTest {
         assertEquals(id, UpdateDownload.enqueue(context, release))
         assertEquals(url, request.uri.toString())
         assertEquals("application/vnd.android.package-archive", request.mimeType)
-        assertEquals(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED, request.notificationVisibility)
+        assertEquals(DownloadManager.Request.VISIBILITY_VISIBLE, request.notificationVisibility)
         assertTrue(request.destination.toString().contains("/${Environment.DIRECTORY_DOWNLOADS}/Sourcify-13.7.10-"))
     }
 

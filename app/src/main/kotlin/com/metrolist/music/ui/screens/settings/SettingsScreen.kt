@@ -82,8 +82,13 @@ fun SettingsScreen(
             items = listOf(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.palette),
-                    title = { Text(stringResource(R.string.appearance)) },
+                    title = { Text(stringResource(R.string.s80_appearance_content)) },
                     onClick = { navController.navigate("settings/appearance") }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.lyrics),
+                    title = { Text(stringResource(R.string.s80_lyrics_settings)) },
+                    onClick = { navController.navigate("settings/lyrics") }
                 )
             )
         )
@@ -114,17 +119,17 @@ fun SettingsScreen(
                     title = { Text(stringResource(R.string.player_and_audio)) },
                     onClick = { navController.navigate("settings/player") }
                 ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.language),
-                    title = { Text(stringResource(R.string.s9_content)) },
-                    onClick = { navController.navigate("settings/content") }
-                ),
 
             )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        Material3SettingsGroup(title = stringResource(R.string.s80_discovery), items = listOf(
+            Material3SettingsItem(title = { Text(stringResource(R.string.s80_blocked)) }, icon = painterResource(R.drawable.account), onClick = { navController.navigate("settings/blocked_artists") }),
+            Material3SettingsItem(title = { Text(stringResource(R.string.s80_concerts)) }, icon = painterResource(R.drawable.baseline_event_repeat_24), onClick = { navController.navigate("concerts?artist=") })
+        ))
+        Spacer(modifier = Modifier.height(16.dp))
         // Android Auto Section — only shown if Android Auto is installed
         if (hasAndroidAuto) {
             Material3SettingsGroup(
@@ -222,7 +227,7 @@ fun SettingsScreen(
                         )
                     )
                 }
-                if (BuildConfig.UPDATER_AVAILABLE) {
+                if (!BuildConfig.CAST_AVAILABLE) {
                     add(
                         Material3SettingsItem(
                             icon = painterResource(R.drawable.update),

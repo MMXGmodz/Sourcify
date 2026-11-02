@@ -129,6 +129,7 @@ import com.metrolist.music.utils.ArtistNameAliases
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.ArtistViewModel
 import com.valentinilk.shimmer.shimmer
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -168,6 +169,14 @@ fun ArtistScreen(
     val lazyListState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
     var showLocal by rememberSaveable { mutableStateOf(false) }
+    var artistOptions by rememberSaveable { mutableStateOf(false) }
+    val likedArtistSongs by remember(viewModel.artistId) {
+        database.likedSongsByCreateDateAsc().map { songs -> com.metrolist.music.utils.artistFavoriteSongs(songs, viewModel.artistId) }
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
+    if (artistOptions) ArtistOptions(displayArtistName.orEmpty(), viewModel.artistId, isChannelSubscribed,
+        viewModel::toggleChannelSubscription, {
+            navController.navigate("concerts?artist=${android.net.Uri.encode(artistPage?.artist?.title ?: displayArtistName.orEmpty())}")
+        }, { artistOptions = false }, shareLink = artistPage?.artist?.shareLink ?: libraryArtist?.artist?.channelId?.let { "https://music.youtube.com/channel/$it" })
     val density = LocalDensity.current
 
     // Calculate the offset value outside of the offset lambda
@@ -390,6 +399,9 @@ fun ArtistScreen(
                                         )
                                     }
 
+                                    IconButton(onClick = { artistOptions = true }) {
+                                        Icon(painterResource(R.drawable.more_horiz), stringResource(R.string.s80_artist_options))
+                                    }
                                     Spacer(modifier = Modifier.weight(1f))
 
                                     Row(
@@ -399,23 +411,8 @@ fun ArtistScreen(
                                         // Radio Button
                                         if (!showLocal && !isGuest) {
                                             artistPage?.artist?.radioEndpoint?.let { radioEndpoint ->
-                                                OutlinedButton(
-                                                    onClick = {
-                                                        playerConnection.playQueue(YouTubeQueue(radioEndpoint))
-                                                    },
-                                                    shape = RoundedCornerShape(50),
-                                                    modifier = Modifier.height(40.dp),
-                                                ) {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.radio),
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(20.dp),
-                                                    )
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    Text(
-                                                        text = stringResource(R.string.radio),
-                                                        fontSize = 14.sp,
-                                                    )
+                                                IconButton(onClick = { playerConnection.playQueue(YouTubeQueue(radioEndpoint)) }) {
+                                                    Icon(painterResource(R.drawable.radio), stringResource(R.string.radio), modifier = Modifier.size(22.dp))
                                                 }
                                             }
                                         }
@@ -450,6 +447,13 @@ fun ArtistScreen(
                             Spacer(modifier = Modifier.height(16.dp))
                         }
                     }
+                }
+
+                item(key = "artist_personal_highlights") {
+                    val latest = artistPage?.sections?.firstOrNull { section ->
+                        Regex("latest|new release|neueste|neue veröffentlich|nouveaut|últim", RegexOption.IGNORE_CASE).containsMatchIn(section.title)
+                    }?.items?.firstOrNull { it is SongItem || it is AlbumItem }
+                    ArtistHighlights(displayArtistName.orEmpty(), likedArtistSongs, latest, isGuest, navController)
                 }
 
                 // About Artist Section
@@ -1021,23 +1025,6 @@ fun ArtistScreen(
             ) {
                 Icon(
                     painterResource(R.drawable.arrow_back),
-                    contentDescription = null,
-                )
-            }
-        },
-        actions = {
-            IconButton(
-                onClick = {
-                    viewModel.artistPage?.artist?.shareLink?.let { link ->
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("Artist Link", link)
-                        clipboard.setPrimaryClip(clip)
-                        Toast.makeText(context, R.string.link_copied, Toast.LENGTH_SHORT).show()
-                    }
-                },
-            ) {
-                Icon(
-                    painterResource(R.drawable.link),
                     contentDescription = null,
                 )
             }

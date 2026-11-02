@@ -354,6 +354,11 @@ fun NavGraphBuilder.navigationBuilder(
         SettingsScreen(navController, latestVersionName)
     }
 
+    composable("settings/blocked_artists") { com.metrolist.music.ui.screens.settings.BlockedArtistsScreen(navController) }
+    composable("concerts?artist={artist}", arguments = listOf(navArgument("artist") { type = NavType.StringType; defaultValue = "" })) {
+        com.metrolist.music.ui.screens.artist.ConcertScreen(navController, it.arguments?.getString("artist").orEmpty())
+    }
+
     composable("settings/appearance") {
         AppearanceSettings(navController, snackbarHostState)
     }
@@ -363,7 +368,10 @@ fun NavGraphBuilder.navigationBuilder(
     }
 
     composable("settings/content") {
-        com.metrolist.music.ui.screens.settings.ContentDisplaySettings(navController)
+        AppearanceSettings(navController, snackbarHostState)
+    }
+    composable("settings/lyrics") {
+        com.metrolist.music.ui.screens.settings.LyricsSettings(navController)
     }
     composable("settings/content/advanced") { ContentSettings(navController) }
 

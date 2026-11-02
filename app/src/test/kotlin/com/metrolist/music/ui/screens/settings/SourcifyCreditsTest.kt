@@ -69,7 +69,10 @@ class SourcifyCreditsTest {
             }
             collect(requireNotNull(owner(decor)).unmergedRootSemanticsNode)
             assertTrue(text.contains("MMXG"))
-            assertTrue(text.contains("Vibecoded"))
+            assertTrue(text.contains("ChatGPT / Codex"))
+            assertTrue(text.contains("Kokosr"))
+            assertTrue(text.contains("https://github.com/Kokosr"))
+            assertFalse(text.any { it.contains("Vibecoded", ignoreCase = true) })
             assertFalse(text.any { it.contains("Metrolist", ignoreCase = true) })
             val license = activity.assets.open("sourcify_licenses.txt").bufferedReader().use { it.readText() }
             assertTrue(license.contains("GNU GENERAL PUBLIC LICENSE"))

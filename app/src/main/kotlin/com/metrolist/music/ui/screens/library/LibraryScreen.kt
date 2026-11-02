@@ -12,6 +12,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -32,6 +33,11 @@ fun LibraryScreen() {
     var filterType by rememberEnumPreference(ChipSortTypeKey, LibraryFilter.LIBRARY)
     var libraryViewType by rememberEnumPreference(AlbumViewTypeKey, LibraryViewType.GRID)
     var playlistViewType by rememberEnumPreference(PlaylistViewTypeKey, LibraryViewType.GRID)
+
+    val toolbarAction = currentLibraryToolbarAction(navController)
+    LaunchedEffect(toolbarAction) {
+        if (toolbarAction != null) filterType = LibraryFilter.LIBRARY
+    }
 
     val filterContent = @Composable {
         Column {

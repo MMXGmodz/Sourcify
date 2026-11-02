@@ -6,19 +6,14 @@
 package com.metrolist.music.ui.screens.library
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -28,7 +23,6 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +38,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
@@ -54,6 +49,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.metrolist.innertube.utils.parseCookieString
+import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
 import com.metrolist.music.constants.CONTENT_TYPE_HEADER
@@ -76,12 +72,13 @@ import com.metrolist.music.db.entities.Playlist
 import com.metrolist.music.db.entities.PlaylistEntity
 import com.metrolist.music.ui.component.CreatePlaylistDialog
 import com.metrolist.music.ui.component.LibrarySearchEmptyPlaceholder
-import com.metrolist.music.ui.component.LibrarySearchHeader
 import com.metrolist.music.ui.component.LibraryPlaylistGridItem
 import com.metrolist.music.ui.component.LibraryPlaylistListItem
+import com.metrolist.music.ui.component.LibrarySearchHeader
 import com.metrolist.music.ui.component.LocalMenuState
 import com.metrolist.music.ui.component.PlaylistGridItem
 import com.metrolist.music.ui.component.PlaylistListItem
+import com.metrolist.music.ui.menu.PlaylistMenu
 import com.metrolist.music.ui.component.SortHeader
 import com.metrolist.music.extensions.matchesNormalizedQuery
 import com.metrolist.music.extensions.normalizeForSearch
@@ -90,7 +87,6 @@ import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.LibraryPlaylistsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.util.UUID
 
 private data class VisiblePlaylistItem(
     val key: String,
@@ -110,6 +106,10 @@ fun LibraryPlaylistsScreen(
     initialTextFieldValue: String? = null,
     allowSyncing: Boolean = true,
 ) {
+    val database = LocalDatabase.current
+    val pinnedItems by remember(database) { database.speedDialDao.getAll() }
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    val pinKeys = remember(pinnedItems) { pinnedItems.mapTo(mutableSetOf()) { it.id } }
     val menuState = LocalMenuState.current
     val haptic = LocalHapticFeedback.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -127,6 +127,9 @@ fun LibraryPlaylistsScreen(
     val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
 
     val playlists by viewModel.allPlaylists.collectAsStateWithLifecycle()
+    val pinnedIds = remember(pinKeys, playlists) {
+        pinKeys + playlists.filter { it.playlist.browseId in pinKeys }.map { it.id }
+    }
 
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
@@ -141,13 +144,17 @@ fun LibraryPlaylistsScreen(
         }
     }
 
-    val topSize by viewModel.topValue.collectAsStateWithLifecycle(initialValue = 50)
+    val topSizePreference by viewModel.topValue.collectAsStateWithLifecycle(initialValue = "50")
+    val topSize = topSizePreference.toIntOrNull() ?: 50
 
     val likedPlaylist =
         Playlist(
             playlist = PlaylistEntity(
-                id = UUID.randomUUID().toString(),
-                name = stringResource(R.string.liked)
+                id = PlaylistEntity.LIKED_PLAYLIST_ID,
+                name = stringResource(R.string.liked),
+                createdAt = null,
+                lastUpdateTime = null,
+                isEditable = false,
             ),
             songCount = 0,
             songThumbnails = emptyList(),
@@ -156,8 +163,11 @@ fun LibraryPlaylistsScreen(
     val downloadPlaylist =
         Playlist(
             playlist = PlaylistEntity(
-                id = UUID.randomUUID().toString(),
-                name = stringResource(R.string.offline)
+                id = PlaylistEntity.DOWNLOADED_PLAYLIST_ID,
+                name = stringResource(R.string.offline),
+                createdAt = null,
+                lastUpdateTime = null,
+                isEditable = false,
             ),
             songCount = 0,
             songThumbnails = emptyList(),
@@ -166,8 +176,11 @@ fun LibraryPlaylistsScreen(
     val topPlaylist =
         Playlist(
             playlist = PlaylistEntity(
-                id = UUID.randomUUID().toString(),
-                name = stringResource(R.string.my_top) + " $topSize"
+                id = TOP_LIBRARY_PLAYLIST_ID,
+                name = stringResource(R.string.my_top) + " $topSize",
+                createdAt = null,
+                lastUpdateTime = null,
+                isEditable = false,
             ),
             songCount = 0,
             songThumbnails = emptyList(),
@@ -177,8 +190,11 @@ fun LibraryPlaylistsScreen(
     val uploadedPlaylist =
         Playlist(
             playlist = PlaylistEntity(
-                id = UUID.randomUUID().toString(),
-                name = stringResource(R.string.uploaded_playlist)
+                id = UPLOADED_LIBRARY_PLAYLIST_ID,
+                name = stringResource(R.string.uploaded_playlist),
+                createdAt = null,
+                lastUpdateTime = null,
+                isEditable = false,
             ),
             songCount = 0,
             songThumbnails = emptyList(),
@@ -187,8 +203,11 @@ fun LibraryPlaylistsScreen(
     val cachedPlaylist =
         Playlist(
             playlist = PlaylistEntity(
-                id = UUID.randomUUID().toString(),
-                name = stringResource(R.string.cached_playlist)
+                id = CACHED_LIBRARY_PLAYLIST_ID,
+                name = stringResource(R.string.cached_playlist),
+                createdAt = null,
+                lastUpdateTime = null,
+                isEditable = false,
             ),
             songCount = 0,
             songThumbnails = emptyList(),
@@ -215,6 +234,12 @@ fun LibraryPlaylistsScreen(
         showTopPlaylists,
         showUploadedPlaylists,
         topSize,
+        pinnedIds,
+        likedPlaylist,
+        downloadPlaylist,
+        cachedPlaylist,
+        topPlaylist,
+        uploadedPlaylist,
     ) {
         buildList {
             if (showLikedPlaylist) {
@@ -279,7 +304,7 @@ fun LibraryPlaylistsScreen(
                         ),
                     )
                 }
-        }
+        }.pinnedPlaylistsFirst(pinnedIds) { it.playlist.id }
     }
 
     val lazyListState = rememberLazyListState()
@@ -340,13 +365,6 @@ fun LibraryPlaylistsScreen(
             keyboardController = keyboardController,
             modifier = Modifier.padding(start = 16.dp),
         ) {
-            IconButton(onClick = { showCreatePlaylistDialog = true }, modifier = Modifier.size(40.dp)) {
-                Icon(painterResource(R.drawable.add), stringResource(R.string.create_playlist))
-            }
-            IconButton(onClick = { isSearchActive = true }, modifier = Modifier.size(40.dp)) {
-                Icon(painterResource(R.drawable.search), stringResource(R.string.search))
-            }
-
             SortHeader(
                 sortType = sortType,
                 sortDescending = sortDescending,
@@ -445,20 +463,48 @@ fun LibraryPlaylistsScreen(
                         if (item.autoPlaylist) {
                             PlaylistListItem(
                                 playlist = item.playlist,
-                                autoPlaylist = true,
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            item.route?.let(navController::navigate)
+                                autoPlaylist = item.autoPlaylist,
+                                isPinned = item.playlist.id in pinnedIds,
+                                trailingContent = {
+                                    IconButton(onClick = {
+                                        menuState.show {
+                                            PlaylistMenu(
+                                                playlist = item.playlist,
+                                                autoPlaylist = item.autoPlaylist,
+                                                coroutineScope = coroutineScope,
+                                                onDismiss = menuState::dismiss,
+                                            )
                                         }
-                                        .animateItem(),
+                                    }) {
+                                        Icon(painterResource(R.drawable.more_vert), stringResource(R.string.more_options))
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .combinedClickable(
+                                        onClick = {
+                                            item.route?.let(navController::navigate)
+                                        },
+                                        onLongClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            menuState.show {
+                                                PlaylistMenu(
+                                                    playlist = item.playlist,
+                                                    autoPlaylist = item.autoPlaylist,
+                                                    coroutineScope = coroutineScope,
+                                                    onDismiss = menuState::dismiss,
+                                                )
+                                            }
+                                        },
+                                    )
+                                    .animateItem(),
                             )
                         } else {
                             LibraryPlaylistListItem(
                                 menuState = menuState,
                                 coroutineScope = coroutineScope,
                                 playlist = item.playlist,
+                                isPinned = item.playlist.id in pinnedIds,
                                 modifier = Modifier.animateItem(),
                             )
                         }
@@ -513,23 +559,35 @@ fun LibraryPlaylistsScreen(
                         if (item.autoPlaylist) {
                             PlaylistGridItem(
                                 playlist = item.playlist,
+                                autoPlaylist = item.autoPlaylist,
+                                isPinned = item.playlist.id in pinnedIds,
                                 fillMaxWidth = true,
-                                autoPlaylist = true,
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .combinedClickable(
-                                            onClick = {
-                                                item.route?.let(navController::navigate)
-                                            },
-                                        )
-                                        .animateItem(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .combinedClickable(
+                                        onClick = {
+                                            item.route?.let(navController::navigate)
+                                        },
+                                        onLongClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            menuState.show {
+                                                PlaylistMenu(
+                                                    playlist = item.playlist,
+                                                    autoPlaylist = item.autoPlaylist,
+                                                    coroutineScope = coroutineScope,
+                                                    onDismiss = menuState::dismiss,
+                                                )
+                                            }
+                                        },
+                                    )
+                                    .animateItem(),
                             )
                         } else {
                             LibraryPlaylistGridItem(
                                 menuState = menuState,
                                 coroutineScope = coroutineScope,
                                 playlist = item.playlist,
+                                isPinned = item.playlist.id in pinnedIds,
                                 modifier = Modifier.animateItem(),
                             )
                         }
@@ -537,8 +595,6 @@ fun LibraryPlaylistsScreen(
                 }
             }
         }
-
-        // Always visible + button (no scroll hiding)
 
     }
 }

@@ -114,7 +114,9 @@ fun YouTubePlaylistMenu(
     val listenTogetherManager = LocalListenTogetherManager.current
     val isGuest = listenTogetherManager?.isInRoom == true && !listenTogetherManager.isHost
     val dbPlaylist by database.playlistByBrowseId(playlist.id).collectAsStateWithLifecycle(initialValue = null)
-    val isPinned by database.speedDialDao.isPinned(playlist.id).collectAsStateWithLifecycle(initialValue = false)
+    val pinnedItems by remember(database) { database.speedDialDao.getAll() }
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    val isPinned = pinnedItems.any { it.id == playlist.id || it.id == dbPlaylist?.id }
     val artistNameAliases = LocalArtistNameAliases.current
 
     var showChoosePlaylistDialog by rememberSaveable { mutableStateOf(false) }
@@ -562,12 +564,12 @@ fun YouTubePlaylistMenu(
                         Material3MenuItemData(
                             title = {
                                 Text(
-                                    text = if (isPinned) stringResource(R.string.unpin_from_speed_dial) else stringResource(R.string.pin_to_speed_dial),
+                                    text = if (isPinned) stringResource(R.string.unpin_playlist) else stringResource(R.string.pin_playlist),
                                 )
                             },
                             icon = {
                                 Icon(
-                                    painter = painterResource(if (isPinned) R.drawable.remove else R.drawable.add),
+                                    painter = painterResource(R.drawable.ic_push_pin),
                                     contentDescription = null,
                                 )
                             },
@@ -575,6 +577,7 @@ fun YouTubePlaylistMenu(
                                 coroutineScope.launch(Dispatchers.IO) {
                                     if (isPinned) {
                                         database.speedDialDao.delete(playlist.id)
+                                        dbPlaylist?.id?.let { database.speedDialDao.delete(it) }
                                     } else {
                                         database.speedDialDao.insert(SpeedDialItem.fromYTItem(playlist))
                                     }

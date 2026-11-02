@@ -1,13 +1,12 @@
 package com.metrolist.music.ui.screens.settings
 
+import com.metrolist.music.ui.utils.backToMain
+
 import android.os.StatFs
 import android.text.format.Formatter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -36,54 +35,69 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 private val Green = Color(0xFF1ED760)
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReferencePage(title: String, nav: NavController, content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.fillMaxSize().background(Color(0xFF101010))) {
-        CenterAlignedTopAppBar(title = { Text(title, style = MaterialTheme.typography.titleMedium) }, navigationIcon = {
-            FilledIconButton(onClick = { nav.navigateUp() }, shape = CircleShape, colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color(0xFF292929), contentColor = Color.White)) {
-                Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.cd_back))
-            }
-        }, colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFF101010), titleContentColor = Color.White))
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp,
-            bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding() + 24.dp), verticalArrangement = Arrangement.spacedBy(20.dp), content = content)
-    }
+    SettingsPage(title, { nav.navigateUp() },
+        bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding(), onBackToMain = nav::backToMain, content = content)
 }
 @Composable
 private fun SettingSwitch(title: String, description: String, checked: Boolean, change: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth().clickable { change(!checked) }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) { Text(title, color = Color.White); Text(description, color = Color.LightGray, style = MaterialTheme.typography.bodyMedium) }
+        Column(Modifier.weight(1f)) { Text(title); Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium) }
         Spacer(Modifier.width(16.dp))
-        Switch(checked, change, colors = SwitchDefaults.colors(checkedTrackColor = Green, checkedThumbColor = Color.White))
+        Switch(checked, change)
     }
 }
 @Composable
-private fun SettingLink(text: String, action: () -> Unit) { TextButton(onClick = action) { Text(text, color = Color.White) } }
+private fun SettingLink(text: String, action: () -> Unit) { TextButton(onClick = action) { Text(text) } }
 
 @Composable
 fun ContentDisplaySettings(nav: NavController) {
+    ReferencePage(stringResource(R.string.s80_appearance_content), nav) {
+        ContentDisplayPreferences(nav)
+    }
+}
+
+@Composable
+internal fun ContentDisplayPreferences(nav: NavController) {
     val (canvas, setCanvas) = rememberPreference(CanvasEnabledKey, true)
     val (auto, setAuto) = rememberPreference(AutomaticCanvasKey, true)
     val (wifi, setWifi) = rememberPreference(CanvasWifiOnlyKey, false)
     val (explicit, setExplicit) = rememberPreference(HideExplicitKey, false)
     val (videos, setVideos) = rememberPreference(HideVideoSongsKey, false)
     val (shorts, setShorts) = rememberPreference(HideYoutubeShortsKey, false)
-    ReferencePage(stringResource(R.string.s9_content), nav) {
-        Text(stringResource(R.string.s9_videos), color = Color.White, style = MaterialTheme.typography.titleLarge)
-        SettingSwitch(stringResource(R.string.sourcify_canvas), stringResource(R.string.s9_canvas_desc), canvas, setCanvas)
-        SettingSwitch(stringResource(R.string.s9_auto_canvas), stringResource(R.string.s9_auto_desc), auto, setAuto)
-        SettingSwitch(stringResource(R.string.canvas_wifi_only), stringResource(R.string.canvas_wifi_only_description), wifi, setWifi)
-        SettingSwitch(stringResource(R.string.s9_music_titles), stringResource(R.string.s9_music_desc), !videos) { setVideos(!it) }
-        SettingSwitch(stringResource(R.string.s9_shorts), stringResource(R.string.s9_shorts_desc), !shorts) { setShorts(!it) }
-        Text(stringResource(R.string.s9_audio_only), color = Color.LightGray)
-        HorizontalDivider()
-        Text(stringResource(R.string.s9_content_options), color = Color.White, style = MaterialTheme.typography.titleLarge)
-        SettingSwitch(stringResource(R.string.s9_explicit), stringResource(R.string.s9_explicit_desc), !explicit) { setExplicit(!it) }
-        SettingLink(stringResource(R.string.sourcify_canvas)) { nav.navigate("settings/canvas") }
-        SettingLink(stringResource(R.string.ai_lyrics_translation)) { nav.navigate("settings/ai") }
-        SettingLink(stringResource(R.string.s9_advanced_content)) { nav.navigate("settings/content/advanced") }
-    }
+    com.metrolist.music.ui.component.Material3SettingsGroup(
+        title = stringResource(R.string.s9_videos),
+        items = listOf(
+            displaySwitch(R.drawable.slow_motion_video, stringResource(R.string.sourcify_canvas), stringResource(R.string.s9_canvas_desc), canvas, setCanvas),
+            displaySwitch(R.drawable.slow_motion_video, stringResource(R.string.s9_auto_canvas), stringResource(R.string.s9_auto_desc), auto, setAuto),
+            displaySwitch(R.drawable.wifi_proxy, stringResource(R.string.canvas_wifi_only), stringResource(R.string.canvas_wifi_only_description), wifi, setWifi),
+            displaySwitch(R.drawable.play, stringResource(R.string.s9_music_titles), stringResource(R.string.s9_music_desc), !videos) { setVideos(!it) },
+            displaySwitch(R.drawable.play, stringResource(R.string.s9_shorts), stringResource(R.string.s9_shorts_desc), !shorts) { setShorts(!it) },
+            com.metrolist.music.ui.component.Material3SettingsItem(
+                icon = painterResource(R.drawable.slow_motion_video), title = { Text(stringResource(R.string.sourcify_canvas)) },
+                onClick = { nav.navigate("settings/canvas") },
+            ),
+        ),
+    )
+    com.metrolist.music.ui.component.Material3SettingsGroup(
+        title = stringResource(R.string.s9_content_options),
+        items = listOf(
+            displaySwitch(R.drawable.language, stringResource(R.string.s9_explicit), stringResource(R.string.s9_explicit_desc), !explicit) { setExplicit(!it) },
+            com.metrolist.music.ui.component.Material3SettingsItem(
+                icon = painterResource(R.drawable.settings), title = { Text(stringResource(R.string.s9_advanced_content)) },
+                onClick = { nav.navigate("settings/content/advanced") },
+            ),
+        ),
+    )
 }
+
+@Composable
+private fun displaySwitch(icon: Int, title: String, description: String, checked: Boolean, change: (Boolean) -> Unit) =
+    com.metrolist.music.ui.component.Material3SettingsItem(
+        icon = painterResource(icon), title = { Text(title) }, description = { Text(description) },
+        trailingContent = { Switch(checked, change) }, onClick = { change(!checked) },
+    )
 
 @OptIn(ExperimentalCoilApi::class, DelicateCoilApi::class)
 @Composable
@@ -122,24 +136,24 @@ fun DataOfflineSettings(nav: NavController) {
     val usage = snapshot?.first
     fun bytes(value: Long) = Formatter.formatFileSize(context, value)
     ReferencePage(stringResource(R.string.s9_data), nav) {
-        Text(stringResource(R.string.s9_downloads), color = Color.White, style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.s9_downloads), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge)
         SettingSwitch(stringResource(R.string.s9_mobile_downloads), stringResource(R.string.s9_mobile_desc), mobile, setMobile)
         SettingSwitch(stringResource(R.string.s9_background_downloads), stringResource(R.string.s9_background_desc), background, setBackground)
         SettingSwitch(stringResource(R.string.canvas_wifi_only), stringResource(R.string.canvas_wifi_only_description), wifiCanvas, setWifiCanvas)
-        Text(stringResource(R.string.s9_audio_only), color = Color.LightGray)
+        Text(stringResource(R.string.s9_audio_only), color = MaterialTheme.colorScheme.onSurfaceVariant)
         SettingLink(stringResource(R.string.s9_saved_songs)) { nav.navigate("auto_playlist/downloaded") }
         HorizontalDivider()
-        Text(stringResource(R.string.s9_storage), color = Color.White, style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.s9_storage), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge)
         usage?.let { data ->
             val parts = listOf(data.other to Color(0xFF0D78F2), data.downloads to Green, data.cache to Color.LightGray, data.free to Color.DarkGray)
             Row(Modifier.fillMaxWidth().height(12.dp)) { parts.filter { it.first > 0 }.forEach { (size, color) -> Box(Modifier.weight(size.toFloat() / data.total.coerceAtLeast(1).toFloat()).fillMaxHeight().background(color)) } }
             listOf(R.string.s9_other to data.other, R.string.s9_app_downloads to data.downloads, R.string.s9_playback_cache to data.cache, R.string.s9_free to data.free).forEach { (title, size) ->
-                Text(stringResource(title) + " · " + bytes(size), color = Color.White)
+                Text(stringResource(title) + " · " + bytes(size), color = MaterialTheme.colorScheme.onSurface)
             }
-            Text(stringResource(R.string.s9_storage_scope), color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.s9_storage_scope), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         }
-        snapshot?.second?.takeIf { it > 0 }?.let { Text(stringResource(R.string.s9_external_downloads) + " · " + bytes(it), color = Color.White) }
-        if (failure) Text(stringResource(R.string.s9_storage_failed), color = Color.White)
+        snapshot?.second?.takeIf { it > 0 }?.let { Text(stringResource(R.string.s9_external_downloads) + " · " + bytes(it), color = MaterialTheme.colorScheme.onSurface) }
+        if (failure) Text(stringResource(R.string.s9_storage_failed), color = MaterialTheme.colorScheme.onSurface)
         StorageAction(stringResource(R.string.s9_remove_downloads), stringResource(R.string.s9_remove_downloads_desc),
             stringResource(R.string.s9_remove), connection != null && !busy) { removeDialog = true }
         StorageAction(stringResource(R.string.s9_clear_cache), stringResource(R.string.s9_cache_scope),
@@ -173,8 +187,8 @@ fun DataOfflineSettings(nav: NavController) {
 @Composable
 private fun StorageAction(title: String, description: String, label: String, enabled: Boolean, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) { Text(title, color = Color.White); Text(description, color = Color.LightGray, style = MaterialTheme.typography.bodyMedium) }
+        Column(Modifier.weight(1f)) { Text(title, color = MaterialTheme.colorScheme.onSurface); Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium) }
         Spacer(Modifier.width(16.dp))
-        OutlinedButton(onClick = onClick, enabled = enabled) { Text(label, color = Color.White) }
+        OutlinedButton(onClick = onClick, enabled = enabled) { Text(label, color = MaterialTheme.colorScheme.onSurface) }
     }
 }

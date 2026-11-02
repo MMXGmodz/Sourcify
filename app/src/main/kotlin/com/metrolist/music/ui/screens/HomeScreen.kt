@@ -124,6 +124,7 @@ import com.metrolist.music.constants.ListItemHeight
 import com.metrolist.music.constants.ListThumbnailSize
 import com.metrolist.music.constants.RandomizeHomeOrderKey
 import com.metrolist.music.constants.SmallGridThumbnailHeight
+import com.metrolist.music.constants.TopSize
 import com.metrolist.music.constants.ThumbnailCornerRadius
 import com.metrolist.music.db.entities.Album
 import com.metrolist.music.db.entities.Artist
@@ -162,6 +163,7 @@ import com.metrolist.music.ui.menu.YouTubeArtistMenu
 import com.metrolist.music.ui.menu.YouTubePlaylistMenu
 import com.metrolist.music.ui.menu.YouTubeSongMenu
 import com.metrolist.music.ui.utils.SnapLayoutInfoProvider
+import com.metrolist.music.ui.screens.library.libraryPlaylistRoute
 import com.metrolist.music.ui.utils.resize
 import com.metrolist.music.utils.joinByBullet
 import com.metrolist.music.utils.joinToArtistString
@@ -698,6 +700,7 @@ fun HomeScreen(
     val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
     val (randomizeHomeOrder) = rememberPreference(RandomizeHomeOrderKey, true)
     val autoRadioQueue by rememberPreference(AutoRadioQueueKey, defaultValue = true)
+    val libraryTopSize by rememberPreference(TopSize, "50")
 
     LaunchedEffect(Unit) { viewModel.loadHomeData() }
 
@@ -1709,7 +1712,8 @@ fun HomeScreen(
                                                                                                         }?.type
                                                                                                 if (rawType == "LOCAL_PLAYLIST") {
                                                                                                     navController.navigate(
-                                                                                                        "local_playlist/${item.id}",
+                                                                                                        libraryPlaylistRoute(item.id, libraryTopSize.toIntOrNull() ?: 50)
+                                                                                                            ?: "local_playlist/${item.id}",
                                                                                                     )
                                                                                                 } else {
                                                                                                     navController.navigate(
@@ -1985,7 +1989,7 @@ fun HomeScreen(
                         HomeSection.DailyDiscover -> {
                             dailyDiscover?.takeIf { it.isNotEmpty() }?.let { discoverList ->
                                 item(key = "daily_discover_title") {
-                                    val title = stringResource(R.string.your_daily_discover)
+                                    val title = stringResource(R.string.s80_personal_recommendations)
                                     NavigationTitle(
                                         title = title,
                                         onPlayAllClick = {

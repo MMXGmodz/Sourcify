@@ -112,7 +112,49 @@ fun PlaylistMenu(
 
     val editable: Boolean = playlist.playlist.isEditable == true
 
-    val isPinned by database.speedDialDao.isPinned(playlist.id).collectAsStateWithLifecycle(initialValue = false)
+    val pinnedItems by remember(database) { database.speedDialDao.getAll() }
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    val isPinned = pinnedItems.any { it.id == playlist.id || it.id == playlist.playlist.browseId }
+
+    val pinAction = Material3MenuItemData(
+        title = {
+            Text(
+                text = if (isPinned) stringResource(R.string.unpin_playlist) else stringResource(R.string.pin_playlist),
+            )
+        },
+        icon = {
+            Icon(
+                painter = painterResource(R.drawable.ic_push_pin),
+                contentDescription = null,
+            )
+        },
+        onClick = {
+            coroutineScope.launch(Dispatchers.IO) {
+                if (isPinned) {
+                    database.speedDialDao.delete(playlist.id)
+                    playlist.playlist.browseId?.let { database.speedDialDao.delete(it) }
+                } else {
+                    database.speedDialDao.insert(
+                        SpeedDialItem(
+                            id = playlist.id,
+                            title = playlist.playlist.name,
+                            subtitle = null,
+                            subtitleIds = null,
+                            thumbnailUrl = playlist.thumbnails.firstOrNull(),
+                            type = "LOCAL_PLAYLIST",
+                        ),
+                    )
+                }
+            }
+            onDismiss()
+        },
+    )
+
+    if (autoPlaylist == true) {
+        PlaylistListItem(playlist = playlist, autoPlaylist = true, isPinned = isPinned)
+        Material3MenuGroup(items = listOf(pinAction))
+        return
+    }
 
     var showExportDialog by remember { mutableStateOf(false) }
 
@@ -492,40 +534,7 @@ fun PlaylistMenu(
                                 ),
                             )
                         }
-                        add(
-                            Material3MenuItemData(
-                                title = {
-                                    Text(
-                                        text = if (isPinned) stringResource(R.string.unpin_from_speed_dial) else stringResource(R.string.pin_to_speed_dial),
-                                    )
-                                },
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(if (isPinned) R.drawable.remove else R.drawable.add),
-                                        contentDescription = null,
-                                    )
-                                },
-                                onClick = {
-                                    coroutineScope.launch(Dispatchers.IO) {
-                                        if (isPinned) {
-                                            database.speedDialDao.delete(playlist.id)
-                                        } else {
-                                            database.speedDialDao.insert(
-                                                SpeedDialItem(
-                                                    id = playlist.id,
-                                                    title = playlist.playlist.name,
-                                                    subtitle = null,
-                                                    subtitleIds = null,
-                                                    thumbnailUrl = playlist.thumbnails.firstOrNull(),
-                                                    type = "LOCAL_PLAYLIST",
-                                                ),
-                                            )
-                                        }
-                                    }
-                                    onDismiss()
-                                },
-                            ),
-                        )
+                        add(pinAction)
                         if (downloadPlaylist != true) {
                             add(
                                 when (downloadState) {

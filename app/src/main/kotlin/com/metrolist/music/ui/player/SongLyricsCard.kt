@@ -125,7 +125,7 @@ fun SongLyricsCard(song: MediaMetadata, position: Long, onSeekRequested: ((Long)
         if (onSeekRequested != null) onSeekRequested(target) else connection.seekTo(target)
         livePosition = target
     }
-    val color = LocalSongColor.current
+    val color = com.metrolist.music.ui.theme.readablePlayerBackdrop(LocalSongColor.current)
     var sharing by rememberSaveable(song.id) { mutableStateOf(false) }
     if (sharing) SongShareSheet(song, { sharing = false }, startWithLyrics = true)
     var fullScreen by rememberSaveable(song.id) { mutableStateOf(false) }

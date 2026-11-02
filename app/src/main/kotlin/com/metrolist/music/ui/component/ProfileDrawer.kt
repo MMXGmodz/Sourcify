@@ -25,13 +25,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.metrolist.music.R
 import androidx.compose.ui.platform.LocalContext
-import android.widget.Toast
-import com.metrolist.music.utils.Updater
-import com.metrolist.music.utils.UpdateDownload
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.metrolist.music.UpdateActivity
 
 @Composable
 internal fun ProfileDrawerContent(name: String, image: String?, loggedIn: Boolean, hasUpdate: Boolean,
@@ -63,40 +57,17 @@ internal fun ProfileDrawerContent(name: String, image: String?, loggedIn: Boolea
         ProfileDrawerRow(R.drawable.integration, stringResource(R.string.integrations), { onNavigate("settings/integrations") })
         ProfileDrawerRow(R.drawable.settings, stringResource(R.string.s7_settings_privacy), { onNavigate("settings") }, hasUpdate)
         ProfileDrawerRow(R.drawable.account, stringResource(R.string.s7_account_options), onAccountOptions)
-        ProfileUpdateAction()
+        ProfileUpdateAction(hasUpdate)
         Spacer(Modifier.height(24.dp))
     }
 }
 
 @Composable
-private fun ProfileUpdateAction() {
+private fun ProfileUpdateAction(hasUpdate: Boolean) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var checking by remember { mutableStateOf(false) }
     ProfileDrawerRow(R.drawable.update,
-        stringResource(if (checking) R.string.checking_for_updates else R.string.check_for_updates_button),
-        onClick = {
-            if (!checking) {
-                checking = true
-                scope.launch {
-                    try {
-                        val (release, available) = Updater.checkForUpdate(forceRefresh = true).getOrThrow()
-                        if (available && release != null) {
-                            withContext(Dispatchers.IO) { UpdateDownload.enqueue(context.applicationContext, release) }
-                            Toast.makeText(context, R.string.s10_update_downloading, Toast.LENGTH_LONG).show()
-                        } else {
-                            Toast.makeText(context, R.string.s10_up_to_date, Toast.LENGTH_LONG).show()
-                        }
-                    } catch (cancelled: CancellationException) {
-                        throw cancelled
-                    } catch (_: Exception) {
-                        Toast.makeText(context, R.string.s10_update_failed, Toast.LENGTH_LONG).show()
-                    } finally {
-                        checking = false
-                    }
-                }
-            }
-        }, enabled = !checking)
+        stringResource(if (hasUpdate) R.string.update_action else R.string.check_for_updates_button),
+        onClick = { context.startActivity(UpdateActivity.createIntent(context)) }, badge = hasUpdate)
 }
 
 @Composable

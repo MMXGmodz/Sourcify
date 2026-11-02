@@ -38,7 +38,7 @@ internal fun CoverLyricsFrame(enabled: Boolean, modifier: Modifier = Modifier, l
 }
 
 @Composable
-internal fun CoverLyricsDisplay(song: MediaMetadata, position: Long) {
+internal fun CoverLyricsDisplay(song: MediaMetadata, position: Long, textColor: Color = Color.White) {
     val connection = LocalPlayerConnection.current ?: return
     val lyrics by connection.currentLyrics.collectAsStateWithLifecycle()
     val currentSong by connection.currentSong.collectAsStateWithLifecycle(initialValue = null)
@@ -47,16 +47,16 @@ internal fun CoverLyricsDisplay(song: MediaMetadata, position: Long) {
     val text = remember(raw, position, offset) { coverLyricsText(raw, position, offset.toLong()) }
         ?: if (raw.isNullOrBlank() || raw == com.metrolist.music.db.entities.LyricsEntity.LYRICS_NOT_FOUND) stringResource(R.string.lyrics_not_found)
         else if (!lyricsTextLooksSynced(raw)) stringResource(R.string.lyrics_unsynced) else ""
-    CoverLyricsText(text)
+    CoverLyricsText(text, textColor)
 }
 
 @Composable
-internal fun CoverLyricsText(text: String) {
+internal fun CoverLyricsText(text: String, color: Color = Color.White) {
     AnimatedContent(text, transitionSpec = {
         (fadeIn(tween(220)) + slideInVertically(tween(220)) { it / 4 }) togetherWith
             (fadeOut(tween(160)) + slideOutVertically(tween(160)) { -it / 4 })
     }, label = "coverLyricsLine") { line ->
-        Text(line, color = Color.White, fontFamily = PlayerLyricsFont, fontWeight = FontWeight.Bold,
+        Text(line, color = color, fontFamily = PlayerLyricsFont, fontWeight = FontWeight.Bold,
             fontSize = 16.sp, lineHeight = 22.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
     }
 }

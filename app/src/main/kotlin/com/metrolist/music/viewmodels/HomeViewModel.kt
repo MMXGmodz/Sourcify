@@ -107,6 +107,16 @@ class HomeViewModel @Inject constructor(
 
     val quickPicks = MutableStateFlow<List<Song>?>(null)
     val dailyDiscover = MutableStateFlow<List<DailyDiscoverItem>?>(null)
+    private val blockedRecommendationObserver = viewModelScope.launch {
+        com.metrolist.music.utils.ArtistBlocks.observe(context).collect { blocked ->
+            dailyDiscover.value = dailyDiscover.value?.filterNot { item ->
+                val song = item.recommendation as? com.metrolist.innertube.models.SongItem
+                song != null && com.metrolist.music.utils.ArtistBlocks.matches(blocked,
+                    song.artists.map { com.metrolist.music.models.MediaMetadata.Artist(it.id, it.name) })
+            }
+        }
+    }
+
     val forgottenFavorites = MutableStateFlow<List<Song>?>(null)
     val keepListening = MutableStateFlow<List<LocalItem>?>(null)
     val similarRecommendations = MutableStateFlow<List<SimilarRecommendation>?>(null)
@@ -274,10 +284,19 @@ class HomeViewModel @Inject constructor(
     private suspend fun getDailyDiscover() {
         val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
         val likedSongs = database.likedSongsByCreateDateAsc().first()
-        if (likedSongs.isEmpty()) return
+        val now = java.time.LocalDateTime.now()
+        val top = database.mostPlayedSongs(now.minusDays(30), limit = 12, offset = 0, toTimeStamp = now).first()
+        val recent = database.historyEvents(now.toLocalDate().plusDays(1).atStartOfDay(), now.toLocalDate().atStartOfDay(),
+            now.toLocalDate().minusDays(1).atStartOfDay(), now.minusDays(7), now.minusDays(14)).first().map { it.song }
+        val blocked = com.metrolist.music.utils.ArtistBlocks.snapshot(context)
+        val candidates = (top + recent + likedSongs).filterNot { song ->
+            com.metrolist.music.utils.LocalAudioStore.isLocalId(song.id) ||
+                com.metrolist.music.utils.ArtistBlocks.matches(blocked, song.artists.map { com.metrolist.music.models.MediaMetadata.Artist(it.id, it.name) })
+        }.associateBy { it.id }
+        val seeds = com.metrolist.music.utils.historySeedIds(top.map { it.id }.filter { it in candidates },
+            recent.map { it.id }.filter { it in candidates }, likedSongs.shuffled().map { it.id }.filter { it in candidates }, 5).mapNotNull(candidates::get)
+        if (seeds.isEmpty()) { dailyDiscover.value = emptyList(); return }
 
-        val seeds = likedSongs.shuffled().distinctBy { it.id }.take(5)
-        
         // Use a synchronized list to collect results safely from concurrent coroutines
         val items = java.util.Collections.synchronizedList(mutableListOf<DailyDiscoverItem>())
 
@@ -291,7 +310,7 @@ class HomeViewModel @Inject constructor(
                                 .filter { item ->
                                     if (hideVideoSongs && item.isVideoSong) return@filter false
                                     if (item.explicit) return@filter false
-                                    true
+                                    !com.metrolist.music.utils.ArtistBlocks.matches(blocked, item.artists.map { com.metrolist.music.models.MediaMetadata.Artist(it.id, it.name) })
                                 }
                                 .shuffled()
 
@@ -316,7 +335,12 @@ class HomeViewModel @Inject constructor(
         }
         
         // Final deduplication just in case multiple seeds recommended the same song
-        dailyDiscover.value = items.toList().distinctBy { it.recommendation.id }.shuffled()
+        val currentBlocks = com.metrolist.music.utils.ArtistBlocks.snapshot(context)
+        dailyDiscover.value = items.toList().distinctBy { it.recommendation.id }.filterNot { item ->
+            val song = item.recommendation as? com.metrolist.innertube.models.SongItem
+            song != null && com.metrolist.music.utils.ArtistBlocks.matches(currentBlocks,
+                song.artists.map { com.metrolist.music.models.MediaMetadata.Artist(it.id, it.name) })
+        }.shuffled()
     }
 
     private suspend fun getQuickPicks() {

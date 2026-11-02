@@ -883,6 +883,7 @@ fun PlaylistListItem(
     playlist: Playlist,
     modifier: Modifier = Modifier,
     autoPlaylist: Boolean = false,
+    isPinned: Boolean = false,
     badges: @Composable RowScope.() -> Unit = {
         val downloadUtil = LocalDownloadUtil.current
         val database = LocalDatabase.current
@@ -931,7 +932,17 @@ fun PlaylistListItem(
             )
         }
     },
-    badges = badges,
+    badges = {
+        if (isPinned) {
+            Icon(
+                painter = painterResource(R.drawable.ic_push_pin),
+                contentDescription = stringResource(R.string.playlist_pinned),
+                tint = Color(0xFF1ED760),
+                modifier = Modifier.padding(end = 4.dp).size(14.dp),
+            )
+        }
+        badges()
+    },
     thumbnailContent = {
         PlaylistThumbnail(
             thumbnails = playlist.thumbnails,
@@ -964,6 +975,7 @@ fun PlaylistGridItem(
     playlist: Playlist,
     modifier: Modifier = Modifier,
     autoPlaylist: Boolean = false,
+    isPinned: Boolean = false,
     badges: @Composable RowScope.() -> Unit = {
         val downloadUtil = LocalDownloadUtil.current
         val database = LocalDatabase.current
@@ -1030,7 +1042,17 @@ fun PlaylistGridItem(
             overflow = TextOverflow.Ellipsis
         )
     },
-    badges = badges,
+    badges = {
+        if (isPinned) {
+            Icon(
+                painter = painterResource(R.drawable.ic_push_pin),
+                contentDescription = stringResource(R.string.playlist_pinned),
+                tint = Color(0xFF1ED760),
+                modifier = Modifier.padding(end = 4.dp).size(14.dp),
+            )
+        }
+        badges()
+    },
     thumbnailContent = {
         val width = maxWidth
         PlaylistThumbnail(

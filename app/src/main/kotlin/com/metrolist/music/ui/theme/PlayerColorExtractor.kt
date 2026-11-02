@@ -6,6 +6,8 @@
 package com.metrolist.music.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.lerp
 import androidx.palette.graphics.Palette
 
 object PlayerColorExtractor {
@@ -24,4 +26,10 @@ object PlayerColorExtractor {
             Color.Black,
         )
     }
+}
+
+internal fun readablePlayerBackdrop(color: Color): Color {
+    var result = color
+    while (result.luminance() > .18f) result = lerp(result, Color.Black, .1f)
+    return result
 }

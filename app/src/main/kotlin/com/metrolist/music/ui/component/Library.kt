@@ -171,11 +171,13 @@ fun LibraryPlaylistListItem(
     menuState: MenuState,
     coroutineScope: CoroutineScope,
     playlist: Playlist,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isPinned: Boolean = false,
 ) {
     val navController = LocalNavController.current
     PlaylistListItem(
     playlist = playlist,
+    isPinned = isPinned,
     trailingContent = {
         androidx.compose.material3.IconButton(
             onClick = {
@@ -240,11 +242,13 @@ fun LibraryPlaylistGridItem(
     menuState: MenuState,
     coroutineScope: CoroutineScope,
     playlist: Playlist,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isPinned: Boolean = false,
 ) {
     val navController = LocalNavController.current
     PlaylistGridItem(
     playlist = playlist,
+    isPinned = isPinned,
     fillMaxWidth = true,
     modifier = modifier
         .fillMaxWidth()

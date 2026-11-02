@@ -1,5 +1,14 @@
 # Sourcify changelog
 
+## 13.8.0 — 2. November 2026 — Vorabversion
+
+- Künstlerseiten mit neuen Veröffentlichungen, deinen favorisierten Songs und kompaktem Radio-Symbol; Drei-Punkte-Menü zum Folgen, Teilen, Kopieren, zu Konzerten und zum Blockieren. Blockierte Künstler lassen sich in den Einstellungen wieder freigeben.
+- Passende kommende Konzerte aus MusicBrainz sowie direkte Konzertsuche bei Bandsintown/Eventim. Empfehlungen verwenden Hördaten, Statistiken und Favoriten als Ausgangspunkt.
+- Bibliothek: Suche und Plus rechts oben; Playlists anpinnen, grüne Stecknadel und angepinnte Einträge zuerst.
+- Updates: Profil-Hinweis und Benachrichtigungen, Download mit Fortschritt und direkter Übergabe an den Android-Installer nach Signaturprüfung. Die Android-Bestätigung bleibt erforderlich.
+- Darstellung und Erscheinungsbild sowie Songtext/Lyrics zusammengeführt; einheitliche Einstellungsseiten und korrigierte Player-Hintergrundstile.
+- Credits: MMXG, ChatGPT / Codex und Kokosr für Android TV.
+
 ## 13.7.14 — Dynamic progressbar — 2. November 2026 — Vorabversion
 
 - Eigenes Einstellungsfenster mit Vorschau, Stilaktivierung und Musikreaktion/Leuchten.

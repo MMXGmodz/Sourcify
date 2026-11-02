@@ -1,5 +1,6 @@
 package com.metrolist.music.ui.screens.settings.integrations
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -54,9 +55,9 @@ internal fun LosslessProviderScreen(provider: LosslessProvider, navController: N
         }
     }
     Column(Modifier.fillMaxSize().windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))) {
-        TopAppBar(title = { Text(provider.label) }, navigationIcon = {
+        TopAppBar(modifier = Modifier.background(com.metrolist.music.ui.theme.screenHeaderBrush()), title = { Text(provider.label) }, navigationIcon = {
             IconButton(onClick = { navController.navigateUp() }) { Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.cd_back)) }
-        }, colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent))
+        }, colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent, scrolledContainerColor = androidx.compose.ui.graphics.Color.Transparent))
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
                 Text(stringResource(if (provider == LosslessProvider.DEEZER) R.string.lossless_deezer_setup else R.string.lossless_api_setup), style = MaterialTheme.typography.bodyMedium)

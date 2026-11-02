@@ -607,8 +607,42 @@ class MusicService :
             }
         }
 
+    @Volatile private var blockedArtists = emptyMap<String, String>()
+    private val artistBlocksReady = kotlinx.coroutines.CompletableDeferred<Unit>()
+    private var blockPrunePosted = false
+    private fun removeBlockedCurrent() {
+        if (!playerInitialized.value || blockedArtists.isEmpty() || blockPrunePosted) return
+        blockPrunePosted = true
+        Handler(Looper.getMainLooper()).post {
+            try {
+                if (!playerInitialized.value || taskCleared) return@post
+                val retiredSession = fadingPlayer?.audioSessionId ?: C.AUDIO_SESSION_ID_UNSET
+                if (com.metrolist.music.utils.stopBlockedAuxiliary(fadingPlayer, blockedArtists)) {
+                    crossfadeJob?.cancel()
+                    cleanupCrossfade(retiredSession)
+                }
+                if (com.metrolist.music.utils.stopBlockedAuxiliary(secondaryPlayer, blockedArtists)) {
+                    crossfadeMessage?.cancel()
+                    crossfadeMessage = null
+                    secondaryPlayer?.let { pending -> pending.removeListener(secondaryPlayerListener); releaseExoPlayer(pending) }
+                    secondaryPlayer = null
+                }
+                com.metrolist.music.utils.pruneBlockedTracks(player, blockedArtists)
+            } finally { blockPrunePosted = false }
+        }
+    }
+
+    override fun onTimelineChanged(timeline: Timeline, reason: Int) { removeBlockedCurrent() }
+
     override fun onCreate() {
         super.onCreate()
+        scope.launch {
+            com.metrolist.music.utils.ArtistBlocks.observe(this@MusicService).collect { values ->
+                blockedArtists = values
+                artistBlocksReady.complete(Unit)
+                removeBlockedCurrent()
+            }
+        }
         isRunning = true
         shutdownDeferred = kotlinx.coroutines.CompletableDeferred<Unit>()
 
@@ -1764,6 +1798,10 @@ class MusicService :
             return
         }
 
+        if (!artistBlocksReady.isCompleted) {
+            scope.launch { artistBlocksReady.await(); playQueue(queue, playWhenReady, restoringQueue) }
+            return
+        }
         currentQueue = queue
         queueTitle = null
         val persistShuffleAcrossQueues = dataStore.get(PersistentShuffleAcrossQueuesKey, false)
@@ -2504,6 +2542,10 @@ class MusicService :
         mediaItem: MediaItem?,
         reason: Int,
     ) {
+        if (com.metrolist.music.utils.ArtistBlocks.matches(blockedArtists, mediaItem?.metadata?.artists.orEmpty())) {
+            removeBlockedCurrent()
+            return
+        }
         // Only natural completion transitions mark the previous track as fully cached,
         // never a manual skip or seek. Read lastTransitionedMediaId before replacing it.
         if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO ||

@@ -737,7 +737,8 @@ fun BottomSheetPlayer(
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .background(if (showCanvas) Brush.verticalGradient(listOf(Color.Black, Color.Black)) else Brush.verticalGradient(com.metrolist.music.ui.theme.songBackdropColors(songColor, bottomSheetBackgroundColor))),
+                        .alpha(backgroundAlpha)
+                        .background(if (showCanvas || playerBackground != PlayerBackgroundStyle.DEFAULT) Color.Black else bottomSheetBackgroundColor),
             ) {
                 if (!showCanvas) when (playerBackground) {
                     PlayerBackgroundStyle.BLUR -> {
@@ -749,7 +750,7 @@ fun BottomSheetPlayer(
                             label = "blurBackground",
                         ) { thumbnailUrl ->
                             if (thumbnailUrl != null) {
-                                Box(modifier = Modifier.alpha(backgroundAlpha)) {
+                                Box(modifier = Modifier.fillMaxSize()) {
                                     AsyncImage(
                                         model =
                                             ImageRequest
@@ -769,7 +770,7 @@ fun BottomSheetPlayer(
                                         modifier =
                                             Modifier
                                                 .fillMaxSize()
-                                                .background(Color.Black.copy(alpha = 0.3f)),
+                                                .background(Color.Black.copy(alpha = 0.6f)),
                                     )
                                 }
                             }
@@ -788,21 +789,20 @@ fun BottomSheetPlayer(
                                 val gradientColorStops =
                                     if (colors.size >= 3) {
                                         arrayOf(
-                                            0.0f to colors[0],
-                                            0.5f to colors[1],
-                                            1.0f to colors[2],
+                                            0.0f to com.metrolist.music.ui.theme.readablePlayerBackdrop(colors[0]),
+                                            0.5f to com.metrolist.music.ui.theme.readablePlayerBackdrop(colors[1]),
+                                            1.0f to com.metrolist.music.ui.theme.readablePlayerBackdrop(colors[2]),
                                         )
                                     } else {
                                         arrayOf(
-                                            0.0f to colors[0],
-                                            0.6f to colors[0].copy(alpha = 0.7f),
+                                            0.0f to com.metrolist.music.ui.theme.readablePlayerBackdrop(colors[0]),
+                                            0.6f to com.metrolist.music.ui.theme.readablePlayerBackdrop(colors[0]).copy(alpha = 0.7f),
                                             1.0f to Color.Black,
                                         )
                                     }
                                 Box(
                                     Modifier
                                         .fillMaxSize()
-                                        .alpha(backgroundAlpha)
                                         .background(Brush.verticalGradient(colorStops = gradientColorStops))
                                         .background(Color.Black.copy(alpha = 0.2f)),
                                 )
@@ -821,14 +821,14 @@ fun BottomSheetPlayer(
                                 source = canvasSource,
                                 isPlaying = isPlaying && (canvasInView || canvasFullscreen),
                                 onError = { if (canvasAttempt == 0) canvasAttempt++ else canvasFailed = true },
-                                modifier = Modifier.fillMaxSize().alpha(backgroundAlpha),
+                                modifier = Modifier.fillMaxSize(),
                             )
                         }
                     }
                 }
                 if (portrait && !canvasFullscreen) Box(Modifier.fillMaxSize().drawBehind {
                     val fadeEnd = size.height * 0.62f - playerScrollState.value
-                    drawRect(Brush.verticalGradient(0f to Color.Transparent, 1f to Color.Black,
+                    drawRect(Brush.verticalGradient(0f to Color.Transparent, 1f to if (playerBackground == PlayerBackgroundStyle.DEFAULT) bottomSheetBackgroundColor else Color.Black,
                         startY = fadeEnd - size.height * 0.3f, endY = fadeEnd.coerceAtLeast(1f)))
                 })
             }
@@ -1343,7 +1343,7 @@ fun BottomSheetPlayer(
                             }
                         },
                         enabled = !isListenTogetherGuest,
-                        thumb = { com.metrolist.music.ui.component.PlayerProgressThumb(Color.White) },
+                        thumb = { com.metrolist.music.ui.component.PlayerProgressThumb(textButtonColor) },
                         track = { sliderState ->
                             PlayerSliderTrack(
                                 sliderState = sliderState,
@@ -1682,7 +1682,7 @@ fun BottomSheetPlayer(
                         val isExpandedProvider = remember(state) { { state.isExpanded } }
                         CoverLyricsFrame(enabled = coverLyricsEnabled && !showInlineLyrics,
                             modifier = Modifier.fillMaxSize(),
-                            lyrics = { mediaMetadata?.let { CoverLyricsDisplay(it, effectivePosition) } }) {
+                            lyrics = { mediaMetadata?.let { CoverLyricsDisplay(it, effectivePosition, TextBackgroundColor) } }) {
                         AnimatedContent(
                             targetState = showInlineLyrics,
                             label = "Lyrics",
@@ -1753,7 +1753,7 @@ fun BottomSheetPlayer(
                         val isExpandedProvider = remember(state) { { state.isExpanded } }
                         CoverLyricsFrame(enabled = coverLyricsEnabled && !showInlineLyrics,
                             modifier = Modifier.fillMaxSize(),
-                            lyrics = { mediaMetadata?.let { CoverLyricsDisplay(it, effectivePosition) } }) {
+                            lyrics = { mediaMetadata?.let { CoverLyricsDisplay(it, effectivePosition, TextBackgroundColor) } }) {
                         AnimatedContent(
                             targetState = showInlineLyrics,
                             label = "Lyrics",

@@ -1,5 +1,7 @@
 package com.metrolist.music.ui.screens.settings
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -84,10 +86,12 @@ fun CanvasSettings(navController: NavController) {
         }
     }
     Column(Modifier.fillMaxSize().windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))) {
-    TopAppBar(title = { Text(stringResource(R.string.sourcify_canvas)) }, navigationIcon = {
+    TopAppBar(modifier = Modifier.background(com.metrolist.music.ui.theme.screenHeaderBrush()),
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent, scrolledContainerColor = Color.Transparent),
+        title = { Text(stringResource(R.string.sourcify_canvas)) }, navigationIcon = {
         IconButton(onClick = { navController.navigateUp() }) { Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.cd_back)) }
     })
-        PrimaryTabRow(selectedTabIndex = tab) {
+        PrimaryTabRow(selectedTabIndex = tab, containerColor = Color.Transparent) {
             listOf(R.string.sourcify_canvas_general, R.string.sourcify_canvas_videos, R.string.sourcify_canvas_cache).forEachIndexed { index, label ->
                 Tab(selected = tab == index, onClick = { tab = index }, text = { Text(stringResource(label)) })
             }

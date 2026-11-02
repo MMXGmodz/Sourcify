@@ -4,7 +4,10 @@
  */
 package com.metrolist.music.ui.screens.settings
 
+import com.metrolist.music.ui.utils.backToMain
+
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -27,8 +30,6 @@ import androidx.navigation.NavController
 import com.metrolist.music.BuildConfig
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
-import com.metrolist.music.ui.component.IconButton
-import com.metrolist.music.ui.utils.backToMain
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,12 +41,8 @@ fun AboutScreen(navController: NavController) {
     val notices = remember(context) {
         context.assets.open("sourcify_licenses.txt").bufferedReader().use { it.readText() }
     }
-    Column(
-        modifier = Modifier.fillMaxSize()
-            .windowInsetsPadding(insets.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom + WindowInsetsSides.Top))
-            .verticalScroll(rememberScrollState()).padding(horizontal = 24.dp).padding(top = 72.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
-    ) {
+    SettingsPage(stringResource(R.string.sourcify_credits), navController::navigateUp,
+        bottom = insets.asPaddingValues().calculateBottomPadding()) {
         Column(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
                 .background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primaryContainer,
@@ -64,10 +61,12 @@ fun AboutScreen(navController: NavController) {
         Text(stringResource(R.string.sourcify_credits), style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold)
         listOf(
-            Triple(R.string.sourcify_mmxg, R.string.sourcify_mmxg_role, "M"),
-            Triple(R.string.sourcify_vibecoded, R.string.sourcify_vibecoded_role, "V"),
-        ).forEach { (name, role, initial) ->
-            Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+            SettingsContributor(R.string.sourcify_mmxg, R.string.sourcify_mmxg_role, "M"),
+            SettingsContributor(R.string.s80_chatgpt_codex, R.string.s80_chatgpt_codex_role, "C"),
+            SettingsContributor(R.string.s80_kokosr, R.string.s80_kokosr_role, "K", "https://github.com/Kokosr"),
+        ).forEach { (name, role, initial, link) ->
+            Surface(modifier = Modifier.clickable(enabled = link != null) { link?.let(uriHandler::openUri) },
+                shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
                 Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                     Box(Modifier.size(52.dp).clip(RoundedCornerShape(16.dp))
@@ -78,6 +77,8 @@ fun AboutScreen(navController: NavController) {
                         Text(stringResource(name), style = MaterialTheme.typography.titleLarge)
                         Text(stringResource(role), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (link != null) Text(link, style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
@@ -100,14 +101,6 @@ fun AboutScreen(navController: NavController) {
             }
         }
     }
-    TopAppBar(title = { Text(stringResource(R.string.sourcify_credits)) },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
-        navigationIcon = {
-            IconButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) {
-                Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.cd_back))
-            }
-        },
-    )
     if (showLicenses) {
         AlertDialog(onDismissRequest = { showLicenses = false },
             title = { Text(stringResource(R.string.sourcify_licenses)) },
@@ -121,3 +114,5 @@ fun AboutScreen(navController: NavController) {
         )
     }
 }
+
+private data class SettingsContributor(val name: Int, val role: Int, val initial: String, val link: String? = null)

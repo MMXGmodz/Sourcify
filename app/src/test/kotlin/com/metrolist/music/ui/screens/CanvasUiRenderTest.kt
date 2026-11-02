@@ -40,6 +40,30 @@ class CanvasUiRenderTest {
     @Test
     @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
     fun settingsAndPlaylistHeaderRenderOnPhone() {
+        render("unified-lyrics-settings") {
+            CompositionLocalProvider(LocalPlayerAwareWindowInsets provides WindowInsets(bottom = 80.dp)) {
+                com.metrolist.music.ui.screens.settings.LyricsSettings(rememberNavController())
+            }
+        }
+
+        render("artist-highlights") {
+            Column(Modifier.fillMaxSize().background(Color(0xFF121212)).padding(top = 24.dp)) {
+                com.metrolist.music.ui.screens.artist.ArtistHighlightRows("CAPO", 29, "Neuer Song", null, true, true, {}, {})
+            }
+        }
+        render("library-pins") {
+            Column(Modifier.fillMaxSize().background(Color(0xFF121212)).padding(16.dp)) {
+                Row {
+                    androidx.compose.material3.Text("Bibliothek", Modifier.weight(1f), color = Color.White)
+                    com.metrolist.music.ui.screens.library.LibraryTopActions(rememberNavController())
+                }
+                val playlist = com.metrolist.music.db.entities.Playlist(
+                    com.metrolist.music.db.entities.PlaylistEntity(id = "LP_LIKED", name = "Lieblingssongs"), 29, emptyList())
+                com.metrolist.music.ui.component.PlaylistListItem(playlist, autoPlaylist = true, isPinned = true, badges = {})
+                com.metrolist.music.ui.component.PlaylistGridItem(playlist, autoPlaylist = true, isPinned = true, badges = {})
+            }
+        }
+
         for ((name, color) in listOf("red" to Color.Red, "blue" to Color.Blue)) render("dynamic-$name", verify = { bitmap ->
             var matching = 0
             for (y in 0 until bitmap.height step 2) for (x in 0 until bitmap.width step 2) {

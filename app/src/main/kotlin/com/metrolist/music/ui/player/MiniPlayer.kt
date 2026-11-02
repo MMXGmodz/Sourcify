@@ -289,7 +289,7 @@ private fun NewMiniPlayer(
     val backgroundColor = when (miniPlayerBackground) {
         MiniPlayerBackgroundStyle.DEFAULT    -> MaterialTheme.colorScheme.surfaceContainer
         MiniPlayerBackgroundStyle.TRANSPARENT -> Color.Black.copy(alpha = 0.25f)
-        MiniPlayerBackgroundStyle.BLUR       -> MaterialTheme.colorScheme.surfaceContainer
+        MiniPlayerBackgroundStyle.BLUR       -> Color.Black
         MiniPlayerBackgroundStyle.GRADIENT   -> MaterialTheme.colorScheme.surfaceContainer
         MiniPlayerBackgroundStyle.PURE_BLACK -> Color.Black
     }
@@ -380,9 +380,7 @@ private fun NewMiniPlayer(
                     .height(64.dp)
                     .offset { IntOffset(offsetXAnimatable.value.roundToInt(), 0) }
                     .clip(RoundedCornerShape(18.dp))
-                    .background(Brush.horizontalGradient(listOf(
-                        backgroundColor, MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f),
-                    )))
+                    .background(backgroundColor)
                     .border(1.dp, outlineColor.copy(alpha = 0.2f), RoundedCornerShape(18.dp))
                     .clickable(
                         interactionSource = interactionSource,
@@ -405,7 +403,7 @@ private fun NewMiniPlayer(
                             Box(
                                 Modifier
                                     .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.45f)),
+                                    .background(Color.Black.copy(alpha = 0.6f)),
                             )
                         }
                     }
@@ -420,7 +418,7 @@ private fun NewMiniPlayer(
                         Modifier
                             .fillMaxSize()
                             .background(
-                                Brush.horizontalGradient(colors)
+                                Brush.horizontalGradient(colors.map { com.metrolist.music.ui.theme.readablePlayerBackdrop(it) })
                             )
                             .background(Color.Black.copy(alpha = 0.15f)),
                     )
