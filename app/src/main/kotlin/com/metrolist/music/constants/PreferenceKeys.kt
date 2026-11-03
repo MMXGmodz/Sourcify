@@ -747,3 +747,9 @@ enum class PlayButtonStyle {
 }
 
 val PlayButtonStyleKey = stringPreferencesKey("playerPlayButtonStyle")
+
+// Full music videos have their own quality and presentation preferences.
+enum class MusicVideoQuality(val maxHeight: Int?) { AUTO(null), P360(360), P480(480), P720(720), P1080(1080) }
+val MusicVideoQualityKey = stringPreferencesKey("musicVideoQuality")
+val MusicVideoLargeMiniPlayerKey = booleanPreferencesKey("musicVideoLargeMiniPlayer")
+val MusicVideoPipEnabledKey = booleanPreferencesKey("musicVideoPipEnabled")

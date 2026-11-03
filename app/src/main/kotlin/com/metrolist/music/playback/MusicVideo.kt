@@ -15,20 +15,37 @@ data class MusicVideoState(
     val mode: MusicVideoMode = MusicVideoMode.AUDIO,
     val currentSongId: String? = null,
     val reason: String? = null,
-)
+    val videoWidth: Int = 0,
+    val videoHeight: Int = 0,
+) {
+    val hasVideo: Boolean get() = mode == MusicVideoMode.VIDEO || (mode == MusicVideoMode.LOADING && videoWidth > 0)
+    val aspectRatio: Float get() = musicVideoAspectRatio(videoWidth, videoHeight)
+}
+
+internal fun musicVideoAspectRatio(width: Int, height: Int): Float =
+    if (width > 0 && height > 0) (width.toFloat() / height).coerceIn(.25f, 4f) else 16f / 9f
+
+internal fun musicVideoQualityHeight(quality: com.metrolist.music.constants.MusicVideoQuality, automaticHeight: Int): Int =
+    quality.maxHeight ?: automaticHeight.coerceIn(240, 1080)
 
 internal class MusicVideoSession {
     private var generation = 0L
     private val mutableState = MutableStateFlow(MusicVideoState())
     val state = mutableState.asStateFlow()
     fun begin(songId: String): Long {
-        mutableState.value = MusicVideoState(MusicVideoMode.LOADING, songId)
+        mutableState.value = if (mutableState.value.currentSongId == songId && mutableState.value.mode != MusicVideoMode.AUDIO)
+            mutableState.value.copy(mode = MusicVideoMode.LOADING, reason = null) else MusicVideoState(MusicVideoMode.LOADING, songId)
         return ++generation
     }
     fun ready(request: Long, songId: String): Boolean {
         if (request != generation || mutableState.value.currentSongId != songId || mutableState.value.mode != MusicVideoMode.LOADING) return false
-        mutableState.value = MusicVideoState(MusicVideoMode.VIDEO, songId)
+        mutableState.value = mutableState.value.copy(mode = MusicVideoMode.VIDEO, currentSongId = songId, reason = null)
         return true
+    }
+    fun videoSize(width: Int, height: Int) {
+        if (width > 0 && height > 0 && mutableState.value.mode == MusicVideoMode.VIDEO) {
+            mutableState.value = mutableState.value.copy(videoWidth = width, videoHeight = height)
+        }
     }
     fun audio(songId: String?, reason: String? = null) {
         generation++

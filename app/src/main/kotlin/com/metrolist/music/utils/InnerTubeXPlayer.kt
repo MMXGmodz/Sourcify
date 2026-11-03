@@ -74,8 +74,8 @@ object InnerTubeXPlayer {
         }
     }
 
-    internal suspend fun fullMusicVideoStream(videoId: String): ExtractedStream? {
-        val selectedHeight = normalizedCanvasHeight(currentCanvasVideoHeight())
+    internal suspend fun fullMusicVideoStream(videoId: String, maxVideoHeight: Int? = null): ExtractedStream? {
+        val selectedHeight = (maxVideoHeight ?: currentCanvasVideoHeight()).coerceIn(240, 1080)
         return bundle().extractor.extract(
             videoId = videoId,
             hints = ContentHints(wantVideo = true, maxVideoHeight = selectedHeight)

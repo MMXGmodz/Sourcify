@@ -5,6 +5,7 @@
 
 package com.metrolist.music
 
+import com.metrolist.music.ui.player.startMusicVideoPip
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.ForegroundServiceStartNotAllowedException
@@ -69,6 +70,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.contentColorFor
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -86,6 +88,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.Color
@@ -236,6 +239,19 @@ private data class AvailableUpdate(val release: ReleaseInfo) {
 @Suppress("DEPRECATION", "ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
+    private val videoPresentation = com.metrolist.music.ui.player.MusicVideoPresentationState()
+    private var videoPipEnabled = false
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        startMusicVideoPip(playerConnection?.service, videoPresentation, videoPipEnabled)
+    }
+
+    override fun onPictureInPictureModeChanged(inPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration) {
+        super.onPictureInPictureModeChanged(inPictureInPictureMode, newConfig)
+        videoPresentation.inPip = inPictureInPictureMode
+    }
+
     companion object {
         private const val ACTION_SEARCH = "com.metrolist.music.action.SEARCH"
         private const val ACTION_LIBRARY = "com.metrolist.music.action.LIBRARY"
@@ -347,6 +363,7 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onStop() {
+        if (isFinishing && videoPresentation.inPip) playerConnection?.player?.pause()
         // Keep the service binding, PlayerConnection and Listen Together wiring alive while
         // the Activity is backgrounded. The MusicService is a foreground service and keeps
         // running, so the host must keep reporting playback state to the LT server; detaching
@@ -461,15 +478,26 @@ class MainActivity : FragmentActivity() {
             }
         }
 
+        lifecycleScope.launch {
+            dataStore.data.collect { videoPipEnabled = it[com.metrolist.music.constants.MusicVideoPipEnabledKey] ?: true }
+        }
         setContent {
-            MetrolistApp(
-                latestVersionName = latestVersionName,
-                onLatestVersionNameChange = { latestVersionName = it },
-                playerConnection = playerConnectionSnapshot,
-                database = database,
-                downloadUtil = downloadUtil,
-                syncUtils = syncUtils,
-            )
+            CompositionLocalProvider(com.metrolist.music.ui.player.LocalMusicVideoPresentation provides videoPresentation) {
+                Box(Modifier.fillMaxSize()) {
+                    Box(Modifier.fillMaxSize().graphicsLayer { alpha = if (videoPresentation.inPip) 0f else 1f }
+                        .then(if (videoPresentation.inPip || videoPresentation.fullscreen != null) Modifier.clearAndSetSemantics {} else Modifier)) {
+                        MetrolistApp(
+                            latestVersionName = latestVersionName,
+                            onLatestVersionNameChange = { latestVersionName = it },
+                            playerConnection = playerConnectionSnapshot,
+                            database = database,
+                            downloadUtil = downloadUtil,
+                            syncUtils = syncUtils,
+                        )
+                    }
+                    com.metrolist.music.ui.player.MusicVideoOverlayHost(playerConnectionSnapshot?.service, videoPresentation)
+                }
+            }
         }
     }
 
@@ -803,6 +831,12 @@ class MainActivity : FragmentActivity() {
                     label = "navBarHeight",
                 )
 
+                val videoState = playerConnection?.service?.musicVideoState?.collectAsStateWithLifecycle()?.value
+                val largeVideo by rememberPreference(com.metrolist.music.constants.MusicVideoLargeMiniPlayerKey, false)
+                val browseVideoHeight = if (largeVideo && videoState?.hasVideo == true)
+                    com.metrolist.music.ui.player.musicVideoBrowseHeight(maxWidth).coerceAtMost(maxHeight * .3f) else 0.dp
+                SideEffect { videoPresentation.browseHeight = browseVideoHeight }
+
                 val playerBottomSheetState =
                     rememberBottomSheetState(
                         dismissedBound = 0.dp,
@@ -810,9 +844,11 @@ class MainActivity : FragmentActivity() {
                             bottomInset +
                                 (if (!showRail && shouldShowNavigationBar) navPadding else 0.dp) +
                                 (if (useNewMiniPlayerDesign) MiniPlayerBottomSpacing else 0.dp) +
-                                MiniPlayerHeight,
+                                MiniPlayerHeight + browseVideoHeight,
                         expandedBound = maxHeight,
                     )
+
+                SideEffect { videoPresentation.browsing = !playerBottomSheetState.isExpanded && browseVideoHeight > 0.dp }
 
                 val playerReadyState =
                     playerConnection?.service?.isPlayerReady?.collectAsStateWithLifecycle()
@@ -826,12 +862,13 @@ class MainActivity : FragmentActivity() {
                         shouldShowNavigationBar,
                         playerBottomSheetState.isDismissed,
                         showRail,
+                        browseVideoHeight,
                     ) {
                         var bottom = bottomInset
                         if (shouldShowNavigationBar && !showRail) {
                             bottom += NavigationBarHeight
                         }
-                        if (!playerBottomSheetState.isDismissed) bottom += MiniPlayerHeight
+                        if (!playerBottomSheetState.isDismissed) bottom += MiniPlayerHeight + browseVideoHeight
                         windowsInsets
                             .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
                             .add(WindowInsets(top = AppBarHeight, bottom = bottom))

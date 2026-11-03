@@ -9,6 +9,8 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -69,7 +71,8 @@ class PlayerPlayButtonTest {
         content {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 PlayerPlayButton(Modifier.size(112.dp).onGloballyPositioned { captureBounds = it.boundsInWindow() }, {}, iconRes = if (paused) R.drawable.play else R.drawable.pause,
-                    contentDescription = if (paused) "Play" else "Pause", style = PlayButtonStyle.METAL_RING)
+                    contentDescription = if (paused) "Play" else "Pause", style = PlayButtonStyle.METAL_RING,
+                    accentColor = androidx.compose.ui.graphics.Color(0xFF38E578))
             }
         }
         frames()
@@ -109,6 +112,91 @@ class PlayerPlayButtonTest {
         assertTrue("Play and pause must paint distinct glyphs", changed > 100)
         play.recycle()
         pause.recycle()
+    }
+
+    @Test fun defaultMetalRingTracksTheCurrentCoverColorAcrossRecomposition() = withComposition {
+        var cover by mutableStateOf(androidx.compose.ui.graphics.Color(0xFFFF4444))
+        var captureBounds = Rect.Zero
+        content {
+            androidx.compose.runtime.CompositionLocalProvider(com.metrolist.music.ui.theme.LocalSongColor provides cover) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    PlayerPlayButton(Modifier.size(112.dp).onGloballyPositioned { captureBounds = it.boundsInWindow() }, {},
+                        iconRes = R.drawable.play, contentDescription = "Play", style = PlayButtonStyle.METAL_RING)
+                }
+            }
+        }
+        fun ringColor(): Int {
+            frames()
+            val bitmap = Bitmap.createBitmap(360, 800, Bitmap.Config.ARGB_8888)
+            root.draw(Canvas(bitmap))
+            val x = captureBounds.center.x.toInt()
+            val y = (captureBounds.center.y - captureBounds.width * .43f).toInt()
+            return bitmap.getPixel(x, y).also { bitmap.recycle() }
+        }
+        val red = ringColor()
+        assertTrue(android.graphics.Color.red(red) > android.graphics.Color.blue(red) + 80)
+        cover = androidx.compose.ui.graphics.Color(0xFF4488FF)
+        val blue = ringColor()
+        assertTrue(android.graphics.Color.blue(blue) > android.graphics.Color.red(blue) + 80)
+        assertTrue(android.graphics.Color.green(blue) < android.graphics.Color.blue(blue))
+    }
+
+    @Test fun videoSettingsPersistQualityAndLargerBrowsingVideo() = withComposition {
+        val store = activity.dataStore
+        val qualityKey = com.metrolist.music.constants.MusicVideoQualityKey
+        val largeKey = com.metrolist.music.constants.MusicVideoLargeMiniPlayerKey
+        val pipKey = com.metrolist.music.constants.MusicVideoPipEnabledKey
+        val pipFeature = android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE
+        val hadPipFeature = activity.packageManager.hasSystemFeature(pipFeature)
+        shadowOf(activity.packageManager).setSystemFeature(pipFeature, true)
+        val before = runBlocking { store.data.first() }
+        try {
+            runBlocking { store.edit { it.remove(qualityKey); it.remove(largeKey); it.remove(pipKey) } }
+            content { Box(Modifier.fillMaxSize().background(Color(0xFF242628))) { com.metrolist.music.ui.player.MusicVideoSettingsContent(720) } }
+            frames(20)
+            val bitmap = Bitmap.createBitmap(360, 800, Bitmap.Config.ARGB_8888)
+            root.draw(Canvas(bitmap))
+            File("build/ui-previews/music-video-settings.png").apply { parentFile?.mkdirs() }.outputStream().use {
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
+            }
+            bitmap.recycle()
+            fun awaitSaved(check: (androidx.datastore.preferences.core.Preferences) -> Boolean) {
+                val deadline = System.nanoTime() + 5_000_000_000L
+                while (System.nanoTime() < deadline) {
+                    frames(2)
+                    if (check(runBlocking { store.data.first() })) return
+                    Thread.sleep(5)
+                }
+                fail("Setting was not persisted while pumping native UI frames")
+            }
+            val large = nodes().first { it.config.getOrNull(SemanticsProperties.Role) == Role.Switch }
+            assertTrue(requireNotNull(large.config[SemanticsActions.OnClick].action).invoke())
+            frames(20)
+            awaitSaved { it[largeKey] == true }
+            val quality = nodes().first { it.config.getOrNull(SemanticsActions.OnClick)?.action != null &&
+                it.config.getOrNull(SemanticsProperties.Text)?.any { value -> value.text == activity.getString(R.string.s86_video_quality) } == true }
+            assertTrue(requireNotNull(quality.config[SemanticsActions.OnClick].action).invoke())
+            frames(20)
+            val fullHd = nodes().single { it.config.getOrNull(SemanticsProperties.Role) == Role.RadioButton &&
+                it.config.getOrNull(SemanticsProperties.Text)?.any { value -> value.text == "1080p" } == true }
+            assertTrue(requireNotNull(fullHd.config[SemanticsActions.OnClick].action).invoke())
+            frames(20)
+            awaitSaved { it[qualityKey] == "P1080" }
+            assertTrue(runBlocking { store.data.first()[largeKey] } == true)
+            if (!com.metrolist.music.BuildConfig.TV_INTERFACE) {
+                val pipToggle = nodes().last { it.config.getOrNull(SemanticsProperties.Role) == Role.Switch }
+                assertFalse(pipToggle.config.contains(SemanticsProperties.Disabled))
+                assertTrue(requireNotNull(pipToggle.config[SemanticsActions.OnClick].action).invoke())
+                awaitSaved { it[pipKey] == false }
+            }
+        } finally {
+            shadowOf(activity.packageManager).setSystemFeature(pipFeature, hadPipFeature)
+            runBlocking { store.edit {
+                before[qualityKey]?.let { value -> it[qualityKey] = value } ?: it.remove(qualityKey)
+                before[largeKey]?.let { value -> it[largeKey] = value } ?: it.remove(largeKey)
+                before[pipKey]?.let { value -> it[pipKey] = value } ?: it.remove(pipKey)
+            } }
+        }
     }
 
     @Test fun buttonHasOneAccessibleActionMinimumTargetAndBlocksDisabledClicks() = withComposition {

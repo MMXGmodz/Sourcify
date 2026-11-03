@@ -427,12 +427,28 @@ class MusicService :
     private var musicVideoUri: String? = null
     private var replacingMusicVideoSource = false
 
-    fun switchToMusicVideo() {
-        if (!playerInitialized.value || musicVideoState.value.mode != MusicVideoMode.AUDIO) return
-        val originalItem = player.currentMediaItem ?: return
+    private var musicVideoRequestedHeight: Int? = null
+
+    private suspend fun desiredMusicVideoHeight(): Int {
+        val savedQuality = dataStore.data.first()[com.metrolist.music.constants.MusicVideoQualityKey]
+        val quality = com.metrolist.music.constants.MusicVideoQuality.entries.firstOrNull {
+            it.name == savedQuality
+        } ?: com.metrolist.music.constants.MusicVideoQuality.AUTO
+        return musicVideoQualityHeight(quality, InnerTubeXPlayer.currentCanvasVideoHeight())
+    }
+
+    fun switchToMusicVideo() { loadMusicVideo() }
+
+    private fun loadMusicVideo(reload: Boolean = false) {
+        if (!playerInitialized.value || (!reload && musicVideoState.value.mode != MusicVideoMode.AUDIO)) return
+        val originalItem = musicVideoOriginalItem ?: player.currentMediaItem ?: return
         val metadata = originalItem.metadata ?: return
         if (metadata.isEpisode || isLocalAudioMediaId(metadata.id)) return
         if (musicVideoRestricted() || isCrossfading) {
+            if (reload) {
+                restoreMusicVideoAudio(getString(R.string.sourcify_music_video_restricted))
+                return
+            }
             musicVideoSession.audio(metadata.id, getString(R.string.sourcify_music_video_restricted))
             Toast.makeText(this, R.string.sourcify_music_video_restricted, Toast.LENGTH_LONG).show()
             return
@@ -444,10 +460,13 @@ class MusicService :
             releaseExoPlayer(pending)
         }
         secondaryPlayer = null
+        musicVideoJob?.cancel()
         musicVideoOriginalItem = originalItem
         val request = musicVideoSession.begin(metadata.id)
         musicVideoJob = scope.launch {
             try {
+                val selectedHeight = desiredMusicVideoHeight()
+                musicVideoRequestedHeight = selectedHeight
                 val stream = withContext(Dispatchers.IO) {
                     kotlinx.coroutines.withTimeoutOrNull(30_000) {
                         val original = com.metrolist.music.utils.SongEditStore.get(this@MusicService).original(metadata)
@@ -461,8 +480,12 @@ class MusicService :
                                 musicVideoType = raw.musicVideoType ?: original.musicVideoType)
                         }
                         val id = MusicVideoResolver().resolveId(identity) ?: return@withTimeoutOrNull null
-                        InnerTubeXPlayer.fullMusicVideoStream(id)
+                        InnerTubeXPlayer.fullMusicVideoStream(id, selectedHeight)
                     }
+                }
+                if (desiredMusicVideoHeight() != selectedHeight) {
+                    loadMusicVideo(reload = true)
+                    return@launch
                 }
                 if (musicVideoRestricted()) {
                     restoreMusicVideoAudio(getString(R.string.sourcify_music_video_restricted))
@@ -479,10 +502,12 @@ class MusicService :
                     CachedStreamUrl(stream.audioUrl, stream.headers, stream.clientName),
                     CachedStreamUrl(requireNotNull(stream.videoUrl), stream.headers, stream.clientName), durationMs,
                 )
+                val oldUris = musicVideoStreams.keys.toList()
                 musicVideoStreams[uri] = streams
                 musicVideoUri = uri
                 player.setOffloadEnabled(false)
                 replaceMusicVideoCurrentItem(player.currentMediaItem!!.buildUpon().setUri(uri).setCustomCacheKey(null).build(), durationMs)
+                oldUris.forEach { musicVideoStreams.remove(it) }
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
@@ -540,6 +565,7 @@ class MusicService :
         musicVideoStreams.clear()
         musicVideoOriginalItem = null
         musicVideoUri = null
+        musicVideoRequestedHeight = null
         player.setOffloadEnabled(dataStore.get(AudioOffload, false) && !crossfadeEnabled)
         scheduleCrossfade()
         if (reason != null) Toast.makeText(this, reason, Toast.LENGTH_LONG).show()
@@ -953,6 +979,10 @@ class MusicService :
                     while (isActive) {
                         if (musicVideoRestricted()) {
                             restoreMusicVideoAudio(getString(R.string.sourcify_music_video_restricted))
+                            break
+                        }
+                        if (musicVideoRequestedHeight != null && desiredMusicVideoHeight() != musicVideoRequestedHeight) {
+                            loadMusicVideo(reload = true)
                             break
                         }
                         delay(1_000)
@@ -2988,6 +3018,10 @@ class MusicService :
                     retryReason = "initial buffer stall",
                 )
             }
+    }
+
+    override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+        musicVideoSession.videoSize((videoSize.width * videoSize.pixelWidthHeightRatio).toInt(), videoSize.height)
     }
 
     override fun onEvents(

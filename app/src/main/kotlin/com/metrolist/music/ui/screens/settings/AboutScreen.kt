@@ -61,7 +61,7 @@ fun AboutScreen(navController: NavController) {
         Text(stringResource(R.string.sourcify_credits), style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold)
         listOf(
-            SettingsContributor(R.string.sourcify_mmxg, R.string.sourcify_mmxg_role, "M"),
+            SettingsContributor(R.string.sourcify_mmxg, R.string.sourcify_mmxg_role, "M", "https://github.com/MMXGmodz"),
             SettingsContributor(R.string.s80_chatgpt_codex, R.string.s80_chatgpt_codex_role, "C"),
             SettingsContributor(R.string.s80_kokosr, R.string.s80_kokosr_role, "K", "https://github.com/Kokosr"),
         ).forEach { (name, role, initial, link) ->

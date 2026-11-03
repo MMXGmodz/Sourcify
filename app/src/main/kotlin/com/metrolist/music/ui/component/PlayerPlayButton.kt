@@ -18,6 +18,8 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -34,7 +36,7 @@ fun PlayerPlayButton(
     @DrawableRes iconRes: Int,
     contentDescription: String,
     style: PlayButtonStyle = PlayButtonStyle.STANDARD,
-    accentColor: Color = Color(0xFF38E578),
+    accentColor: Color = com.metrolist.music.ui.theme.LocalSongColor.current,
     containerColor: Color = Color.White,
     iconColor: Color = Color.Black,
 ) {
@@ -44,7 +46,7 @@ fun PlayerPlayButton(
             .size(72.dp)
             .alpha(if (enabled) 1f else .45f)
             .clip(CircleShape)
-            .then(if (style == PlayButtonStyle.METAL_RING) Modifier.metalPlayButtonFace(accentColor) else Modifier.background(containerColor))
+            .then(if (style == PlayButtonStyle.METAL_RING) Modifier.metalPlayButtonFace(metalRingColor(accentColor)) else Modifier.background(containerColor))
             .clickable(enabled = enabled, role = Role.Button, onClick = { if (enabled) onClick() })
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,
@@ -57,6 +59,10 @@ fun PlayerPlayButton(
         )
     }
 }
+
+internal fun metalRingColor(coverColor: Color): Color =
+    if (coverColor == Color.Unspecified) Color.White else if (coverColor.luminance() < .18f)
+        lerp(coverColor, Color.White, .4f) else coverColor
 
 private fun Modifier.metalPlayButtonFace(accentColor: Color) = drawWithCache {
     val radius = size.minDimension / 2f
