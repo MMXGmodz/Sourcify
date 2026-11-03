@@ -6,6 +6,15 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class MediaQualityPolicyTest {
+    @Test fun canvasRejectsTheExtractorFallbackWhenEveryFormatExceedsTheSelectedLimit() {
+        assertTrue(canvasVideoFitsQuality(240, 240))
+        assertTrue(canvasVideoFitsQuality(480, 720))
+        assertFalse(canvasVideoFitsQuality(360, 240))
+        assertFalse(canvasVideoFitsQuality(1080, 720))
+        assertFalse(canvasVideoFitsQuality(null, 720))
+        assertFalse(canvasVideoFitsQuality(0, 720))
+    }
+
     @Test fun streamingProfilesStayIndependentAndDownloadsKeepLegacyChoice() {
         val prefs = mutablePreferencesOf(AudioQualityKey to "LOW", StreamingWifiQualityKey to "HIGH", StreamingMobileQualityKey to "LOW")
         assertEquals(AudioQuality.HIGH, streamingAudioQuality(prefs, false))

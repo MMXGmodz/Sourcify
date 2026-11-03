@@ -49,14 +49,16 @@ internal fun ArtistHighlights(name: String, liked: List<Song>, latest: YTItem?, 
 internal fun ArtistHighlightRows(name: String, likedCount: Int, latestTitle: String?, latestThumbnail: String?,
  latestIsSong: Boolean, latestEnabled: Boolean, onLatest: () -> Unit, onLiked: () -> Unit) {
  Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-  if (latestTitle != null) Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceVariant) {
+  if (latestTitle != null) Surface(shape = MaterialTheme.shapes.medium, color = androidx.compose.ui.graphics.Color.Transparent) {
    ListItem(modifier = Modifier.clickable(enabled = latestEnabled, onClick = onLatest),
+    colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
     headlineContent = { Text(stringResource(if (latestIsSong) R.string.s80_new_song else R.string.s80_latest_release)) },
     supportingContent = { Text(latestTitle) },
     leadingContent = { AsyncImage(latestThumbnail, null, Modifier.size(48.dp), contentScale = ContentScale.Crop) },
     trailingContent = { Text("›") })
   }
   if (likedCount > 0) ListItem(modifier = Modifier.clickable(onClick = onLiked),
+   colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
    headlineContent = { Text(stringResource(R.string.s80_your_favorites)) },
    supportingContent = { Text(stringResource(R.string.s80_liked_count, likedCount, name)) },
    leadingContent = { Icon(painterResource(R.drawable.favorite), null, tint = androidx.compose.ui.graphics.Color(0xFF1ED760)) },

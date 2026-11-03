@@ -60,14 +60,19 @@ object InnerTubeXPlayer {
         return canvasVideoHeight(context.dataStore.data.first(), networkUsesMobileQuality(manager))
     }
 
-    internal suspend fun videoStreamForCanvas(videoId: String): ExtractedStream? =
-        bundle().extractor.extract(
+    internal suspend fun videoStreamForCanvas(videoId: String, maxVideoHeight: Int? = null): ExtractedStream? {
+        val selectedHeight = normalizedCanvasHeight(maxVideoHeight ?: currentCanvasVideoHeight())
+        return bundle().extractor.extract(
             videoId = videoId,
-            hints = ContentHints(wantVideo = true, maxVideoHeight = currentCanvasVideoHeight())
+            hints = ContentHints(wantVideo = true, maxVideoHeight = selectedHeight)
                 .withStreamCapabilities(allowHls = false, allowSabr = false),
             audioQuality = InnerTubeXAudioQuality.LOW,
             clientPlaybackNonce = generateClientPlaybackNonce(),
-        )?.takeIf { it.videoUrl != null && it.sabrVideoBootstrap == null }
+        )?.takeIf {
+            // The extractor can return an above-limit fallback when no smaller format exists.
+            it.videoUrl != null && it.sabrVideoBootstrap == null && canvasVideoFitsQuality(it.videoHeight, selectedHeight)
+        }
+    }
 
     suspend fun playerResponseForPlayback(
         videoId: String,

@@ -18,7 +18,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -37,8 +36,6 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.metrolist.music.utils.CanvasVideoSource
 import com.metrolist.music.constants.CanvasZoomKey
 import com.metrolist.music.utils.rememberPreference
-import kotlin.math.ceil
-import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.metrolist.music.utils.CanvasVideoCache
@@ -46,19 +43,13 @@ import com.metrolist.music.utils.CanvasVideoCache
 internal fun canvasDimAlpha(brightness: Float): Float =
     1f - (if (brightness.isFinite()) brightness else 0.65f).coerceIn(0.15f, 1f)
 
-internal fun canvasFrameSize(viewWidth: Int, viewHeight: Int, videoWidth: Float, videoHeight: Float, zoom: Float = 1.35f): Pair<Int, Int> {
-    if (viewWidth <= 0 || viewHeight <= 0 || videoWidth <= 0 || videoHeight <= 0 || !videoWidth.isFinite() || !videoHeight.isFinite()) return viewWidth to viewHeight
-    val scale = max(viewWidth / videoWidth, viewHeight / videoHeight) * (if (zoom.isFinite()) zoom else 1.35f).coerceIn(1f, 2f)
-    return ceil(videoWidth * scale).toInt() to ceil(videoHeight * scale).toInt()
-}
-
 internal fun stableCanvasVideoSize(previous: VideoSize, incoming: VideoSize): VideoSize =
     if (incoming.width > 0 && incoming.height > 0 && incoming.pixelWidthHeightRatio.isFinite() && incoming.pixelWidthHeightRatio > 0) incoming else previous
 
 private class CanvasVideoFrame(context: Context) : FrameLayout(context) {
     val texture = TextureView(context).apply { isOpaque = false }
     private var videoSize = VideoSize.UNKNOWN
-    private var zoom = 1.35f
+    private var zoom = DefaultCanvasZoom
     init {
         clipChildren = true
         addView(texture, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, Gravity.CENTER))
@@ -89,7 +80,7 @@ fun CanvasVideoBackground(
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    val zoom by rememberPreference(CanvasZoomKey, 1.35f)
+    val zoom by rememberPreference(CanvasZoomKey, DefaultCanvasZoom)
     val brightness by rememberPreference(com.metrolist.music.constants.CanvasBrightnessKey, 0.65f)
     val currentZoom by rememberUpdatedState(zoom)
     val playing by rememberUpdatedState(isPlaying)
@@ -157,7 +148,7 @@ fun CanvasVideoBackground(
     LaunchedEffect(player, isPlaying, lifecycle) {
         player.playWhenReady = isPlaying && lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
     }
-    Box(modifier) {
+    Box(modifier.clipToBounds().background(Color.Black)) {
         AndroidView(
             factory = { CanvasVideoFrame(it) },
             update = { frame = it; it.setVideoSize(videoSize, zoom) },
@@ -176,18 +167,16 @@ fun CanvasVideoBackground(
 
 @Composable
 internal fun CanvasImageBackground(uri: android.net.Uri, onError: () -> Unit) {
-    val zoom by rememberPreference(CanvasZoomKey, 1.35f)
+    val zoom by rememberPreference(CanvasZoomKey, DefaultCanvasZoom)
     val brightness by rememberPreference(com.metrolist.music.constants.CanvasBrightnessKey, 0.65f)
-    Box(Modifier.fillMaxSize().clipToBounds()) {
+    Box(Modifier.fillMaxSize().clipToBounds().background(Color.Black)) {
         coil3.compose.AsyncImage(
             model = uri,
             contentDescription = null,
-            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            contentScale = remember(zoom) { CanvasContentScale(zoom) },
+            filterQuality = androidx.compose.ui.graphics.FilterQuality.High,
             onError = { onError() },
-            modifier = Modifier.fillMaxSize().graphicsLayer {
-                scaleX = zoom.coerceIn(1f, 2f)
-                scaleY = zoom.coerceIn(1f, 2f)
-            },
+            modifier = Modifier.fillMaxSize(),
         )
         Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = canvasDimAlpha(brightness))))
     }

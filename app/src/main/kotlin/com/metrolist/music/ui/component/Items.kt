@@ -54,6 +54,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -1838,6 +1839,8 @@ fun BoxScope.AlbumPlayButton(
     }
 }
 
+internal val LocalSwipeToSongContainerColor = staticCompositionLocalOf<Color?> { null }
+
 @Composable
 fun SwipeToSongBox(
     modifier: Modifier = Modifier,
@@ -1918,7 +1921,10 @@ fun SwipeToSongBox(
             modifier = Modifier
                 .offset { IntOffset(offset.floatValue.roundToInt(), 0) }
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface),
+                .background(
+                    if (offset.floatValue == 0f) LocalSwipeToSongContainerColor.current ?: MaterialTheme.colorScheme.surface
+                    else MaterialTheme.colorScheme.surface,
+                ),
             content = content
         )
     }

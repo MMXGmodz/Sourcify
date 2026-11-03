@@ -54,7 +54,7 @@ fun CanvasSettings(navController: NavController) {
     val (wifiOnly, setWifiOnly) = rememberPreference(CanvasWifiOnlyKey, false)
     val (automatic, setAutomatic) = rememberPreference(AutomaticCanvasKey, true)
     val (brightness, setBrightness) = rememberPreference(CanvasBrightnessKey, 0.65f)
-    val (zoom, setZoom) = rememberPreference(CanvasZoomKey, 1.35f)
+    val (zoom, setZoom) = rememberPreference(CanvasZoomKey, com.metrolist.music.ui.player.DefaultCanvasZoom)
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var query by rememberSaveable { mutableStateOf("") }
     var results by remember { mutableStateOf<List<SongItem>>(emptyList()) }
@@ -119,8 +119,8 @@ fun CanvasSettings(navController: NavController) {
                         description = {
                             Column {
                                 Text(stringResource(R.string.sourcify_canvas_zoom_description))
-                                Text("${(zoom * 100).roundToInt()}%")
-                                Slider(value = zoom.coerceIn(1f, 2f), onValueChange = setZoom, valueRange = 1f..2f)
+                                Text("${(com.metrolist.music.ui.player.canvasZoom(zoom) * 100).roundToInt()}%")
+                                Slider(value = com.metrolist.music.ui.player.canvasZoom(zoom), onValueChange = setZoom, valueRange = 1f..2f)
                             }
                         }),
                 ))

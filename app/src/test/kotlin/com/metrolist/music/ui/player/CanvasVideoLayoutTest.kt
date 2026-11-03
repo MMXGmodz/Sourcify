@@ -6,6 +6,18 @@ import org.junit.Test
 
 class CanvasVideoLayoutTest {
     @Test
+    fun invalidZoomIsSanitizedForImagesAndVideos() {
+        for (zoom in listOf(Float.NaN, Float.POSITIVE_INFINITY, -1f)) {
+            val scale = CanvasContentScale(zoom).computeScaleFactor(
+                androidx.compose.ui.geometry.Size(1080f, 1920f), androidx.compose.ui.geometry.Size(360f, 640f))
+            assertEquals(1f / 3f, scale.scaleX, 0.0001f)
+            assertEquals(scale.scaleX, scale.scaleY, 0f)
+            assertEquals(360 to 640, canvasFrameSize(360, 640, 1080f, 1920f, zoom))
+        }
+        assertEquals(2f, canvasZoom(3f), 0f)
+    }
+
+    @Test
     fun brightnessCanShowUndimmedVideoAndClampsInvalidPreferences() {
         assertEquals(0f, canvasDimAlpha(1f), 0.001f)
         assertEquals(0.85f, canvasDimAlpha(-1f), 0.001f)
@@ -43,13 +55,20 @@ class CanvasVideoLayoutTest {
     }
 
     @Test
-    fun zoomRemovesEncodedCinemaBarsAndCanBeReduced() {
-        val (width, height) = canvasFrameSize(360, 800, 1920f, 1080f)
-        val cinemaContentHeight = height * (1920f / 2.39f) / 1080f
-        assertTrue(cinemaContentHeight >= 800)
-        val reduced = canvasFrameSize(360, 800, 1920f, 1080f, 1f)
-        assertEquals(800, reduced.second)
-        assertTrue(width > reduced.first)
+    fun portraitCanvasUsesTheWholeFrameWithoutAnExtraDefaultCrop() {
+        assertEquals(360 to 640, canvasFrameSize(360, 640, 1080f, 1920f))
+        assertEquals(450 to 800, canvasFrameSize(360, 800, 1080f, 1920f))
         assertEquals(360 to 800, canvasFrameSize(360, 800, 0f, 0f))
+    }
+
+    @Test
+    fun manualZoomStillCropsCinemaBarsWithoutStretchingTheSource() {
+        val natural = canvasFrameSize(360, 800, 1920f, 1080f)
+        val zoomed = canvasFrameSize(360, 800, 1920f, 1080f, 1.35f)
+        assertEquals(800, natural.second)
+        assertTrue(zoomed.first > natural.first)
+        assertTrue(zoomed.second > natural.second)
+        val cinemaContentHeight = zoomed.second * (1920f / 2.39f) / 1080f
+        assertTrue(cinemaContentHeight >= 800)
     }
 }

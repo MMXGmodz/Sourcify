@@ -15,8 +15,12 @@ internal fun normalizedCanvasHeight(height: Int?): Int = height?.takeIf { it in 
 internal fun canvasVideoHeight(prefs: Preferences, metered: Boolean): Int =
     normalizedCanvasHeight(prefs[if (metered) CanvasMobileHeightKey else CanvasWifiHeightKey])
 
-internal fun networkUsesMobileQuality(manager: android.net.ConnectivityManager): Boolean {
-    val capabilities = manager.getNetworkCapabilities(manager.activeNetwork)
-    if (capabilities?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) == true) return false
-    return capabilities?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) == true || manager.isActiveNetworkMetered
-}
+internal fun canvasVideoFitsQuality(height: Int?, maxHeight: Int): Boolean =
+    height != null && height in 1..maxHeight
+
+internal fun networkUsesMobileQuality(manager: android.net.ConnectivityManager): Boolean =
+    networkUsesMobileQuality(manager.getNetworkCapabilities(manager.activeNetwork), manager.isActiveNetworkMetered)
+
+internal fun networkUsesMobileQuality(capabilities: android.net.NetworkCapabilities?, metered: Boolean): Boolean =
+    capabilities?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) != true &&
+        (capabilities?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) == true || metered)
