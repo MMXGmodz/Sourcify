@@ -4,6 +4,8 @@ import android.content.Context
 import android.view.Gravity
 import android.view.TextureView
 import android.widget.FrameLayout
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,6 +20,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -39,9 +42,6 @@ import com.metrolist.music.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.metrolist.music.utils.CanvasVideoCache
-
-internal fun canvasDimAlpha(brightness: Float): Float =
-    1f - (if (brightness.isFinite()) brightness else 0.65f).coerceIn(0.15f, 1f)
 
 internal fun stableCanvasVideoSize(previous: VideoSize, incoming: VideoSize): VideoSize =
     if (incoming.width > 0 && incoming.height > 0 && incoming.pixelWidthHeightRatio.isFinite() && incoming.pixelWidthHeightRatio > 0) incoming else previous
@@ -77,6 +77,7 @@ fun CanvasVideoBackground(
     isPlaying: Boolean,
     onError: () -> Unit,
     modifier: Modifier = Modifier,
+    fullscreen: Boolean = false,
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -154,19 +155,12 @@ fun CanvasVideoBackground(
             update = { frame = it; it.setVideoSize(videoSize, zoom) },
             modifier = Modifier.fillMaxSize(),
         )
-        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = canvasDimAlpha(brightness))))
-        Box(Modifier.fillMaxSize().background(
-            Brush.verticalGradient(
-                0f to Color.Black.copy(alpha = 0.2f),
-                0.45f to Color.Transparent,
-                1f to Color.Black.copy(alpha = 0.78f),
-            ),
-        ))
+        CanvasLightingOverlay(brightness, fullscreen, videoScrim = true)
     }
 }
 
 @Composable
-internal fun CanvasImageBackground(uri: android.net.Uri, onError: () -> Unit) {
+internal fun CanvasImageBackground(uri: android.net.Uri, onError: () -> Unit, fullscreen: Boolean = false) {
     val zoom by rememberPreference(CanvasZoomKey, DefaultCanvasZoom)
     val brightness by rememberPreference(com.metrolist.music.constants.CanvasBrightnessKey, 0.65f)
     Box(Modifier.fillMaxSize().clipToBounds().background(Color.Black)) {
@@ -178,6 +172,20 @@ internal fun CanvasImageBackground(uri: android.net.Uri, onError: () -> Unit) {
             onError = { onError() },
             modifier = Modifier.fillMaxSize(),
         )
-        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = canvasDimAlpha(brightness))))
+        CanvasLightingOverlay(brightness, fullscreen, videoScrim = false)
     }
+}
+
+@Composable
+internal fun CanvasLightingOverlay(brightness: Float, fullscreen: Boolean, videoScrim: Boolean) {
+    val dim by animateFloatAsState(canvasDimAlpha(brightness, fullscreen), tween(250), label = "canvasFullscreenBrightness")
+    val scrimAlpha by animateFloatAsState(if (fullscreen) 0f else 1f, tween(250), label = "canvasVideoScrim")
+    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = dim)))
+    if (videoScrim) Box(Modifier.fillMaxSize().graphicsLayer { alpha = scrimAlpha }.background(
+        Brush.verticalGradient(
+            0f to Color.Black.copy(alpha = .2f),
+            .45f to Color.Transparent,
+            1f to Color.Black.copy(alpha = .78f),
+        ),
+    ))
 }

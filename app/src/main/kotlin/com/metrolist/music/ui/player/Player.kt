@@ -238,11 +238,16 @@ fun BottomSheetPlayer(
         animationSpec = tween(140), label = "compactSongHeader")
     var canvasFullscreen by rememberSaveable(mediaMetadata?.id) { mutableStateOf(false) }
 
+    val musicVideoState by playerConnection.service.musicVideoState.collectAsStateWithLifecycle()
+    val musicVideoRequested = musicVideoState.currentSongId == mediaMetadata?.id &&
+        musicVideoState.mode != com.metrolist.music.playback.MusicVideoMode.AUDIO
+    val musicVideoActive = musicVideoRequested && musicVideoState.mode == com.metrolist.music.playback.MusicVideoMode.VIDEO
+
     val automaticCanvasEnabled by rememberPreference(AutomaticCanvasKey, true)
     val editedCanvas = com.metrolist.music.utils.rememberSongEditCanvas(mediaMetadata?.id)
     val canvasSelection = com.metrolist.music.utils.rememberPlaybackCanvasSelection(mediaMetadata?.id, automaticCanvasEnabled)
     val canvasGlobalEnabled by rememberPreference(CanvasEnabledKey, true)
-    val canvasEnabled = canvasGlobalEnabled && com.metrolist.music.utils.rememberCanvasEnabled(mediaMetadata?.id)
+    val canvasEnabled = canvasGlobalEnabled && com.metrolist.music.utils.rememberCanvasEnabled(mediaMetadata?.id) && !musicVideoRequested
     val automaticCanvas = rememberAutomaticCanvas(
         mediaMetadata,
         canvasEnabled && automaticCanvasEnabled && canvasSelection == null && editedCanvas == null,
@@ -286,6 +291,11 @@ fun BottomSheetPlayer(
     val playerButtonsStyle by rememberEnumPreference(
         key = PlayerButtonsStyleKey,
         defaultValue = PlayerButtonsStyle.DEFAULT,
+    )
+
+    val playButtonStyle by rememberEnumPreference(
+        com.metrolist.music.constants.PlayButtonStyleKey,
+        com.metrolist.music.constants.PlayButtonStyle.STANDARD,
     )
 
     val isSystemInDarkTheme = isSystemInDarkTheme()
@@ -820,10 +830,11 @@ fun BottomSheetPlayer(
                     CanvasBackdrop(scrollOffset = { if (portrait && !canvasFullscreen) playerScrollState.value.toFloat() else 0f }, fullscreen = canvasFullscreen) {
                         androidx.compose.runtime.key(mediaMetadata?.id, canvasAttempt) {
                             if (editedCanvas?.isImage == true) {
-                                CanvasImageBackground(editedCanvas.uri, onError = { canvasFailed = true })
+                                CanvasImageBackground(editedCanvas.uri, onError = { canvasFailed = true }, fullscreen = canvasFullscreen)
                             } else if (canvasSource != null) {
                                 CanvasVideoBackground(
                                     source = canvasSource,
+                                    fullscreen = canvasFullscreen,
                                     isPlaying = isPlaying && (canvasInView || canvasFullscreen),
                                     onError = { if (canvasAttempt == 0) canvasAttempt++ else canvasFailed = true },
                                     modifier = Modifier.fillMaxSize(),
@@ -858,6 +869,28 @@ fun BottomSheetPlayer(
         },
     ) {
         val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = { mediaMetadata ->
+            val mainPlayIcon = when {
+                isListenTogetherGuest -> if (isMuted) R.drawable.volume_off else R.drawable.volume_up
+                playbackState == STATE_ENDED -> R.drawable.replay
+                effectiveIsPlaying -> R.drawable.pause
+                else -> R.drawable.play
+            }
+            val mainPlayDescription = stringResource(when {
+                isListenTogetherGuest -> if (isMuted) R.string.unmute else R.string.mute
+                effectiveIsPlaying && playbackState != STATE_ENDED -> R.string.player_pause
+                else -> R.string.play
+            })
+            val onMainPlay: () -> Unit = {
+                when {
+                    isListenTogetherGuest -> playerConnection.toggleMute()
+                    isCasting -> if (castIsPlaying) castHandler?.pause() else castHandler?.play()
+                    playbackState == STATE_ENDED -> {
+                        playerConnection.player.seekTo(0, 0)
+                        playerConnection.player.playWhenReady = true
+                    }
+                    else -> playerConnection.togglePlayPause()
+                }
+            }
             val playPauseRoundness by animateDpAsState(
                 targetValue = if (isPlaying) 24.dp else 36.dp,
                 animationSpec = tween(durationMillis = 90, easing = LinearEasing),
@@ -1437,61 +1470,70 @@ fun BottomSheetPlayer(
                             }
 
 
-                            FilledIconButton(
-                                onClick = {
-                                    if (isListenTogetherGuest) {
-                                        playerConnection.toggleMute()
-                                        return@FilledIconButton
-                                    }
-                                    if (isCasting) {
-                                        if (castIsPlaying) {
-                                            castHandler?.pause()
-                                        } else {
-                                            castHandler?.play()
+                            if (playButtonStyle == com.metrolist.music.constants.PlayButtonStyle.METAL_RING) {
+                                com.metrolist.music.ui.component.PlayerPlayButton(
+                                    modifier = Modifier.size(64.dp).focusRequester(focusRequester),
+                                    onClick = onMainPlay,
+                                    iconRes = mainPlayIcon,
+                                    contentDescription = mainPlayDescription,
+                                    style = playButtonStyle,
+                                )
+                            } else {
+                                FilledIconButton(
+                                    onClick = {
+                                        if (isListenTogetherGuest) {
+                                            playerConnection.toggleMute()
+                                            return@FilledIconButton
                                         }
-                                    } else if (playbackState == STATE_ENDED) {
-                                        playerConnection.player.seekTo(0, 0)
-                                        playerConnection.player.playWhenReady = true
-                                    } else {
-                                        playerConnection.togglePlayPause()
-                                    }
-                                },
-                                shape = CircleShape,
-                                interactionSource = playPauseInteractionSource,
-                                colors =
-                                    IconButtonDefaults.filledIconButtonColors(
-                                        containerColor = Color.White,
-                                        contentColor = Color.Black,
-                                    ),
-                                modifier =
-                                    Modifier
-                                        .size(64.dp)
-                                        .focusRequester(focusRequester),
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center,
-                                ) {
-                                    Icon(
-                                        painter =
-                                            painterResource(
-                                                if (isListenTogetherGuest) {
-                                                    if (isMuted) R.drawable.volume_off else R.drawable.volume_up
-                                                } else {
-                                                    if (effectiveIsPlaying) R.drawable.pause else R.drawable.play
-                                                },
-                                            ),
-                                        contentDescription =
-                                            if (isListenTogetherGuest) {
-                                                if (isMuted) stringResource(R.string.unmute) else stringResource(R.string.mute)
+                                        if (isCasting) {
+                                            if (castIsPlaying) {
+                                                castHandler?.pause()
                                             } else {
-                                                if (effectiveIsPlaying) stringResource(R.string.player_pause) else stringResource(R.string.play)
-                                            },
-                                        modifier = Modifier.size(32.dp),
-                                    )
+                                                castHandler?.play()
+                                            }
+                                        } else if (playbackState == STATE_ENDED) {
+                                            playerConnection.player.seekTo(0, 0)
+                                            playerConnection.player.playWhenReady = true
+                                        } else {
+                                            playerConnection.togglePlayPause()
+                                        }
+                                    },
+                                    shape = CircleShape,
+                                    interactionSource = playPauseInteractionSource,
+                                    colors =
+                                        IconButtonDefaults.filledIconButtonColors(
+                                            containerColor = Color.White,
+                                            contentColor = Color.Black,
+                                        ),
+                                    modifier =
+                                        Modifier
+                                            .size(64.dp)
+                                            .focusRequester(focusRequester),
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center,
+                                    ) {
+                                        Icon(
+                                            painter =
+                                                painterResource(
+                                                    if (isListenTogetherGuest) {
+                                                        if (isMuted) R.drawable.volume_off else R.drawable.volume_up
+                                                    } else {
+                                                        if (effectiveIsPlaying) R.drawable.pause else R.drawable.play
+                                                    },
+                                                ),
+                                            contentDescription =
+                                                if (isListenTogetherGuest) {
+                                                    if (isMuted) stringResource(R.string.unmute) else stringResource(R.string.mute)
+                                                } else {
+                                                    if (effectiveIsPlaying) stringResource(R.string.player_pause) else stringResource(R.string.play)
+                                                },
+                                            modifier = Modifier.size(32.dp),
+                                        )
+                                    }
                                 }
                             }
-
 
                             FilledIconButton(
                                 onClick = playerConnection::seekToNext,
@@ -1569,54 +1611,64 @@ fun BottomSheetPlayer(
 
                             Spacer(Modifier.width(8.dp))
 
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .size(72.dp)
-                                        .clip(RoundedCornerShape(playPauseRoundness))
-                                        .background(textButtonColor)
-                                        .clickable {
-                                            if (isListenTogetherGuest) {
-                                                playerConnection.toggleMute()
-                                                return@clickable
-                                            }
-                                            if (isCasting) {
-                                                if (castIsPlaying) {
-                                                    castHandler?.pause()
-                                                } else {
-                                                    castHandler?.play()
-                                                }
-                                            } else if (playbackState == STATE_ENDED) {
-                                                playerConnection.player.seekTo(0, 0)
-                                                playerConnection.player.playWhenReady = true
-                                            } else {
-                                                playerConnection.player.togglePlayPause()
-                                            }
-                                        }
-                                        .focusRequester(focusRequester),
-                            ) {
-                                Image(
-                                    painter =
-                                        painterResource(
-                                            if (isListenTogetherGuest) {
-                                                if (isMuted) R.drawable.volume_off else R.drawable.volume_up
-                                            } else if (playbackState ==
-                                                STATE_ENDED
-                                            ) {
-                                                R.drawable.replay
-                                            } else if (effectiveIsPlaying) {
-                                                R.drawable.pause
-                                            } else {
-                                                R.drawable.play
-                                            },
-                                        ),
-                                    contentDescription = null,
-                                    colorFilter = ColorFilter.tint(iconButtonColor),
+                            if (playButtonStyle == com.metrolist.music.constants.PlayButtonStyle.METAL_RING) {
+                                com.metrolist.music.ui.component.PlayerPlayButton(
+                                    modifier = Modifier.size(72.dp).focusRequester(focusRequester),
+                                    onClick = onMainPlay,
+                                    iconRes = mainPlayIcon,
+                                    contentDescription = mainPlayDescription,
+                                    style = playButtonStyle,
+                                )
+                            } else {
+                                Box(
                                     modifier =
                                         Modifier
-                                            .align(Alignment.Center)
-                                            .size(36.dp),
-                                )
+                                            .size(72.dp)
+                                            .clip(RoundedCornerShape(playPauseRoundness))
+                                            .background(textButtonColor)
+                                            .clickable {
+                                                if (isListenTogetherGuest) {
+                                                    playerConnection.toggleMute()
+                                                    return@clickable
+                                                }
+                                                if (isCasting) {
+                                                    if (castIsPlaying) {
+                                                        castHandler?.pause()
+                                                    } else {
+                                                        castHandler?.play()
+                                                    }
+                                                } else if (playbackState == STATE_ENDED) {
+                                                    playerConnection.player.seekTo(0, 0)
+                                                    playerConnection.player.playWhenReady = true
+                                                } else {
+                                                    playerConnection.player.togglePlayPause()
+                                                }
+                                            }
+                                            .focusRequester(focusRequester),
+                                ) {
+                                    Image(
+                                        painter =
+                                            painterResource(
+                                                if (isListenTogetherGuest) {
+                                                    if (isMuted) R.drawable.volume_off else R.drawable.volume_up
+                                                } else if (playbackState ==
+                                                    STATE_ENDED
+                                                ) {
+                                                    R.drawable.replay
+                                                } else if (effectiveIsPlaying) {
+                                                    R.drawable.pause
+                                                } else {
+                                                    R.drawable.play
+                                                },
+                                            ),
+                                        contentDescription = null,
+                                        colorFilter = ColorFilter.tint(iconButtonColor),
+                                        modifier =
+                                            Modifier
+                                                .align(Alignment.Center)
+                                                .size(36.dp),
+                                    )
+                                }
                             }
 
                             Spacer(Modifier.width(8.dp))
@@ -1687,11 +1739,13 @@ fun BottomSheetPlayer(
                         val currentSliderPosition by rememberUpdatedState(sliderPosition)
                         val sliderPositionProvider = remember { { currentSliderPosition } }
                         val isExpandedProvider = remember(state) { { state.isExpanded } }
-                        CoverLyricsFrame(enabled = coverLyricsEnabled && !showInlineLyrics,
+                        CoverLyricsFrame(enabled = coverLyricsEnabled && !showInlineLyrics && !musicVideoRequested,
                             modifier = Modifier.fillMaxSize(),
                             lyrics = { mediaMetadata?.let { CoverLyricsDisplay(it, effectivePosition, TextBackgroundColor) } }) {
-                        AnimatedContent(
-                            targetState = showInlineLyrics,
+                        if (musicVideoActive && state.isExpanded) {
+                            MusicVideoDisplay(playerConnection.service, Modifier.fillMaxSize())
+                        } else AnimatedContent(
+                            targetState = showInlineLyrics && !musicVideoRequested,
                             label = "Lyrics",
                             transitionSpec = { fadeIn() togetherWith fadeOut() },
                         ) { showLyrics ->
@@ -1758,11 +1812,13 @@ fun BottomSheetPlayer(
                         val currentSliderPosition by rememberUpdatedState(sliderPosition)
                         val sliderPositionProvider = remember { { currentSliderPosition } }
                         val isExpandedProvider = remember(state) { { state.isExpanded } }
-                        CoverLyricsFrame(enabled = coverLyricsEnabled && !showInlineLyrics,
+                        CoverLyricsFrame(enabled = coverLyricsEnabled && !showInlineLyrics && !musicVideoRequested,
                             modifier = Modifier.fillMaxSize(),
                             lyrics = { mediaMetadata?.let { CoverLyricsDisplay(it, effectivePosition, TextBackgroundColor) } }) {
-                        AnimatedContent(
-                            targetState = showInlineLyrics,
+                        if (musicVideoActive && state.isExpanded) {
+                            MusicVideoDisplay(playerConnection.service, Modifier.fillMaxSize())
+                        } else AnimatedContent(
+                            targetState = showInlineLyrics && !musicVideoRequested,
                             label = "Lyrics",
                             transitionSpec = { fadeIn() togetherWith fadeOut() },
                         ) { showLyrics ->
@@ -1787,6 +1843,13 @@ fun BottomSheetPlayer(
                         }
                     }
 
+                    if (musicVideoRequested && musicVideoState.mode == com.metrolist.music.playback.MusicVideoMode.LOADING) {
+                        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            androidx.compose.material3.CircularProgressIndicator(Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                            Text(stringResource(R.string.sourcify_music_video_loading), color = Color.White)
+                        }
+                    }
                     mediaMetadata?.let {
                         controlsContent(it)
                     }

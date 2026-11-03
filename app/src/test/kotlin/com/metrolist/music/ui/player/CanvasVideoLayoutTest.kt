@@ -26,6 +26,16 @@ class CanvasVideoLayoutTest {
     }
 
     @Test
+    fun fullscreenCanvasRemovesTheDimmerAndKeepsTheSavedNormalBrightness() {
+        for (brightness in listOf(.15f, .4f, .65f, 1f, Float.NaN)) {
+            val normal = canvasDimAlpha(brightness)
+            assertEquals("Fullscreen must show undimmed Canvas", 0f, canvasDimAlpha(brightness, fullscreen = true), 0f)
+            assertEquals("Leaving fullscreen must restore the original preference", normal,
+                canvasDimAlpha(brightness, fullscreen = false), 0f)
+        }
+    }
+
+    @Test
     fun transientUnknownDimensionsAtLoopBoundaryKeepLastAspectRatio() {
         val valid = androidx.media3.common.VideoSize(1920, 1080)
         val stable = stableCanvasVideoSize(valid, androidx.media3.common.VideoSize.UNKNOWN)

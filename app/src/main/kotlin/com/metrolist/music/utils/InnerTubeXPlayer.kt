@@ -74,6 +74,22 @@ object InnerTubeXPlayer {
         }
     }
 
+    internal suspend fun fullMusicVideoStream(videoId: String): ExtractedStream? {
+        val selectedHeight = normalizedCanvasHeight(currentCanvasVideoHeight())
+        return bundle().extractor.extract(
+            videoId = videoId,
+            hints = ContentHints(wantVideo = true, maxVideoHeight = selectedHeight)
+                .withStreamCapabilities(allowHls = false, allowSabr = false, allowBoundedRange = false),
+            audioQuality = InnerTubeXAudioQuality.HIGH,
+            clientPlaybackNonce = generateClientPlaybackNonce(),
+        )?.takeIf {
+            it.videoId == videoId && it.videoUrl != null && it.audioUrl.isNotBlank() &&
+                it.sabrBootstrap == null && it.sabrVideoBootstrap == null &&
+                !it.requireBoundedRange && !it.useRangeChunks &&
+                canvasVideoFitsQuality(it.videoHeight, selectedHeight)
+        }
+    }
+
     suspend fun playerResponseForPlayback(
         videoId: String,
         playlistId: String? = null,

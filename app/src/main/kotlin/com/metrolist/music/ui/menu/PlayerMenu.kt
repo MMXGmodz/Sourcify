@@ -313,6 +313,7 @@ fun PlayerMenu(
                 bottom = 8.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding(),
             ),
     ) {
+        item { MusicVideoAction(mediaMetadata.id, onDismiss) }
         item { SongEditAction(mediaMetadata, onDismiss) }
         item { CoverLyricsAction(onDismiss) }
         item { PlayerSleepTimerAction() }

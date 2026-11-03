@@ -12,6 +12,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +23,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,9 +50,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -79,6 +85,8 @@ import com.metrolist.music.constants.PlayerBackgroundStyle
 import com.metrolist.music.constants.PlayerBackgroundStyleKey
 import com.metrolist.music.constants.PlayerButtonsStyle
 import com.metrolist.music.constants.PlayerButtonsStyleKey
+import com.metrolist.music.constants.PlayButtonStyle
+import com.metrolist.music.constants.PlayButtonStyleKey
 import com.metrolist.music.constants.PureBlackMiniPlayerKey
 import com.metrolist.music.constants.SelectedThemeColorKey
 import com.metrolist.music.constants.ShowCachedPlaylistKey
@@ -103,6 +111,7 @@ import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.component.DynamicSlider
 import com.metrolist.music.ui.component.PlayerSliderTrack
+import com.metrolist.music.ui.component.PlayerPlayButton
 import com.metrolist.music.ui.component.SquigglySlider
 import com.metrolist.music.ui.component.WavySlider
 import com.metrolist.music.ui.theme.DefaultThemeColor
@@ -206,6 +215,8 @@ fun AppearanceSettings(
             PlayerButtonsStyleKey,
             defaultValue = PlayerButtonsStyle.DEFAULT,
         )
+    val (playButtonStyle, onPlayButtonStyleChange) =
+        rememberEnumPreference(PlayButtonStyleKey, PlayButtonStyle.STANDARD)
     val (hideStatusBarOnFullscreen, onHideStatusBarOnFullscreenChange) =
         rememberPreference(
             HideStatusBarOnFullscreenKey,
@@ -321,6 +332,27 @@ fun AppearanceSettings(
 
     var showPlayerButtonsStyleDialog by rememberSaveable {
         mutableStateOf(false)
+    }
+
+    var showPlayButtonStyleDialog by rememberSaveable { mutableStateOf(false) }
+    if (showPlayButtonStyleDialog) {
+        DefaultDialog(
+            onDismiss = { showPlayButtonStyleDialog = false },
+            buttons = {
+                TextButton(onClick = { showPlayButtonStyleDialog = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            },
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(stringResource(R.string.player_play_button_style), style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.play_button_style_description), style = MaterialTheme.typography.bodyMedium)
+                PlayButtonStyleOptions(playButtonStyle) {
+                    onPlayButtonStyleChange(it)
+                    showPlayButtonStyleDialog = false
+                }
+            }
+        }
     }
 
     if (showPlayerButtonsStyleDialog) {
@@ -1013,6 +1045,15 @@ fun AppearanceSettings(
                         onClick = { showPlayerButtonsStyleDialog = true },
                     ),
                     Material3SettingsItem(
+                        icon = painterResource(R.drawable.play),
+                        title = { Text(stringResource(R.string.player_play_button_style)) },
+                        description = {
+                            Text(stringResource(if (playButtonStyle == PlayButtonStyle.STANDARD)
+                                R.string.play_button_standard else R.string.play_button_metal_ring))
+                        },
+                        onClick = { showPlayButtonStyleDialog = true },
+                    ),
+                    Material3SettingsItem(
                         icon = painterResource(R.drawable.sliders),
                         title = { Text(stringResource(R.string.player_slider_style)) },
                         description = {
@@ -1430,6 +1471,55 @@ fun AppearanceSettings(
             }
         },
     )
+}
+
+@Composable
+internal fun PlayButtonStyleOptions(
+    selected: PlayButtonStyle,
+    onSelect: (PlayButtonStyle) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        PlayButtonStyle.entries.forEach { style ->
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.dp, if (selected == style) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+                    .selectable(selected = selected == style, role = Role.RadioButton, onClick = { onSelect(style) })
+                    .padding(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF121619))
+                        .clearAndSetSemantics {},
+                    contentAlignment = Alignment.Center,
+                ) {
+                    PlayerPlayButton(
+                        modifier = Modifier.size(72.dp),
+                        onClick = { onSelect(style) },
+                        iconRes = R.drawable.play,
+                        contentDescription = "",
+                        style = style,
+                    )
+                }
+                Text(
+                    text = stringResource(if (style == PlayButtonStyle.STANDARD)
+                        R.string.play_button_standard else R.string.play_button_metal_ring),
+                    style = MaterialTheme.typography.labelMedium,
+                    minLines = 2,
+                )
+            }
+        }
+    }
 }
 
 enum class DarkMode {
