@@ -89,8 +89,8 @@ class MusicVideoPresentationTest {
         session.audio("song")
         assertEquals(0, session.state.value.videoWidth)
         assertEquals(16f / 9f, musicVideoAspectRatio(0, 0), .001f)
-        assertEquals(200.dp, musicVideoBrowseHeight(600.dp))
-        assertEquals(180.dp, musicVideoBrowseHeight(320.dp))
+        assertEquals(104.dp, videoMiniPlayerHeight(1f))
+        assertEquals(0.dp, videoMiniPlayerExtraHeight(false, true, 1f))
     }
 
     @Test fun automaticQualityHonorsNetworkPolicyAndExplicitVideoQualityCanSelect1080() {

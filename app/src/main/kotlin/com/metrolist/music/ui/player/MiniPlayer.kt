@@ -151,7 +151,12 @@ fun MiniPlayer(
     // Create stable progress state - doesn't cause recomposition on position changes
     val progressState = remember { ProgressState(positionState, durationState) }
 
-    if (useNewMiniPlayerDesign) {
+    val connection = LocalPlayerConnection.current
+    val videoState = connection?.service?.musicVideoState?.collectAsStateWithLifecycle()?.value
+    val largeVideo by rememberPreference(com.metrolist.music.constants.MusicVideoLargeMiniPlayerKey, false)
+    if (largeVideo && videoState?.hasVideo == true) {
+        VideoMiniPlayer(progressState, modifier, onClick)
+    } else if (useNewMiniPlayerDesign) {
         NewMiniPlayer(
             progressState = progressState,
             modifier = modifier,

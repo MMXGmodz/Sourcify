@@ -20,7 +20,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -37,7 +36,6 @@ internal class MusicVideoPresentationState {
     var fullscreen by mutableStateOf<MusicVideoFullscreen?>(null)
     var inPip by mutableStateOf(false)
     var browsing by mutableStateOf(false)
-    var browseHeight by mutableStateOf(0.dp)
     fun owns(role: MusicVideoDisplayRole): Boolean = when {
         inPip || fullscreen != null -> role == MusicVideoDisplayRole.OVERLAY
         browsing -> role == MusicVideoDisplayRole.BROWSE
@@ -46,8 +44,6 @@ internal class MusicVideoPresentationState {
 }
 
 internal val LocalMusicVideoPresentation = staticCompositionLocalOf<MusicVideoPresentationState?> { null }
-
-internal fun musicVideoBrowseHeight(width: Dp): Dp = (width * 9f / 16f).coerceAtMost(200.dp)
 
 internal fun musicVideoPipEligible(enabled: Boolean, supported: Boolean, video: Boolean, playing: Boolean): Boolean =
     enabled && supported && video && playing
@@ -110,7 +106,7 @@ internal fun MusicVideoOverlayHost(service: MusicService?, state: MusicVideoPres
     var settings by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         MusicVideoDisplay(service, Modifier.fillMaxSize(), MusicVideoDisplayRole.OVERLAY,
-            onSettingsClick = { settings = true }, crop = !state.inPip)
+            onSettingsClick = { settings = true })
         if (!state.inPip) IconButton(onClick = { state.fullscreen = null },
             modifier = Modifier.align(Alignment.TopStart).systemBarsPadding().padding(8.dp)
                 .background(Color.Black.copy(alpha = .5f), androidx.compose.foundation.shape.CircleShape)) {

@@ -38,29 +38,35 @@ internal fun musicVideoFrameSize(width: Int, height: Int, videoWidth: Float, vid
     return (videoWidth * scale).toInt().coerceAtLeast(1) to (videoHeight * scale).toInt().coerceAtLeast(1)
 }
 
-private class MusicVideoFrame(context: Context) : FrameLayout(context) {
+internal class MusicVideoFrame(context: Context) : FrameLayout(context) {
     val texture = TextureView(context)
     var crop = false
+        set(value) {
+            if (field == value) return
+            field = value
+            requestLayout()
+        }
     private var size = VideoSize.UNKNOWN
     init { addView(texture, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, Gravity.CENTER)) }
     fun updateSize(incoming: VideoSize) {
-        if (incoming.width > 0 && incoming.height > 0) size = incoming
-        resizeVideo()
+        if (incoming.width <= 0 || incoming.height <= 0 || incoming.pixelWidthHeightRatio <= 0 ||
+            !incoming.pixelWidthHeightRatio.isFinite() || !(incoming.width * incoming.pixelWidthHeightRatio).isFinite() ||
+            incoming == size) return
+        size = incoming
+        requestLayout()
     }
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
-        resizeVideo()
-    }
-    private fun resizeVideo() {
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+        val width = (measuredWidth - paddingLeft - paddingRight).coerceAtLeast(0)
+        val height = (measuredHeight - paddingTop - paddingBottom).coerceAtLeast(0)
         val videoWidth = size.width * size.pixelWidthHeightRatio
         val videoHeight = size.height.toFloat()
-        val (w, h) = if (crop && videoWidth > 0 && videoHeight > 0) {
+        val (w, h) = if (crop && width > 0 && height > 0 && videoWidth > 0 && videoHeight > 0) {
             val scale = maxOf(width / videoWidth, height / videoHeight)
-            (videoWidth * scale).toInt() to (videoHeight * scale).toInt()
+            (videoWidth * scale).toInt().coerceAtLeast(1) to (videoHeight * scale).toInt().coerceAtLeast(1)
         } else musicVideoFrameSize(width, height, videoWidth, videoHeight)
-        if (w > 0 && h > 0 && (texture.layoutParams.width != w || texture.layoutParams.height != h)) {
-            texture.layoutParams = LayoutParams(w, h, Gravity.CENTER)
-        }
+        // Changing layout params in onSizeChanged leaves the first measured texture stretched.
+        texture.measure(MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(h, MeasureSpec.EXACTLY))
     }
 }
 
@@ -69,10 +75,12 @@ private class MusicVideoFrame(context: Context) : FrameLayout(context) {
 internal fun MusicVideoDisplay(service: MusicService, modifier: Modifier = Modifier,
     role: MusicVideoDisplayRole = MusicVideoDisplayRole.INLINE,
     onSettingsClick: (() -> Unit)? = null, crop: Boolean = false,
+    controlsEnabled: Boolean = true,
 ) {
     val presentation = LocalMusicVideoPresentation.current
     if (presentation != null && !presentation.owns(role)) return
     val pip = presentation?.inPip == true
+    val controlsAvailable = controlsEnabled && !pip
     val videoControlsLabel = stringResource(R.string.s86_video_controls)
     var controls by remember { mutableStateOf(false) }
     var settings by remember { mutableStateOf(false) }
@@ -101,11 +109,12 @@ internal fun MusicVideoDisplay(service: MusicService, modifier: Modifier = Modif
             bound?.let { activePlayer.clearVideoTextureView(it.texture) }
         }
     }
-    Box(modifier.clipToBounds().background(Color.Black).clickable(enabled = !pip, role = Role.Button, onClickLabel = videoControlsLabel) { controls = !controls }
-        .semantics { if (!pip) contentDescription = videoControlsLabel }) {
+    val controlsModifier = if (controlsAvailable) Modifier.clickable(role = Role.Button, onClickLabel = videoControlsLabel) { controls = !controls }
+        .semantics { contentDescription = videoControlsLabel } else Modifier
+    Box(modifier.clipToBounds().background(Color.Black).then(controlsModifier)) {
         AndroidView(factory = { MusicVideoFrame(it).also { created -> frame = created } },
             update = { it.crop = crop; it.updateSize(activePlayer.videoSize) }, modifier = Modifier.fillMaxSize())
-        if (controls && !pip) {
+        if (controls && controlsAvailable) {
             IconButton(onClick = { onSettingsClick?.invoke() ?: run { settings = true } }, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).background(Color.Black.copy(alpha = .5f), androidx.compose.foundation.shape.CircleShape)) {
                 Icon(painterResource(R.drawable.settings), stringResource(R.string.s86_video_settings), tint = Color.White)
             }
@@ -119,5 +128,5 @@ internal fun MusicVideoDisplay(service: MusicService, modifier: Modifier = Modif
             }
         }
     }
-    if (settings) MusicVideoSettingsSheet(service) { settings = false }
+    if (settings && controlsAvailable) MusicVideoSettingsSheet(service) { settings = false }
 }

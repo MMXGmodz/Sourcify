@@ -867,17 +867,11 @@ fun BottomSheetPlayer(
                 null
             },
         collapsedContent = {
-            Column(Modifier.fillMaxWidth()) {
-                val presentation = LocalMusicVideoPresentation.current
-                if (musicVideoActive && presentation != null && presentation.browseHeight > 0.dp) {
-                    MusicVideoDisplay(playerConnection.service, Modifier.fillMaxWidth().height(presentation.browseHeight), MusicVideoDisplayRole.BROWSE)
-                }
-                MiniPlayer(
-                    positionState = positionState,
-                    durationState = durationState,
-                    onClick = { state.expandSoft() },
-                )
-            }
+            MiniPlayer(
+                positionState = positionState,
+                durationState = durationState,
+                onClick = { state.expandSoft() },
+            )
         },
     ) {
         val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = { mediaMetadata ->

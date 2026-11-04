@@ -833,9 +833,8 @@ class MainActivity : FragmentActivity() {
 
                 val videoState = playerConnection?.service?.musicVideoState?.collectAsStateWithLifecycle()?.value
                 val largeVideo by rememberPreference(com.metrolist.music.constants.MusicVideoLargeMiniPlayerKey, false)
-                val browseVideoHeight = if (largeVideo && videoState?.hasVideo == true)
-                    com.metrolist.music.ui.player.musicVideoBrowseHeight(maxWidth).coerceAtMost(maxHeight * .3f) else 0.dp
-                SideEffect { videoPresentation.browseHeight = browseVideoHeight }
+                val browseVideoHeight = com.metrolist.music.ui.player.videoMiniPlayerExtraHeight(
+                    largeVideo, videoState?.hasVideo == true, LocalDensity.current.fontScale)
 
                 val playerBottomSheetState =
                     rememberBottomSheetState(
@@ -1425,46 +1424,14 @@ class MainActivity : FragmentActivity() {
                                     }
                                 }
                             }
-                            AlertDialog(
-                                onDismissRequest = dismissUpdate,
-                                title = { Text(stringResource(R.string.update_available_title)) },
-                                text = {
-                                    Column(
-                                        modifier =
-                                            Modifier
-                                                .heightIn(max = 480.dp)
-                                                .verticalScroll(rememberScrollState()),
-                                    ) {
-                                        Text(
-                                            text = stringResource(R.string.sourcify_update_available_message, update.release.versionName),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.changelog),
-                                            style = MaterialTheme.typography.titleSmall,
-                                            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
-                                        )
-                                        Text(
-                                            text = update.release.description.ifBlank { stringResource(R.string.changelog_empty) },
-                                            style = MaterialTheme.typography.bodySmall,
-                                        )
-                                    }
+                            com.metrolist.music.ui.component.SourcifyUpdateAvailableDialog(
+                                version = update.release.versionName,
+                                description = update.release.description,
+                                onUpdate = {
+                                    dismissUpdate()
+                                    startActivity(UpdateActivity.createIntent(this@MainActivity))
                                 },
-                                confirmButton = {
-                                    TextButton(
-                                        onClick = {
-                                            dismissUpdate()
-                                            startActivity(UpdateActivity.createIntent(this@MainActivity))
-                                        },
-                                    ) {
-                                        Text(stringResource(R.string.update_action))
-                                    }
-                                },
-                                dismissButton = {
-                                    TextButton(onClick = dismissUpdate) {
-                                        Text(stringResource(R.string.kmp_upgrade_later))
-                                    }
-                                },
+                                onDismiss = dismissUpdate,
                             )
                         }
                     }

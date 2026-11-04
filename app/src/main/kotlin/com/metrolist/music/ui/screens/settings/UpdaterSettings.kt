@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -22,6 +25,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -44,6 +49,7 @@ import com.metrolist.music.R
 import com.metrolist.music.constants.CheckForUpdatesKey
 import com.metrolist.music.constants.UpdateNotificationsEnabledKey
 import com.metrolist.music.ui.component.IconButton
+import com.metrolist.music.ui.component.SourcifyUpdateHero
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.utils.backToMain
@@ -111,21 +117,10 @@ fun UpdaterScreen(
 
         Spacer(Modifier.height(4.dp))
 
-        Material3SettingsGroup(
-            title = stringResource(R.string.current_version),
-            items =
-                listOf(
-                    Material3SettingsItem(
-                        title = {
-                            Text(stringResource(R.string.version_format, BuildConfig.VERSION_NAME))
-                        },
-                        description = {
-                            val arch = BuildConfig.ARCHITECTURE
-                            val variant = if (BuildConfig.CAST_AVAILABLE) "GMS" else "FOSS"
-                            Text("$arch - $variant")
-                        },
-                    ),
-                ),
+        SourcifyUpdateHero(
+            title = stringResource(R.string.s1380_update_title),
+            subtitle = "${stringResource(R.string.current_version)} · ${BuildConfig.ARCHITECTURE} · ${if (BuildConfig.CAST_AVAILABLE) "GMS" else "FOSS"}",
+            version = stringResource(R.string.version_format, BuildConfig.VERSION_NAME),
         )
 
         Spacer(Modifier.height(16.dp))
@@ -186,7 +181,7 @@ fun UpdaterScreen(
                         trailingContent = {
                             if (isChecking) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.padding(end = 16.dp),
+                                    modifier = Modifier.size(24.dp),
                                     strokeWidth = 2.dp,
                                 )
                             } else if (updateAvailable) {
@@ -204,43 +199,44 @@ fun UpdaterScreen(
 
         checkError?.let {
             Spacer(Modifier.height(12.dp))
-            Text(
-                text = it,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
+            Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.errorContainer) {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.fillMaxWidth().padding(20.dp),
+                )
+            }
         }
 
         if (updateAvailable && latestVersion != null) {
             Spacer(Modifier.height(16.dp))
             Button(
                 onClick = { context.startActivity(UpdateActivity.createIntent(context)) },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
             ) {
                 Text(stringResource(R.string.s1380_update_install))
             }
             Spacer(Modifier.height(8.dp))
-            Button(
+            OutlinedButton(
                 onClick = { showChangelog = !showChangelog },
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                        .heightIn(min = 48.dp),
             ) {
                 Text(if (showChangelog) stringResource(R.string.hide_changelog) else stringResource(R.string.view_changelog))
             }
 
             if (showChangelog && changelogContent != null) {
                 Spacer(Modifier.height(12.dp))
-                Text(
-                    text = changelogContent!!,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                )
+                Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                    Text(
+                        text = changelogContent!!,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.fillMaxWidth().padding(20.dp),
+                    )
+                }
             }
         }
 

@@ -199,6 +199,90 @@ class PlayerPlayButtonTest {
         }
     }
 
+    @Test fun browsingVideoStaysInTheBottomCardWhenPreviewIsUnavailableAndOptionToggles() = withComposition {
+        var large by mutableStateOf(false)
+        var previewReady by mutableStateOf(false)
+        var cardCoordinates: androidx.compose.ui.layout.LayoutCoordinates? = null
+        var videoCoordinates: androidx.compose.ui.layout.LayoutCoordinates? = null
+        fun cardBounds() = requireNotNull(cardCoordinates).boundsInWindow()
+        fun videoBounds() = requireNotNull(videoCoordinates).boundsInWindow()
+        content {
+            Box(Modifier.fillMaxSize()) {
+                val extra = com.metrolist.music.ui.player.videoMiniPlayerExtraHeight(large, true, 1f)
+                val state = com.metrolist.music.ui.component.rememberBottomSheetState(
+                    dismissedBound = 0.dp,
+                    expandedBound = 800.dp, collapsedBound = 104.dp + com.metrolist.music.constants.MiniPlayerHeight + extra,
+                    initialAnchor = com.metrolist.music.ui.component.collapsedAnchor)
+                com.metrolist.music.ui.component.BottomSheet(state, collapsedContent = {
+                    if (large) com.metrolist.music.ui.player.VideoMiniPlayerCard("Escape", "Nemzzz", true, false,
+                        modifier = Modifier.onGloballyPositioned { cardCoordinates = it },
+                        onExpand = {}, onPlayPause = {}, onLike = {}, video = {
+                            Box(Modifier.fillMaxSize().onGloballyPositioned { videoCoordinates = it }
+                                .background(if (previewReady) Color(0xFF307DF6) else Color.Black))
+                        })
+                    else Box(Modifier.size(360.dp, com.metrolist.music.constants.MiniPlayerHeight)
+                        .onGloballyPositioned { cardCoordinates = it })
+                }, content = {})
+            }
+        }
+        frames(120)
+        val baselineBottom = cardBounds().bottom
+        large = true
+        frames(120)
+        assertEquals("The current-track card must stay above navigation, not float upward", baselineBottom, cardBounds().bottom, 1f)
+        assertTrue("Collapsed video card bounds: " + cardBounds(), cardBounds().top > 540f)
+        assertTrue(videoBounds().left >= 12f && videoBounds().right < 180f)
+        assertTrue(videoBounds().height > 70f)
+        val withoutSurface = cardBounds()
+        previewReady = true
+        frames(20)
+        assertEquals(withoutSurface, cardBounds())
+        val shot = Bitmap.createBitmap(360, 800, Bitmap.Config.ARGB_8888)
+        root.draw(Canvas(shot))
+        File("build/ui-previews/video-mini-player.png").apply { parentFile?.mkdirs() }.outputStream().use {
+            shot.compress(Bitmap.CompressFormat.PNG, 100, it)
+        }
+        shot.recycle()
+        large = false
+        frames(120)
+        assertEquals(baselineBottom, cardBounds().bottom, 1f)
+    }
+
+    @Test fun browsingVideoKeepsTouchTargetsVisibleAtLargeFontWithoutActivatingTheCard() = withComposition {
+        var expands = 0
+        var plays = 0
+        var likes = 0
+        content {
+            val density = androidx.compose.ui.platform.LocalDensity.current
+            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides
+                androidx.compose.ui.unit.Density(density.density, 1.8f)) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+                    com.metrolist.music.ui.player.VideoMiniPlayerCard("A long music video title that must fit", "Artist name", true, false,
+                        onExpand = { expands++ }, onPlayPause = { plays++ }, onLike = { likes++ },
+                        video = { Box(Modifier.fillMaxSize().background(Color.Blue)) })
+                }
+            }
+        }
+        frames(20)
+        var play = nodes().first { it.config.getOrNull(SemanticsProperties.ContentDescription) == listOf(activity.getString(R.string.player_pause)) && it.config.getOrNull(SemanticsActions.OnClick)?.action != null }
+        val originalRight = play.boundsInRoot.right
+        setSystemBarRightInset(48)
+        frames(20)
+        play = nodes().first { it.config.getOrNull(SemanticsProperties.ContentDescription) == listOf(activity.getString(R.string.player_pause)) && it.config.getOrNull(SemanticsActions.OnClick)?.action != null }
+        assertEquals("Landscape navigation must move the play target out of the system bar", originalRight - 48f, play.boundsInRoot.right, 1f)
+        assertTrue(play.boundsInRoot.width >= 48f && play.boundsInRoot.height >= 48f)
+        assertTrue(play.boundsInRoot.bottom <= 800f)
+        tap(play.boundsInRoot.center.x, play.boundsInRoot.center.y)
+        frames()
+        assertEquals(1, plays)
+        assertEquals(0, expands)
+        val like = nodes().first { it.config.getOrNull(SemanticsProperties.ContentDescription) == listOf(activity.getString(R.string.s87_toggle_favorite)) && it.config.getOrNull(SemanticsActions.OnClick)?.action != null }
+        tap(like.boundsInRoot.center.x, like.boundsInRoot.center.y)
+        frames()
+        assertEquals(1, likes)
+        assertEquals(0, expands)
+    }
+
     @Test fun buttonHasOneAccessibleActionMinimumTargetAndBlocksDisabledClicks() = withComposition {
         var enabled by mutableStateOf(true)
         var clicks = 0
@@ -269,8 +353,12 @@ class PlayerPlayButtonTest {
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined + clock)
         private val recomposer = Recomposer(scope.coroutineContext)
         private var time = 0L
+        private var insetsView: View? = null
         init { scope.launch { recomposer.runRecomposeAndApplyChanges() } }
-        fun content(block: @Composable () -> Unit) { activity.setContent(parent = recomposer) { MaterialTheme(content = block) } }
+        fun content(block: @Composable () -> Unit) { activity.setContent(parent = recomposer) {
+            insetsView = androidx.compose.ui.platform.LocalView.current
+            MaterialTheme(content = block)
+        } }
         fun frames(count: Int = 8) {
             repeat(count) {
                 root.measure(View.MeasureSpec.makeMeasureSpec(360, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(800, View.MeasureSpec.EXACTLY))
@@ -280,6 +368,17 @@ class PlayerPlayButtonTest {
                 clock.sendFrame(time)
                 shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(16))
             }
+            // Current Compose completes pending measure/place work during the native draw pass.
+            val frame = Bitmap.createBitmap(360, 800, Bitmap.Config.ARGB_8888)
+            root.draw(Canvas(frame))
+            frame.recycle()
+        }
+        fun setSystemBarRightInset(pixels: Int) {
+            val insets = androidx.core.view.WindowInsetsCompat.Builder()
+                .setInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars(), androidx.core.graphics.Insets.of(0, 0, pixels, 0))
+                .setVisible(androidx.core.view.WindowInsetsCompat.Type.navigationBars(), true).build()
+            assertEquals(pixels, insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).right)
+            androidx.core.view.ViewCompat.dispatchApplyWindowInsets(requireNotNull(insetsView), insets)
         }
         fun tap(x: Float, y: Float) {
             val now = SystemClock.uptimeMillis()
