@@ -181,13 +181,13 @@ import com.metrolist.music.models.MediaMetadata
 import com.metrolist.music.ui.component.BottomSheet
 import com.metrolist.music.ui.component.BottomSheetState
 import com.metrolist.music.ui.component.LocalBottomSheetPageState
+import com.metrolist.music.ui.component.ExpandableBottomSheet
 import com.metrolist.music.ui.component.LocalMenuState
 import com.metrolist.music.ui.component.Lyrics
 import com.metrolist.music.ui.component.PlayerSliderTrack
 import com.metrolist.music.ui.component.ResizableIconButton
 import com.metrolist.music.ui.component.SquigglySlider
 import com.metrolist.music.ui.component.WavySlider
-import com.metrolist.music.ui.component.rememberBottomSheetState
 import com.metrolist.music.ui.menu.PlayerMenu
 import com.metrolist.music.ui.screens.settings.DarkMode
 import com.metrolist.music.ui.theme.PlayerColorExtractor
@@ -721,15 +721,7 @@ fun BottomSheetPlayer(
         }
     }
 
-    val dismissedBound = 0.dp
-
-    val queueSheetState =
-        rememberBottomSheetState(
-            dismissedBound = dismissedBound,
-            expandedBound = state.expandedBound,
-            collapsedBound = dismissedBound + 1.dp,
-            initialAnchor = 1,
-        )
+    var showQueue by rememberSaveable { mutableStateOf(false) }
 
     val bottomSheetBackgroundColor =
         when (playerBackground) {
@@ -1436,7 +1428,7 @@ fun BottomSheetPlayer(
                 enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                 exit = shrinkVertically(shrinkTowards = Alignment.Top) + slideOutVertically(targetOffsetY = { it }) + fadeOut(),
             ) {
-                PlayerTransportActions(useNewPlayerDesign, { queueSheetState.expandSoft() }) {
+                PlayerTransportActions(useNewPlayerDesign, { showQueue = true }) {
                     if (useNewPlayerDesign) {
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1880,7 +1872,7 @@ fun BottomSheetPlayer(
                                 navController.navigate("concerts?artist=${android.net.Uri.encode(artist)}")
                             },
                         )
-                        PlayerContextCards(song, beforeSongInfo = { PlayerNextCard(onOpenQueue = { queueSheetState.expandSoft() }) }, onNavigate = { route ->
+                        PlayerContextCards(song, beforeSongInfo = { PlayerNextCard(onOpenQueue = { showQueue = true }) }, onNavigate = { route ->
                             state.collapseSoft()
                             navController.navigate(route)
                         })
@@ -1909,27 +1901,18 @@ fun BottomSheetPlayer(
             }
         }
 
-        AnimatedVisibility(
-            visible = !isFullScreen && !canvasFullscreen,
-            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-            exit = shrinkVertically(shrinkTowards = Alignment.Top) + slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-        ) {
-            Queue(
-                state = queueSheetState,
-                playerBottomSheetState = state,
-                background =
-                    Color(0xFF171717),
-                onBackgroundColor = onBackgroundColor,
-                TextBackgroundColor = TextBackgroundColor,
-                textButtonColor = textButtonColor,
-                iconButtonColor = iconButtonColor,
-                pureBlack = pureBlack,
-                showInlineLyrics = showInlineLyrics,
-                playerBackground = playerBackground,
-                onToggleLyrics = {
-                    showInlineLyrics = !showInlineLyrics
-                },
-            )
+        if (showQueue && !isFullScreen && !canvasFullscreen) {
+            ExpandableBottomSheet(
+                onDismissRequest = { showQueue = false },
+                containerColor = Color(0xFF171717),
+                contentColor = onBackgroundColor,
+            ) {
+                Queue(
+                    playerBottomSheetState = state,
+                    background = Color(0xFF171717),
+                    pureBlack = pureBlack,
+                )
+            }
         }
         // Override the sheet's predictive back while the Canvas owns the screen.
         BackHandler(enabled = canvasFullscreen) { canvasFullscreen = false }

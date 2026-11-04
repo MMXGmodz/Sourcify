@@ -11,17 +11,22 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.ProgressBar
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
 import com.metrolist.music.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -42,6 +47,9 @@ import com.metrolist.music.playback.MusicService
 import com.metrolist.music.playback.MusicVideoMode
 import com.metrolist.music.playback.isMusicVideoItem
 import com.metrolist.music.ui.theme.LocalSongColor
+import com.metrolist.music.constants.MusicVideoSeekSecondsKey
+import com.metrolist.music.utils.rememberPreference
+import kotlinx.coroutines.delay
 
 internal fun musicVideoFrameSize(width: Int, height: Int, videoWidth: Float, videoHeight: Float): Pair<Int, Int> {
     if (width <= 0 || height <= 0 || videoWidth <= 0 || videoHeight <= 0 || !videoWidth.isFinite() || !videoHeight.isFinite()) return width to height
@@ -143,6 +151,19 @@ internal fun MusicVideoDisplay(service: MusicService, modifier: Modifier = Modif
     val loadingLabel = stringResource(R.string.sourcify_music_video_loading)
     var controls by remember { mutableStateOf(false) }
     var settings by remember { mutableStateOf(false) }
+    val seekSeconds by rememberPreference(MusicVideoSeekSecondsKey, 5)
+    val backwardLabel = stringResource(R.string.seek_backward_dynamic, seekSeconds.coerceIn(1, 20))
+    val forwardLabel = stringResource(R.string.seek_forward_dynamic, seekSeconds.coerceIn(1, 20))
+    var seekForward by remember { mutableStateOf(true) }
+    var seekFeedback by remember { mutableIntStateOf(0) }
+    var showSeekFeedback by remember { mutableStateOf(false) }
+    LaunchedEffect(seekFeedback) {
+        if (seekFeedback > 0) {
+            showSeekFeedback = true
+            delay(650)
+            showSeekFeedback = false
+        }
+    }
     val player by service.playerFlow.collectAsStateWithLifecycle()
     val activePlayer = player ?: return
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -155,8 +176,15 @@ internal fun MusicVideoDisplay(service: MusicService, modifier: Modifier = Modif
             video = { service.musicVideoState.value }, handoff = handoff) else null
         onDispose { binding?.close() }
     }
-    val controlsModifier = if (controlsAvailable) Modifier.clickable(role = Role.Button, onClickLabel = videoControlsLabel) { controls = !controls }
-        .semantics { contentDescription = videoControlsLabel } else Modifier
+    val controlsModifier = if (controlsAvailable) Modifier.musicVideoGestures(
+        videoControlsLabel, backwardLabel, forwardLabel, onToggle = { controls = !controls },
+        onSeek = { forward ->
+            if (seekMusicVideo(service.player, seekSeconds, forward)) {
+                seekForward = forward
+                seekFeedback++
+                true
+            } else false
+        }) else Modifier
     Box(modifier.clipToBounds().background(Color.Black).then(controlsModifier)) {
         if (owns) {
             AndroidView(factory = { MusicVideoFrame(it).also { created -> frame = created } },
@@ -172,6 +200,14 @@ internal fun MusicVideoDisplay(service: MusicService, modifier: Modifier = Modif
                 else Icon(painterResource(R.drawable.slow_motion_video), loadingLabel,
                     modifier = Modifier.size(24.dp), tint = Color.White.copy(alpha = .7f))
             }
+        }
+        AnimatedVisibility(visible = showSeekFeedback && controlsAvailable,
+            enter = fadeIn() + scaleIn(initialScale = .85f), exit = fadeOut(),
+            modifier = Modifier.align(if (seekForward) Alignment.CenterEnd else Alignment.CenterStart).padding(16.dp)) {
+            Text(if (seekForward) forwardLabel else backwardLabel, color = Color.White,
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.background(Color.Black.copy(alpha = .65f), androidx.compose.foundation.shape.RoundedCornerShape(24.dp))
+                    .padding(horizontal = 16.dp, vertical = 12.dp).semantics { liveRegion = LiveRegionMode.Polite })
         }
         if (controls && controlsAvailable) {
             IconButton(onClick = { onSettingsClick?.invoke() ?: run { settings = true } }, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).background(Color.Black.copy(alpha = .5f), androidx.compose.foundation.shape.CircleShape)) {

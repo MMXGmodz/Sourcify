@@ -11,7 +11,7 @@ import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 
 internal const val MUSIC_VIDEO_SCHEME = "sourcify-musicvideo"
-internal data class MusicVideoStreams(val audio: CachedStreamUrl, val video: CachedStreamUrl, val durationMs: Long)
+internal data class MusicVideoStreams(val audio: CachedStreamUrl?, val video: CachedStreamUrl, val durationMs: Long)
 
 internal fun MediaItem.isMusicVideoItem() = localConfiguration?.uri?.scheme == MUSIC_VIDEO_SCHEME
 internal fun MediaItem.asAudioItem(): MediaItem = if (!isMusicVideoItem()) this else buildUpon()
@@ -27,7 +27,9 @@ internal class MusicVideoSourceFactory(
             ?: return audioFactory.createMediaSource(mediaItem.asAudioItem())
         // Both tracks use the music video's timeline and the primary player's clock.
         // Keeping the ephemeral URI on each child also preserves the queue identity/tag.
-        val audio = ProgressiveMediaSource.Factory(dataSource(selected.audio)).createMediaSource(mediaItem)
+        val audioStream = selected.audio
+            ?: return ProgressiveMediaSource.Factory(dataSource(selected.video)).createMediaSource(mediaItem)
+        val audio = ProgressiveMediaSource.Factory(dataSource(audioStream)).createMediaSource(mediaItem)
         val video = ProgressiveMediaSource.Factory(dataSource(selected.video)).createMediaSource(mediaItem)
         return MergingMediaSource(true, true, audio, video)
     }

@@ -31,6 +31,7 @@ import com.metrolist.music.*
 import com.metrolist.music.R
 import com.metrolist.music.db.entities.ArtistEntity
 import com.metrolist.music.models.MediaMetadata
+import com.metrolist.music.ui.component.ExpandableBottomSheet
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 
@@ -116,8 +117,8 @@ fun PlayerContextCards(song: MediaMetadata, onNavigate: (String) -> Unit, before
         title = { Text(artistName) },
         text = { Text(artist?.description ?: stringResource(R.string.player_context_missing), modifier = Modifier.verticalScroll(rememberScrollState())) },
         confirmButton = { TextButton(onClick = { showBiography = false }) { Text(stringResource(android.R.string.ok)) } })
-    if (showCredits) ModalBottomSheet(onDismissRequest = { showCredits = false; onDismissInformation() },
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Color(0xFF202020), contentColor = Color.White) {
+    if (showCredits) ExpandableBottomSheet(onDismissRequest = { showCredits = false; onDismissInformation() },
+        containerColor = Color(0xFF202020), contentColor = Color.White) {
         var creditsAttempt by remember(song.id) { mutableIntStateOf(0) }
         val creditsKey = remember(song.title, song.artists, song.duration) {
             MusicBrainzSongKey(song.title, song.artists.map { it.name }, song.duration)

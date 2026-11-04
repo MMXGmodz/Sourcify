@@ -68,6 +68,19 @@ class MusicVideoFrameTest {
         frame.assertTexture(202, 360, 299, 0)
     }
 
+    @Test fun miniPreviewCropsToFillButSwitchingBackRestoresNativeFit() {
+        val frame = frame()
+        frame.updateSize(VideoSize(1920, 1080))
+        frame.crop = true
+        frame.measureAndLayout(140, 88)
+        frame.assertTexture(156, 88, -8, 0)
+        frame.crop = false
+        frame.measureAndLayout(140, 88)
+        frame.assertTexture(140, 78, 0, 5)
+        frame.measureAndLayout(360, 800)
+        frame.assertTexture(360, 202, 0, 299)
+    }
+
     @Test fun nonsquarePixelsUseDisplayAspectAndInvalidGeometryKeepsLastValidSize() {
         val frame = frame()
         frame.updateSize(VideoSize(720, 576, 2f))

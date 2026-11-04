@@ -1,5 +1,6 @@
 package com.metrolist.music.ui.player
 
+import android.app.Activity
 import android.graphics.Bitmap
 import android.os.Looper
 import android.view.TextureView
@@ -13,9 +14,11 @@ import androidx.media3.common.VideoSize
 import androidx.media3.common.FlagSet
 import com.metrolist.music.playback.MusicVideoMode
 import com.metrolist.music.playback.MusicVideoState
+import org.junit.After
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
@@ -72,7 +75,15 @@ class MusicVideoRevealTest {
         repeat((ms / 16).toInt()) { idle(16) }
         if (ms % 16 > 0) idle(ms % 16)
     }
-    private fun frame() = MusicVideoFrame(RuntimeEnvironment.getApplication())
+    private val activities = mutableListOf<org.robolectric.android.controller.ActivityController<Activity>>()
+    private fun frame(): MusicVideoFrame {
+        val controller = Robolectric.buildActivity(Activity::class.java).setup().visible()
+        activities += controller
+        return MusicVideoFrame(controller.get()).also { controller.get().setContentView(it) }
+    }
+    @After fun closeActivities() {
+        activities.asReversed().forEach { it.pause().stop().destroy() }
+    }
     private fun video() = MusicVideoState(MusicVideoMode.VIDEO, "song")
 
     @Test fun sourceAndSurfaceGenerationRejectStaleReadiness() {
@@ -166,6 +177,45 @@ class MusicVideoRevealTest {
         replacement.close()
         assertNull(primary.texture)
         assertEquals(2, primary.attachments)
+    }
+
+    @Test fun aDetachedPreviewCannotTakeTheSurfaceFromTheVisiblePlayer() {
+        val owner = Owner().apply { lifecycle.currentState = Lifecycle.State.RESUMED }
+        val primary = Primary().apply { source(first) }
+        val cache = MusicVideoHandoff().apply { update("song", true) }
+        val visible = frame()
+        MusicVideoSurfaceBinding(primary.player, visible, owner.lifecycle, false, { true }, ::video, cache).use {
+            val detached = MusicVideoFrame(RuntimeEnvironment.getApplication())
+            MusicVideoSurfaceBinding(primary.player, detached, owner.lifecycle, false, { true }, ::video, cache).use {
+                assertSame("A view awaiting attachment must not revoke the visible surface", visible.texture, primary.texture)
+                assertEquals(1, primary.attachments)
+            }
+        }
+    }
+
+    @Test fun returningTheSamePreviewAfterNativeDetachRebindsAndWaitsForANewDecodedFrame() {
+        val owner = Owner().apply { lifecycle.currentState = Lifecycle.State.RESUMED }
+        val primary = Primary().apply { source(first) }
+        val cache = MusicVideoHandoff().apply { update("song", true) }
+        val preview = frame()
+        val parent = preview.parent as android.view.ViewGroup
+        MusicVideoSurfaceBinding(primary.player, preview, owner.lifecycle, false, { true }, ::video, cache).use {
+            primary.rendered()
+            idle(300)
+            assertEquals(0f, preview.cover.alpha, .01f)
+            val stale = primary.listeners.toList()
+            parent.removeView(preview)
+            assertNull("Removing a native video view must release its ownership", primary.texture)
+            parent.addView(preview)
+            assertSame(preview.texture, primary.texture)
+            assertEquals(2, primary.attachments)
+            stale.forEach { it.onRenderedFirstFrame() }
+            idle(300)
+            assertEquals(1f, preview.cover.alpha, 0f)
+            primary.rendered()
+            idle(300)
+            assertEquals(0f, preview.cover.alpha, .01f)
+        }
     }
 
     @Test fun anAudioItemWithVideoDimensionsCannotBindOrRevealTheVideoSurface() {

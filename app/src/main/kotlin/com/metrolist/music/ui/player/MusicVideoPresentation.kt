@@ -129,7 +129,7 @@ internal class MusicVideoFullscreenWindow(private val activity: Activity, mode: 
     private val navVisible = insets?.isVisible(WindowInsetsCompat.Type.navigationBars()) ?: true
     init {
         activity.requestedOrientation = if (mode == MusicVideoFullscreen.LANDSCAPE)
-            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
         controller.isAppearanceLightStatusBars = false
         controller.isAppearanceLightNavigationBars = false
         controller.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE

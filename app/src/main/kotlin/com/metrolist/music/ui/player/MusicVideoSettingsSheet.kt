@@ -20,6 +20,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
+import kotlin.math.roundToInt
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.metrolist.music.R
@@ -44,6 +48,10 @@ internal fun MusicVideoSettingsContent(decodedHeight: Int) {
     val (quality, selectQuality) = rememberEnumPreference(MusicVideoQualityKey, MusicVideoQuality.AUTO)
     val (large, setLarge) = rememberPreference(MusicVideoLargeMiniPlayerKey, false)
     val (pip, setPip) = rememberPreference(MusicVideoPipEnabledKey, true)
+    val (seekSeconds, setSeekSeconds) = rememberPreference(MusicVideoSeekSecondsKey, 5)
+    var seekInterval by remember(seekSeconds) { mutableFloatStateOf(seekSeconds.coerceIn(1, 20).toFloat()) }
+    val seekTitle = stringResource(R.string.s89_video_seek_interval)
+    val seekValue = stringResource(R.string.s89_video_seek_interval_value, seekInterval.roundToInt())
     val context = LocalContext.current
     val pipSupported = !com.metrolist.music.BuildConfig.TV_INTERFACE && context.packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
     var qualityPicker by remember { mutableStateOf(false) }
@@ -76,6 +84,18 @@ internal fun MusicVideoSettingsContent(decodedHeight: Int) {
                         else videoQualityLabel(quality), style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = .65f))
                 }
                 Icon(painterResource(R.drawable.navigate_next), null, tint = Color.White)
+            }
+            Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(seekTitle, color = Color.White, modifier = Modifier.weight(1f))
+                    Text(seekValue, color = Color.White)
+                }
+                Text(stringResource(R.string.s89_video_seek_interval_description),
+                    style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = .65f),
+                    modifier = Modifier.padding(top = 4.dp))
+                Slider(value = seekInterval, onValueChange = { seekInterval = it }, valueRange = 1f..20f, steps = 18,
+                    onValueChangeFinished = { setSeekSeconds(seekInterval.roundToInt()) },
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = seekTitle; stateDescription = seekValue })
             }
             VideoSettingToggle(R.drawable.fullscreen, R.string.s86_large_video, R.string.s86_large_video_description, large, setLarge)
             VideoSettingToggle(R.drawable.s86_pip, R.string.s86_pip, R.string.s86_pip_description, pip, setPip, pipSupported)

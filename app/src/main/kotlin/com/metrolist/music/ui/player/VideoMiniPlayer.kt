@@ -51,7 +51,7 @@ internal fun VideoMiniPlayer(progress: ProgressState, modifier: Modifier, onExpa
                 androidx.compose.ui.geometry.Offset(12.dp.toPx() + (size.width - 24.dp.toPx()) * progress.progress, y), 2.dp.toPx())
         }, onExpand = onExpand, onPlayPause = connection::togglePlayPause, onLike = connection::toggleLike,
         video = {
-            MusicVideoDisplay(connection.service, Modifier.fillMaxSize(), MusicVideoDisplayRole.BROWSE, controlsEnabled = false)
+            MusicVideoDisplay(connection.service, Modifier.fillMaxSize(), MusicVideoDisplayRole.BROWSE, crop = true, controlsEnabled = false)
         })
 }
 

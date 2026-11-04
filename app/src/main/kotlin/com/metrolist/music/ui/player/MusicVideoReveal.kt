@@ -1,6 +1,7 @@
 package com.metrolist.music.ui.player
 
 import android.graphics.Bitmap
+import android.view.View
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -95,6 +96,10 @@ internal class MusicVideoSurfaceBinding(
     private var frameListener: Player.Listener? = null
     private var closed = false
     private val lifecycleObserver = LifecycleEventObserver { _, _ -> sync() }
+    private val attachmentListener = object : View.OnAttachStateChangeListener {
+        override fun onViewAttachedToWindow(view: View) = sync()
+        override fun onViewDetachedFromWindow(view: View) = detach()
+    }
     private val sourceListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
             if (events.containsAny(Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_TIMELINE_CHANGED)) sync()
@@ -103,12 +108,13 @@ internal class MusicVideoSurfaceBinding(
     }
 
     init {
+        frame.addOnAttachStateChangeListener(attachmentListener)
         player.addListener(sourceListener)
         lifecycle.addObserver(lifecycleObserver)
         sync()
     }
 
-    private fun active(): Boolean = !closed && ownsSurface() && lifecycle.currentState.isAtLeast(
+    private fun active(): Boolean = !closed && frame.isAttachedToWindow && ownsSurface() && lifecycle.currentState.isAtLeast(
         if (pip) Lifecycle.State.STARTED else Lifecycle.State.RESUMED)
 
     private fun currentKey(): MusicVideoFrameKey? {
@@ -158,6 +164,7 @@ internal class MusicVideoSurfaceBinding(
 
     override fun close() {
         closed = true
+        frame.removeOnAttachStateChangeListener(attachmentListener)
         lifecycle.removeObserver(lifecycleObserver)
         player.removeListener(sourceListener)
         detach()

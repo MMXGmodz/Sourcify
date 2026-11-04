@@ -40,6 +40,19 @@ class MusicVideoSourceFactoryTest {
         assertEquals(C.TIME_END_OF_SOURCE, source.mediaItem.clippingConfiguration.endPositionMs)
     }
 
+    @Test fun localVideoUsesItsOwnAudioAndRetainsTheEphemeralQueueIdentity() {
+        val uri = "sourcify-musicvideo://session/local"
+        val local = "content://media/external/video/123"
+        sources[uri] = MusicVideoStreams(null, CachedStreamUrl(local, emptyMap(), "local"), 90_000)
+        val item = audio.buildUpon().setUri(uri).setCustomCacheKey(null).build()
+        val source = factory.createMediaSource(item)
+        assertFalse("A local AV file must play once, without a second audio source", source is MergingMediaSource)
+        assertEquals(listOf(local), opened)
+        assertEquals(item.mediaId, source.mediaItem.mediaId)
+        assertEquals(metadata, source.mediaItem.metadata)
+        assertEquals(Uri.parse(uri), source.mediaItem.localConfiguration!!.uri)
+    }
+
     @Test fun ordinaryAudioStillUsesOriginalFactory() {
         assertFalse(factory.createMediaSource(audio) is MergingMediaSource)
     }

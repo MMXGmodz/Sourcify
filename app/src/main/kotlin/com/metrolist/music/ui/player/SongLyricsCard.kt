@@ -43,8 +43,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
@@ -56,6 +54,7 @@ import com.metrolist.music.db.entities.LyricsEntity
 import com.metrolist.music.lyrics.saveFetchedLyricsIfMissing
 import com.metrolist.music.lyrics.LyricsUtils
 import com.metrolist.music.models.MediaMetadata
+import com.metrolist.music.ui.component.ExpandableBottomSheet
 import com.metrolist.music.ui.theme.LocalSongColor
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CancellationException
@@ -148,8 +147,8 @@ fun SongLyricsCard(song: MediaMetadata, position: Long, onSeekRequested: ((Long)
     val window = remember(raw, position / 500, offset) { lyricsPreviewWindow(raw, position + offset) }
     val synced = com.metrolist.music.lyrics.lyricsTextLooksSynced(raw)
     LyricsPreviewCard(window.lines, color, onFullscreen = { fullScreen = true }, activeLine = window.activeLine, startIndex = window.startIndex)
-    if (fullScreen) Dialog(onDismissRequest = { fullScreen = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(lerp(color, Color.Black, 0.4f), color))).systemBarsPadding().padding(24.dp)) {
+    if (fullScreen) ExpandableBottomSheet(onDismissRequest = { fullScreen = false }, containerColor = color, contentColor = Color.White) {
+        Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(lerp(color, Color.Black, 0.4f), color))).padding(24.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(song.title, style = MaterialTheme.typography.titleLarge, color = Color.White)

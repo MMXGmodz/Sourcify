@@ -25,6 +25,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -85,7 +86,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -114,7 +114,6 @@ import com.metrolist.music.extensions.toggleRepeatMode
 import com.metrolist.music.listentogether.RoomRole
 import com.metrolist.music.models.MediaMetadata
 import com.metrolist.music.ui.component.ActionPromptDialog
-import com.metrolist.music.ui.component.BottomSheet
 import com.metrolist.music.ui.component.BottomSheetState
 import com.metrolist.music.ui.component.LocalBottomSheetPageState
 import com.metrolist.music.ui.component.LocalMenuState
@@ -147,18 +146,10 @@ import androidx.compose.material3.Button
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Queue(
-    state: BottomSheetState,
     playerBottomSheetState: BottomSheetState,
     modifier: Modifier = Modifier,
     background: Color,
-    onBackgroundColor: Color,
-    TextBackgroundColor: Color,
-    textButtonColor: Color,
-    iconButtonColor: Color,
     pureBlack: Boolean,
-    showInlineLyrics: Boolean,
-    playerBackground: PlayerBackgroundStyle = PlayerBackgroundStyle.DEFAULT,
-    onToggleLyrics: () -> Unit = {},
 ) {
     val navController = LocalNavController.current
     val context = LocalContext.current
@@ -228,14 +219,7 @@ fun Queue(
     val coroutineScope = rememberCoroutineScope()
     var footerHeight by remember { mutableStateOf(104.dp) }
     val footerDensity = androidx.compose.ui.platform.LocalDensity.current
-    BottomSheet(
-        state = state,
-        modifier = modifier,
-        background = {
-            Box(Modifier.fillMaxSize().background(background))
-        },
-        collapsedContent = {},
-    ) {
+    Box(modifier.fillMaxSize().background(background)) {
         val queueTitle by playerConnection.queueTitle.collectAsStateWithLifecycle()
         val queueWindows by playerConnection.queueWindows.collectAsStateWithLifecycle()
         val automix by playerConnection.service.automixItems.collectAsStateWithLifecycle()
@@ -332,15 +316,8 @@ fun Queue(
         ) {
             LazyColumn(
                 state = lazyListState,
-                contentPadding =
-                    WindowInsets.systemBars
-                        .add(
-                            WindowInsets(
-                                top = ListItemHeight + 8.dp,
-                                bottom = footerHeight + 8.dp,
-                            ),
-                        ).asPaddingValues(),
-                modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
+                contentPadding = PaddingValues(top = ListItemHeight + 8.dp, bottom = footerHeight + 8.dp),
+                modifier = Modifier.fillMaxSize(),
             ) {
                 item(key = "queue_top_spacer") {
                     Spacer(
@@ -625,7 +602,7 @@ fun Queue(
                         },
                     ).windowInsetsPadding(
                         WindowInsets.systemBars
-                            .only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
+                            .only(WindowInsetsSides.Horizontal),
                     ),
         ) {
             Row(
@@ -724,7 +701,7 @@ fun Queue(
 
         Row(Modifier.align(Alignment.BottomCenter).fillMaxWidth()
             .background(background.copy(alpha = 0.98f))
-            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
+            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
             .onSizeChanged { footerHeight = with(footerDensity) { it.height.toDp() } }
             .padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             QueueControl(R.drawable.shuffle, stringResource(R.string.shuffle), shuffleModeEnabled, !isListenTogetherGuest,
@@ -742,13 +719,7 @@ fun Queue(
             hostState = snackbarHostState,
             modifier =
                 Modifier
-                    .padding(
-                        bottom =
-                            footerHeight +
-                                WindowInsets.systemBars
-                                    .asPaddingValues()
-                                    .calculateBottomPadding(),
-                    ).align(Alignment.BottomCenter),
+                    .padding(bottom = footerHeight).align(Alignment.BottomCenter),
         )
     }
 }

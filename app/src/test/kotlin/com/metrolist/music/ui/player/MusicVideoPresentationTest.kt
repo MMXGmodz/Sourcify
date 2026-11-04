@@ -28,7 +28,7 @@ class MusicVideoPresentationTest {
                 MusicVideoFullscreenWindow(activity, mode).use {
                     assertFalse(insets.isAppearanceLightStatusBars)
                     assertEquals(if (mode == MusicVideoFullscreen.LANDSCAPE) ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-                        else ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT, activity.requestedOrientation)
+                        else ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR, activity.requestedOrientation)
                 }
                 assertEquals(ActivityInfo.SCREEN_ORIENTATION_USER, activity.requestedOrientation)
                 assertTrue(insets.isAppearanceLightStatusBars)

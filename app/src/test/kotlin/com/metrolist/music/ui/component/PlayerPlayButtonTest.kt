@@ -46,6 +46,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -402,7 +403,15 @@ class PlayerPlayButtonTest {
             content {
                 observed = rememberEnumPreference(PlayButtonStyleKey, PlayButtonStyle.STANDARD).value
             }
-            frames(20)
+            // DataStore emits on real IO threads; advancing virtual frames alone cannot await the new reader.
+            runBlocking {
+                withTimeout(5_000) {
+                    while (observed != PlayButtonStyle.METAL_RING) {
+                        frames(1)
+                        delay(1)
+                    }
+                }
+            }
             assertEquals("A recreated reader must load the saved metal selection", PlayButtonStyle.METAL_RING, observed)
         } finally {
             runBlocking { store.edit {

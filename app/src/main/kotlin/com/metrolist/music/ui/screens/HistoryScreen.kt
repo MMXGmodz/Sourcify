@@ -10,12 +10,13 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -30,7 +31,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
@@ -69,6 +72,7 @@ import com.metrolist.music.models.toMediaMetadata
 import com.metrolist.music.playback.queues.ListQueue
 import com.metrolist.music.playback.queues.YouTubeQueue
 import com.metrolist.music.ui.component.ChipsRow
+import com.metrolist.music.ui.component.ExpandableBottomSheet
 import com.metrolist.music.ui.component.HideOnScrollFAB
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.LocalMenuState
@@ -89,6 +93,21 @@ import java.time.format.DateTimeFormatter
 fun HistoryScreen(
     navController: NavController,
     viewModel: HistoryViewModel = hiltViewModel(),
+) {
+    ExpandableBottomSheet(onDismissRequest = { navController.navigateUp() }) {
+        CompositionLocalProvider(LocalPlayerAwareWindowInsets provides WindowInsets(0)) {
+            Box(Modifier.fillMaxSize()) {
+                HistoryContent(navController, viewModel)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
+private fun HistoryContent(
+    navController: NavController,
+    viewModel: HistoryViewModel,
 ) {
     val context = LocalContext.current
     val database = LocalDatabase.current
@@ -216,11 +235,9 @@ fun HistoryScreen(
                     .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
                     .asPaddingValues(),
             modifier =
-                Modifier.windowInsetsPadding(
-                    LocalPlayerAwareWindowInsets.current.only(
-                        WindowInsetsSides.Top,
-                    ),
-                ),
+                Modifier
+                    .fillMaxSize()
+                    .padding(top = TopAppBarDefaults.TopAppBarExpandedHeight),
         ) {
             item(key = "chips_row") {
                 ChipsRow(
@@ -434,6 +451,7 @@ fun HistoryScreen(
     }
 
     TopAppBar(
+        windowInsets = WindowInsets(0),
         title = {
             if (inSelectMode) {
                 Text(pluralStringResource(R.plurals.n_selected, selection.size, selection.size))

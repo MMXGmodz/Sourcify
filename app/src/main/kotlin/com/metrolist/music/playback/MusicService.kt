@@ -428,6 +428,7 @@ class MusicService :
     private var replacingMusicVideoSource = false
 
     private var musicVideoRequestedHeight: Int? = null
+    private var musicVideoUsesLocal = false
 
     private suspend fun desiredMusicVideoHeight(): Int {
         val savedQuality = dataStore.data.first()[com.metrolist.music.constants.MusicVideoQualityKey]
@@ -439,11 +440,20 @@ class MusicService :
 
     fun switchToMusicVideo() { loadMusicVideo() }
 
+    internal fun reloadMusicVideoSelection(songId: String) {
+        if (playerInitialized.value && player.currentMediaItem?.mediaId == songId) loadMusicVideo(reload = true)
+    }
+
     private fun loadMusicVideo(reload: Boolean = false) {
         if (!playerInitialized.value || (!reload && musicVideoState.value.mode != MusicVideoMode.AUDIO)) return
         val originalItem = musicVideoOriginalItem ?: player.currentMediaItem ?: return
         val metadata = originalItem.metadata ?: return
-        if (metadata.isEpisode || isLocalAudioMediaId(metadata.id)) return
+        val selection = MusicVideoSelectionStore(this).get(metadata.id)
+        if (metadata.isEpisode || (isLocalAudioMediaId(metadata.id) && selection == null)) {
+            if (reload) restoreMusicVideoAudio()
+            return
+        }
+        musicVideoUsesLocal = selection is MusicVideoSelection.Local
         if (musicVideoRestricted() || isCrossfading) {
             if (reload) {
                 restoreMusicVideoAudio(getString(R.string.sourcify_music_video_restricted))
@@ -466,24 +476,36 @@ class MusicService :
         musicVideoJob = scope.launch {
             try {
                 val selectedHeight = desiredMusicVideoHeight()
-                musicVideoRequestedHeight = selectedHeight
-                val stream = withContext(Dispatchers.IO) {
+                musicVideoRequestedHeight = selectedHeight.takeUnless { musicVideoUsesLocal }
+                val streams = withContext(Dispatchers.IO) {
                     kotlinx.coroutines.withTimeoutOrNull(30_000) {
-                        val original = com.metrolist.music.utils.SongEditStore.get(this@MusicService).original(metadata)
-                        // Read provider identity directly: display edits and artist aliases are not search identity.
-                        val identity = if (original.isVideoSong) original else {
-                            val raw = YouTube.next(WatchEndpoint(videoId = original.id)).getOrThrow().items.firstOrNull { it.id == original.id }
-                                ?: return@withTimeoutOrNull null
-                            original.copy(title = raw.title,
-                                artists = raw.artists.map { MediaMetadata.Artist(it.id, it.name) },
-                                duration = raw.duration ?: original.duration,
-                                musicVideoType = raw.musicVideoType ?: original.musicVideoType)
+                        if (selection is MusicVideoSelection.Local) {
+                            val local = localMusicVideoSelection(this@MusicService, selection.uri)
+                            MusicVideoStreams(null, CachedStreamUrl(local.uri.toString(), emptyMap(), "local"), local.durationMs)
+                        } else {
+                            val id = if (selection is MusicVideoSelection.YouTube) selection.videoId else {
+                                val original = com.metrolist.music.utils.SongEditStore.get(this@MusicService).original(metadata)
+                                // Display edits and artist aliases never change automatic provider search identity.
+                                val identity = if (original.isVideoSong) original else {
+                                    val raw = YouTube.next(WatchEndpoint(videoId = original.id)).getOrThrow().items.firstOrNull { it.id == original.id }
+                                        ?: return@withTimeoutOrNull null
+                                    original.copy(title = raw.title,
+                                        artists = raw.artists.map { MediaMetadata.Artist(it.id, it.name) },
+                                        duration = raw.duration ?: original.duration,
+                                        musicVideoType = raw.musicVideoType ?: original.musicVideoType)
+                                }
+                                MusicVideoResolver().resolveId(identity) ?: return@withTimeoutOrNull null
+                            }
+                            InnerTubeXPlayer.fullMusicVideoStream(id, selectedHeight)?.let { stream ->
+                                val videoUrl = stream.videoUrl ?: return@withTimeoutOrNull null
+                                MusicVideoStreams(CachedStreamUrl(stream.audioUrl, stream.headers, stream.clientName),
+                                    CachedStreamUrl(videoUrl, stream.headers, stream.clientName),
+                                    (stream.mediaMetadata?.durationSeconds ?: 0) * 1_000L)
+                            }
                         }
-                        val id = MusicVideoResolver().resolveId(identity) ?: return@withTimeoutOrNull null
-                        InnerTubeXPlayer.fullMusicVideoStream(id, selectedHeight)
                     }
                 }
-                if (desiredMusicVideoHeight() != selectedHeight) {
+                if (!musicVideoUsesLocal && desiredMusicVideoHeight() != selectedHeight) {
                     loadMusicVideo(reload = true)
                     return@launch
                 }
@@ -491,22 +513,17 @@ class MusicService :
                     restoreMusicVideoAudio(getString(R.string.sourcify_music_video_restricted))
                     return@launch
                 }
-                val durationMs = stream?.mediaMetadata?.durationSeconds?.times(1_000L) ?: 0L
-                if (stream == null || durationMs <= 0 || stream.videoUrl == null) {
+                if (streams == null || streams.durationMs <= 0) {
                     restoreMusicVideoAudio(getString(R.string.sourcify_music_video_unavailable))
                     return@launch
                 }
                 if (player.currentMediaItem?.mediaId != metadata.id || !musicVideoSession.ready(request, metadata.id)) return@launch
                 val uri = "$MUSIC_VIDEO_SCHEME://session/${java.util.UUID.randomUUID()}"
-                val streams = MusicVideoStreams(
-                    CachedStreamUrl(stream.audioUrl, stream.headers, stream.clientName),
-                    CachedStreamUrl(requireNotNull(stream.videoUrl), stream.headers, stream.clientName), durationMs,
-                )
                 val oldUris = musicVideoStreams.keys.toList()
                 musicVideoStreams[uri] = streams
                 musicVideoUri = uri
                 player.setOffloadEnabled(false)
-                replaceMusicVideoCurrentItem(player.currentMediaItem!!.buildUpon().setUri(uri).setCustomCacheKey(null).build(), durationMs)
+                replaceMusicVideoCurrentItem(player.currentMediaItem!!.buildUpon().setUri(uri).setCustomCacheKey(null).build(), streams.durationMs)
                 oldUris.forEach { musicVideoStreams.remove(it) }
             } catch (error: CancellationException) {
                 throw error
@@ -522,8 +539,8 @@ class MusicService :
     private fun musicVideoRestricted(): Boolean = !canPlayMusicVideo(
         casting = castConnectionHandler?.isCasting?.value == true,
         inOnlineRoom = listenTogetherManager.isInRoom,
-        connected = connectivityManager.activeNetwork != null,
-        remoteAllowed = com.metrolist.music.utils.CanvasNetworkPolicy.get(this).mayLoadRemote(),
+        connected = musicVideoUsesLocal || connectivityManager.activeNetwork != null,
+        remoteAllowed = musicVideoUsesLocal || com.metrolist.music.utils.CanvasNetworkPolicy.get(this).mayLoadRemote(),
     )
 
     private fun replaceMusicVideoCurrentItem(item: MediaItem, durationMs: Long) {
@@ -566,6 +583,7 @@ class MusicService :
         musicVideoOriginalItem = null
         musicVideoUri = null
         musicVideoRequestedHeight = null
+        musicVideoUsesLocal = false
         player.setOffloadEnabled(dataStore.get(AudioOffload, false) && !crossfadeEnabled)
         scheduleCrossfade()
         if (reason != null) Toast.makeText(this, reason, Toast.LENGTH_LONG).show()

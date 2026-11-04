@@ -753,3 +753,5 @@ enum class MusicVideoQuality(val maxHeight: Int?) { AUTO(null), P360(360), P480(
 val MusicVideoQualityKey = stringPreferencesKey("musicVideoQuality")
 val MusicVideoLargeMiniPlayerKey = booleanPreferencesKey("musicVideoLargeMiniPlayer")
 val MusicVideoPipEnabledKey = booleanPreferencesKey("musicVideoPipEnabled")
+
+val MusicVideoSeekSecondsKey = intPreferencesKey("musicVideoSeekSeconds")
