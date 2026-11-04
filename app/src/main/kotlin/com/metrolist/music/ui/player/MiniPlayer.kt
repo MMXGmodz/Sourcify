@@ -154,7 +154,7 @@ fun MiniPlayer(
     val connection = LocalPlayerConnection.current
     val videoState = connection?.service?.musicVideoState?.collectAsStateWithLifecycle()?.value
     val largeVideo by rememberPreference(com.metrolist.music.constants.MusicVideoLargeMiniPlayerKey, false)
-    if (largeVideo && videoState?.hasVideo == true) {
+    if (largeVideo && videoState?.requested == true) {
         VideoMiniPlayer(progressState, modifier, onClick)
     } else if (useNewMiniPlayerDesign) {
         NewMiniPlayer(

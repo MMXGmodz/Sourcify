@@ -22,7 +22,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
 import com.metrolist.music.constants.MiniPlayerHeight
@@ -52,10 +51,7 @@ internal fun VideoMiniPlayer(progress: ProgressState, modifier: Modifier, onExpa
                 androidx.compose.ui.geometry.Offset(12.dp.toPx() + (size.width - 24.dp.toPx()) * progress.progress, y), 2.dp.toPx())
         }, onExpand = onExpand, onPlayPause = connection::togglePlayPause, onLike = connection::toggleLike,
         video = {
-            Box(Modifier.fillMaxSize()) {
-                AsyncImage(metadata.thumbnailUrl, null, modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Fit)
-                MusicVideoDisplay(connection.service, Modifier.fillMaxSize(), MusicVideoDisplayRole.BROWSE, controlsEnabled = false)
-            }
+            MusicVideoDisplay(connection.service, Modifier.fillMaxSize(), MusicVideoDisplayRole.BROWSE, controlsEnabled = false)
         })
 }
 

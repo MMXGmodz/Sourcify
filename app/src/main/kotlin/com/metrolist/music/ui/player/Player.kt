@@ -41,7 +41,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -241,8 +240,7 @@ fun BottomSheetPlayer(
 
     val musicVideoState by playerConnection.service.musicVideoState.collectAsStateWithLifecycle()
     val musicVideoRequested = musicVideoState.currentSongId == mediaMetadata?.id &&
-        musicVideoState.mode != com.metrolist.music.playback.MusicVideoMode.AUDIO
-    val musicVideoActive = musicVideoRequested && musicVideoState.hasVideo
+        musicVideoState.requested
 
     val automaticCanvasEnabled by rememberPreference(AutomaticCanvasKey, true)
     val editedCanvas = com.metrolist.music.utils.rememberSongEditCanvas(mediaMetadata?.id)
@@ -275,6 +273,9 @@ fun BottomSheetPlayer(
     val cropAlbumArt by rememberPreference(CropAlbumArtKey, false)
 
     val coverLyricsEnabled by rememberPreference(com.metrolist.music.constants.CoverLyricsEnabledKey, false)
+    val mediaControlsSpacing by animateDpAsState(
+        targetValue = if (musicVideoRequested || coverLyricsEnabled) 12.dp else 24.dp,
+        animationSpec = PlayerVideoMorphSpec, label = "videoControlsSpacing")
 
     var showInlineLyrics by rememberSaveable {
         mutableStateOf(false)
@@ -1224,7 +1225,7 @@ fun BottomSheetPlayer(
                 }
             }
 
-            Spacer(Modifier.height(if (musicVideoActive) 12.dp else if (coverLyricsEnabled) 12.dp else 24.dp))
+            Spacer(Modifier.height(mediaControlsSpacing))
 
             val dynamicMusic by rememberPreference(com.metrolist.music.constants.DynamicProgressMusicKey, true)
             val dynamicIntensity by rememberPreference(com.metrolist.music.constants.DynamicProgressIntensityKey, 100)
@@ -1428,7 +1429,7 @@ fun BottomSheetPlayer(
                 )
             }
 
-            Spacer(Modifier.height(if (musicVideoActive) 12.dp else if (coverLyricsEnabled) 12.dp else 24.dp))
+            Spacer(Modifier.height(mediaControlsSpacing))
 
             AnimatedVisibility(
                 visible = !isFullScreen,
@@ -1747,13 +1748,14 @@ fun BottomSheetPlayer(
                         val currentSliderPosition by rememberUpdatedState(sliderPosition)
                         val sliderPositionProvider = remember { { currentSliderPosition } }
                         val isExpandedProvider = remember(state) { { state.isExpanded } }
-                        CoverLyricsFrame(enabled = coverLyricsEnabled && !showInlineLyrics && !musicVideoRequested,
+                        PlayerMediaContent(musicVideoRequested,
+                            video = { MusicVideoDisplay(playerConnection.service, Modifier.fillMaxSize()) },
+                            artwork = {
+                        CoverLyricsFrame(enabled = coverLyricsEnabled && !showInlineLyrics,
                             modifier = Modifier.fillMaxSize(),
                             lyrics = { mediaMetadata?.let { CoverLyricsDisplay(it, effectivePosition, TextBackgroundColor) } }) {
-                        if (musicVideoActive && state.isExpanded) {
-                            MusicVideoDisplay(playerConnection.service, Modifier.fillMaxWidth().aspectRatio(musicVideoState.aspectRatio))
-                        } else AnimatedContent(
-                            targetState = showInlineLyrics && !musicVideoRequested,
+                        AnimatedContent(
+                            targetState = showInlineLyrics,
                             label = "Lyrics",
                             transitionSpec = { fadeIn() togetherWith fadeOut() },
                         ) { showLyrics ->
@@ -1777,6 +1779,7 @@ fun BottomSheetPlayer(
                             }
                         }
                         }
+                            })
                     }
 
                     Column(
@@ -1812,22 +1815,22 @@ fun BottomSheetPlayer(
                             .verticalScroll(playerScrollState)
                             .padding(top = 72.dp, bottom = bottomPadding),
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxWidth().then(if (musicVideoActive) Modifier.aspectRatio(musicVideoState.aspectRatio)
-                            else Modifier.height(if (coverLyricsEnabled) (LocalConfiguration.current.screenWidthDp + 32).dp else (LocalConfiguration.current.screenHeightDp * 0.46f).dp)),
-                    ) {
+                    PlayerMediaSlot(
+                        videoRequested = musicVideoRequested,
+                        videoAspectRatio = musicVideoState.aspectRatio,
+                        artworkHeight = if (coverLyricsEnabled) (LocalConfiguration.current.screenWidthDp + 32).dp
+                            else (LocalConfiguration.current.screenHeightDp * .46f).dp,
+                        video = { MusicVideoDisplay(playerConnection.service, Modifier.fillMaxSize()) },
+                        artwork = {
                         // Remember lambdas to prevent unnecessary recomposition
                         val currentSliderPosition by rememberUpdatedState(sliderPosition)
                         val sliderPositionProvider = remember { { currentSliderPosition } }
                         val isExpandedProvider = remember(state) { { state.isExpanded } }
-                        CoverLyricsFrame(enabled = coverLyricsEnabled && !showInlineLyrics && !musicVideoRequested,
+                        CoverLyricsFrame(enabled = coverLyricsEnabled && !showInlineLyrics,
                             modifier = Modifier.fillMaxSize(),
                             lyrics = { mediaMetadata?.let { CoverLyricsDisplay(it, effectivePosition, TextBackgroundColor) } }) {
-                        if (musicVideoActive && state.isExpanded) {
-                            MusicVideoDisplay(playerConnection.service, Modifier.fillMaxWidth().aspectRatio(musicVideoState.aspectRatio))
-                        } else AnimatedContent(
-                            targetState = showInlineLyrics && !musicVideoRequested,
+                        AnimatedContent(
+                            targetState = showInlineLyrics,
                             label = "Lyrics",
                             transitionSpec = { fadeIn() togetherWith fadeOut() },
                         ) { showLyrics ->
@@ -1850,20 +1853,14 @@ fun BottomSheetPlayer(
                             }
                         }
                         }
-                    }
+                        },
+                    )
 
-                    if (musicVideoRequested && musicVideoState.mode == com.metrolist.music.playback.MusicVideoMode.LOADING) {
-                        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            androidx.compose.material3.CircularProgressIndicator(Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
-                            Text(stringResource(R.string.sourcify_music_video_loading), color = Color.White)
-                        }
-                    }
                     mediaMetadata?.let {
                         controlsContent(it)
                     }
 
-                    Spacer(Modifier.height(if (musicVideoActive) 12.dp else if (coverLyricsEnabled) 12.dp else 24.dp))
+                    Spacer(Modifier.height(mediaControlsSpacing))
                     mediaMetadata?.let { song ->
                         SongLyricsCard(song, effectivePosition, onSeekRequested = onLyricsSeek)
                     }

@@ -33,6 +33,7 @@ internal enum class MusicVideoDisplayRole { INLINE, BROWSE, OVERLAY }
 internal enum class MusicVideoFullscreen { PORTRAIT, LANDSCAPE }
 
 internal class MusicVideoPresentationState {
+    val handoff = MusicVideoHandoff()
     var fullscreen by mutableStateOf<MusicVideoFullscreen?>(null)
     var inPip by mutableStateOf(false)
     var browsing by mutableStateOf(false)
@@ -85,6 +86,7 @@ internal fun Context.videoActivity(): Activity? = when (this) {
 @Composable
 internal fun MusicVideoOverlayHost(service: MusicService?, state: MusicVideoPresentationState) {
     val video by (service?.musicVideoState ?: return).collectAsStateWithLifecycle()
+    SideEffect { state.handoff.update(video.currentSongId, video.mode != MusicVideoMode.AUDIO) }
     val activity = LocalContext.current.videoActivity() ?: return
     LaunchedEffect(video.mode, state.inPip) {
         if (video.mode == MusicVideoMode.AUDIO) {

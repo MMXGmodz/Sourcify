@@ -834,7 +834,7 @@ class MainActivity : FragmentActivity() {
                 val videoState = playerConnection?.service?.musicVideoState?.collectAsStateWithLifecycle()?.value
                 val largeVideo by rememberPreference(com.metrolist.music.constants.MusicVideoLargeMiniPlayerKey, false)
                 val browseVideoHeight = com.metrolist.music.ui.player.videoMiniPlayerExtraHeight(
-                    largeVideo, videoState?.hasVideo == true, LocalDensity.current.fontScale)
+                    largeVideo, videoState?.requested == true, LocalDensity.current.fontScale)
 
                 val playerBottomSheetState =
                     rememberBottomSheetState(
@@ -847,7 +847,10 @@ class MainActivity : FragmentActivity() {
                         expandedBound = maxHeight,
                     )
 
-                SideEffect { videoPresentation.browsing = !playerBottomSheetState.isExpanded && browseVideoHeight > 0.dp }
+                val browseOwnsVideo by remember(playerBottomSheetState, browseVideoHeight > 0.dp) {
+                    derivedStateOf { browseVideoHeight > 0.dp && playerBottomSheetState.progress < .2f }
+                }
+                SideEffect { videoPresentation.browsing = browseOwnsVideo }
 
                 val playerReadyState =
                     playerConnection?.service?.isPlayerReady?.collectAsStateWithLifecycle()

@@ -283,6 +283,78 @@ class PlayerPlayButtonTest {
         assertEquals(0, expands)
     }
 
+    @Test fun videoModeMovesControlsThroughIntermediatePositionsBeforeSettling() = withComposition {
+        var requested by mutableStateOf(false)
+        var slot: androidx.compose.ui.layout.LayoutCoordinates? = null
+        var controls: androidx.compose.ui.layout.LayoutCoordinates? = null
+        content {
+            androidx.compose.foundation.layout.Column(Modifier.fillMaxSize()) {
+                com.metrolist.music.ui.player.PlayerMediaSlot(requested, 16f / 9f, 360.dp,
+                    modifier = Modifier.onGloballyPositioned { slot = it },
+                    video = { Box(Modifier.fillMaxSize().background(Color.Blue)) },
+                    artwork = { Box(Modifier.fillMaxSize().background(Color.Red)) })
+                Box(Modifier.size(360.dp, 48.dp).onGloballyPositioned { controls = it })
+            }
+        }
+        frames(20)
+        val before = requireNotNull(slot).boundsInWindow().height
+        assertEquals(360f, before, 1f)
+        requested = true
+        frames(1)
+        val initial = requireNotNull(slot).boundsInWindow().height
+        assertTrue("Video mode must start from the existing cover height, not jump to the target", initial > 205f)
+        frames(10)
+        val middle = requireNotNull(slot).boundsInWindow().height
+        assertTrue("Intermediate video layout height: " + middle, middle in 205f..359f)
+        assertEquals(requireNotNull(slot).boundsInWindow().bottom, requireNotNull(controls).boundsInWindow().top, 1f)
+        val image = Bitmap.createBitmap(360, 800, Bitmap.Config.ARGB_8888)
+        root.draw(Canvas(image))
+        File("build/ui-previews/video-morph-midpoint.png").apply { parentFile?.mkdirs() }.outputStream().use {
+            image.compress(Bitmap.CompressFormat.PNG, 100, it)
+        }
+        image.recycle()
+        frames(60)
+        assertEquals(203f, requireNotNull(slot).boundsInWindow().height, 1f)
+        assertEquals(requireNotNull(slot).boundsInWindow().bottom, requireNotNull(controls).boundsInWindow().top, 1f)
+    }
+
+    @Test fun rapidVideoModeReversalContinuesFromCurrentGeometryAndNeverDuplicatesVideo() = withComposition {
+        var requested by mutableStateOf(false)
+        var slot: androidx.compose.ui.layout.LayoutCoordinates? = null
+        var videoLayers = 0
+        var maximumVideoLayers = 0
+        content {
+            com.metrolist.music.ui.player.PlayerMediaSlot(requested, 16f / 9f, 360.dp,
+                modifier = Modifier.onGloballyPositioned { slot = it },
+                video = {
+                    androidx.compose.runtime.DisposableEffect(Unit) {
+                        videoLayers++
+                        maximumVideoLayers = maxOf(maximumVideoLayers, videoLayers)
+                        onDispose { videoLayers-- }
+                    }
+                    Box(Modifier.fillMaxSize().background(Color.Blue))
+                }, artwork = { Box(Modifier.fillMaxSize().background(Color.Red)) })
+        }
+        frames(20)
+        requested = true
+        frames(10)
+        val during = requireNotNull(slot).boundsInWindow().height
+        requested = false
+        flushAtCurrentTime()
+        assertEquals("Retargeting must preserve the current geometry", during,
+            requireNotNull(slot).boundsInWindow().height, 1f)
+        frames(10)
+        val returning = requireNotNull(slot).boundsInWindow().height
+        assertTrue("Return to artwork must pass through intermediate geometry: " + returning,
+            returning > during + 1f && returning < 359f)
+        requested = true
+        frames(4)
+        requested = false
+        frames(60)
+        assertEquals(360f, requireNotNull(slot).boundsInWindow().height, 1f)
+        assertEquals("Crossfade may keep artwork and video, but only one video subtree", 1, maximumVideoLayers)
+    }
+
     @Test fun buttonHasOneAccessibleActionMinimumTargetAndBlocksDisabledClicks() = withComposition {
         var enabled by mutableStateOf(true)
         var clicks = 0
@@ -372,6 +444,19 @@ class PlayerPlayButtonTest {
             val frame = Bitmap.createBitmap(360, 800, Bitmap.Config.ARGB_8888)
             root.draw(Canvas(frame))
             frame.recycle()
+        }
+        // Retarget/recompose without advancing animation time: real frame motion is not a jump.
+        fun flushAtCurrentTime() {
+            repeat(3) {
+                Snapshot.sendApplyNotifications()
+                clock.sendFrame(time)
+                shadowOf(Looper.getMainLooper()).idle()
+                root.measure(View.MeasureSpec.makeMeasureSpec(360, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(800, View.MeasureSpec.EXACTLY))
+                root.layout(0, 0, 360, 800)
+                val frame = Bitmap.createBitmap(360, 800, Bitmap.Config.ARGB_8888)
+                root.draw(Canvas(frame))
+                frame.recycle()
+            }
         }
         fun setSystemBarRightInset(pixels: Int) {
             val insets = androidx.core.view.WindowInsetsCompat.Builder()

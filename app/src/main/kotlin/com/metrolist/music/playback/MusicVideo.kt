@@ -18,6 +18,7 @@ data class MusicVideoState(
     val videoWidth: Int = 0,
     val videoHeight: Int = 0,
 ) {
+    val requested: Boolean get() = mode != MusicVideoMode.AUDIO
     val hasVideo: Boolean get() = mode == MusicVideoMode.VIDEO || (mode == MusicVideoMode.LOADING && videoWidth > 0)
     val aspectRatio: Float get() = musicVideoAspectRatio(videoWidth, videoHeight)
 }
