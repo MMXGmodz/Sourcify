@@ -1753,7 +1753,7 @@ fun BottomSheetPlayer(
                         ) { showLyrics ->
                             if (showLyrics) {
                                 mediaMetadata?.let { SongLyricsCard(it, effectivePosition, onSeekRequested = onLyricsSeek) }
-                            } else if (showCanvas && !coverLyricsEnabled) {
+                            } else if (showCanvas) {
                                 Box(Modifier.fillMaxSize().clickable(onClickLabel = stringResource(R.string.s7_canvas_fullscreen)) { canvasFullscreen = true }) {
                                     IconButton(onClick = { canvasFullscreen = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
                                         Icon(painterResource(R.drawable.fullscreen), stringResource(R.string.s7_canvas_fullscreen), tint = Color.White)
@@ -1828,7 +1828,7 @@ fun BottomSheetPlayer(
                         ) { showLyrics ->
                             if (showLyrics) {
                                 mediaMetadata?.let { SongLyricsCard(it, effectivePosition, onSeekRequested = onLyricsSeek) }
-                            } else if (showCanvas && !coverLyricsEnabled) {
+                            } else if (showCanvas) {
                                 Box(Modifier.fillMaxSize().clickable(onClickLabel = stringResource(R.string.s7_canvas_fullscreen)) { canvasFullscreen = true }) {
                                     IconButton(onClick = { canvasFullscreen = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
                                         Icon(painterResource(R.drawable.fullscreen), stringResource(R.string.s7_canvas_fullscreen), tint = Color.White)
