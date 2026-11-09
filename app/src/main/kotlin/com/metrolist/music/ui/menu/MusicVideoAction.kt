@@ -23,8 +23,9 @@ internal fun MusicVideoAction(songId: String, onDismiss: () -> Unit) {
     val connection = LocalPlayerConnection.current ?: return
     val state by connection.service.musicVideoState.collectAsStateWithLifecycle()
     var choosingSongId by rememberSaveable { mutableStateOf<String?>(null) }
+    var choosingSongTitle by rememberSaveable { mutableStateOf("") }
     choosingSongId?.let { targetSongId ->
-        ManualMusicVideoPicker(targetSongId, connection.service,
+        ManualMusicVideoPicker(targetSongId, choosingSongTitle, connection.service,
             onDismiss = { choosingSongId = null }, onSaved = { choosingSongId = null; onDismiss() })
     }
     if (connection.player.currentMediaItem?.mediaId != songId || connection.player.currentMetadata?.isEpisode == true) return
@@ -40,6 +41,9 @@ internal fun MusicVideoAction(songId: String, onDismiss: () -> Unit) {
         title = { Text(stringResource(R.string.s89_choose_video)) },
         description = { Text(stringResource(R.string.s89_choose_video_description)) },
         icon = { Icon(painterResource(R.drawable.search), null) },
-        onClick = { choosingSongId = songId },
+        onClick = {
+            choosingSongTitle = connection.player.currentMetadata?.takeIf { it.id == songId }?.title.orEmpty()
+            choosingSongId = songId
+        },
     )))
 }

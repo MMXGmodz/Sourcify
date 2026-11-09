@@ -57,6 +57,9 @@ class SongEditStore internal constructor(context: Context) {
         return ownedUri(edit.optString("canvas"))?.let { SongEditCanvas(it, edit.optBoolean("canvasImage")) }
     }
 
+    fun color(id: String): Int? = record(id)?.takeIf { it.has("accentColor") && !it.isNull("accentColor") }
+        ?.optInt("accentColor")?.takeIf { it ushr 24 == 0xFF }
+
     fun cover(id: String): Uri? = record(id)?.let { ownedUri(it.optString("cover")) }
 
     fun original(metadata: MediaMetadata): MediaMetadata {
@@ -72,7 +75,8 @@ class SongEditStore internal constructor(context: Context) {
         )
     }
 
-    fun save(metadata: MediaMetadata, title: String, artistNames: List<String>, cover: Uri?, canvas: SongEditCanvas?, cleanUp: Boolean = true) {
+    fun save(metadata: MediaMetadata, title: String, artistNames: List<String>, cover: Uri?, canvas: SongEditCanvas?, cleanUp: Boolean = true, accentColor: Int? = this.color(metadata.id)) {
+        require(accentColor == null || accentColor ushr 24 == 0xFF)
         require(title.trim().isNotEmpty() && title.trim().length <= 300)
         require(artistNames.size <= 30 && artistNames.all { it.isNotBlank() && it.length <= 300 })
         require(cover == null || ownedUri(cover.toString()) != null)
@@ -88,6 +92,7 @@ class SongEditStore internal constructor(context: Context) {
         val edit = JSONObject().put("original", original).put("title", title.trim())
             .put("artists", JSONArray(artistNames)).put("cover", cover?.toString().orEmpty())
             .put("canvas", canvas?.uri?.toString().orEmpty()).put("canvasImage", canvas?.isImage ?: false)
+        accentColor?.let { edit.put("accentColor", it) }
         if (!preferences.edit().putString(metadata.id, edit.toString()).commit()) throw IOException("Could not save song edits")
         mutableRevision.value++
         if (cleanUp) cleanPrevious(previous)
@@ -101,7 +106,7 @@ class SongEditStore internal constructor(context: Context) {
     }
 
     suspend fun updateSong(database: MusicDatabase, metadata: MediaMetadata, title: String, artistNames: List<String>,
-        cover: Uri?, canvas: SongEditCanvas?, reset: Boolean = false): Song = withContext(NonCancellable + Dispatchers.IO) {
+        cover: Uri?, canvas: SongEditCanvas?, reset: Boolean = false, accentColor: Int? = this.color(metadata.id)): Song = withContext(NonCancellable + Dispatchers.IO) {
         val previous = preferences.getString(metadata.id, null)
         val original = original(metadata)
         try {
@@ -114,7 +119,7 @@ class SongEditStore internal constructor(context: Context) {
                 ))
                 // A preference write failure must roll back the database edit too.
                 if (reset) clear(metadata.id, cleanUp = false)
-                else save(metadata, title, artistNames, cover, canvas, cleanUp = false)
+                else save(metadata, title, artistNames, cover, canvas, cleanUp = false, accentColor = accentColor)
             }
         } catch (failure: Throwable) {
             val rollback = preferences.edit()
@@ -203,3 +208,11 @@ fun rememberSongEditCanvas(songId: String?): SongEditCanvas? {
 }
 
 internal fun songEditArtistNames(text: String): List<String> = text.lineSequence().map(String::trim).filter(String::isNotEmpty).toList()
+
+@Composable
+fun rememberSongEditColor(songId: String?): Int? {
+    val context = LocalContext.current
+    val store = remember(context) { SongEditStore.get(context) }
+    val revision by store.revision.collectAsState()
+    return remember(store, songId, revision) { songId?.let(store::color) }
+}

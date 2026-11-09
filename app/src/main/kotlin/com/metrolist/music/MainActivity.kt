@@ -596,6 +596,7 @@ class MainActivity : FragmentActivity() {
         }
 
         val themeColorCache = remember { mutableMapOf<String, Color>() }
+        val songEdits = remember { com.metrolist.music.utils.SongEditStore.get(this@MainActivity) }
 
         LaunchedEffect(playerConnection, enableDynamicTheme, selectedThemeColor) {
             val playerConnection = playerConnection
@@ -604,9 +605,15 @@ class MainActivity : FragmentActivity() {
                 return@LaunchedEffect
             }
 
-            playerConnection.mediaMetadata
-                .distinctUntilChanged { old, new -> old?.id == new?.id && old?.thumbnailUrl == new?.thumbnailUrl }
-                .collectLatest { song ->
+            kotlinx.coroutines.flow.combine(
+                playerConnection.mediaMetadata.distinctUntilChanged { old, new -> old?.id == new?.id && old?.thumbnailUrl == new?.thumbnailUrl },
+                songEdits.revision,
+            ) { song, _ -> song }.collectLatest { song ->
+                    val selectedSongColor = song?.id?.let(songEdits::color)
+                    if (selectedSongColor != null) {
+                        themeColor = Color(selectedSongColor)
+                        return@collectLatest
+                    }
                     if (song?.thumbnailUrl != null) {
                         val cached = themeColorCache[song.thumbnailUrl]
                         if (cached != null) {

@@ -147,8 +147,9 @@ fun SongLyricsCard(song: MediaMetadata, position: Long, onSeekRequested: ((Long)
     val window = remember(raw, position / 500, offset) { lyricsPreviewWindow(raw, position + offset) }
     val synced = com.metrolist.music.lyrics.lyricsTextLooksSynced(raw)
     LyricsPreviewCard(window.lines, color, onFullscreen = { fullScreen = true }, activeLine = window.activeLine, startIndex = window.startIndex)
-    if (fullScreen) ExpandableBottomSheet(onDismissRequest = { fullScreen = false }, containerColor = color, contentColor = Color.White) {
-        Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(lerp(color, Color.Black, 0.4f), color))).padding(24.dp)) {
+    val fullScreenTopColor = lerp(color, Color.Black, 0.4f)
+    if (fullScreen) ExpandableBottomSheet(onDismissRequest = { fullScreen = false }, containerColor = fullScreenTopColor, contentColor = Color.White) {
+        Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(fullScreenTopColor, color))).padding(24.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(song.title, style = MaterialTheme.typography.titleLarge, color = Color.White)

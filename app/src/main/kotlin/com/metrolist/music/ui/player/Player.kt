@@ -257,6 +257,7 @@ fun BottomSheetPlayer(
     var canvasFailed by remember(mediaMetadata?.id, canvasSource, editedCanvas) { mutableStateOf(false) }
     var canvasAttempt by remember(canvasSource) { mutableStateOf(0) }
     val songColor = com.metrolist.music.ui.theme.LocalSongColor.current
+    val editedSongColor = com.metrolist.music.utils.rememberSongEditColor(mediaMetadata?.id)
     val portrait = LocalConfiguration.current.orientation != Configuration.ORIENTATION_LANDSCAPE
     val canvasViewport = with(LocalDensity.current) { LocalConfiguration.current.screenHeightDp.dp.toPx() }
     val canvasInView by remember(portrait, canvasViewport) { derivedStateOf { !portrait || playerScrollState.value < canvasViewport } }
@@ -475,11 +476,16 @@ fun BottomSheetPlayer(
     val defaultGradientColors = listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surfaceVariant)
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
 
-    LaunchedEffect(mediaMetadata?.id, playerBackground, showCanvas) {
-        if (playerBackground == PlayerBackgroundStyle.GRADIENT && !showCanvas) {
+    LaunchedEffect(mediaMetadata?.id, mediaMetadata?.thumbnailUrl, playerBackground, showCanvas, editedSongColor) {
+        if (playerBackground == PlayerBackgroundStyle.GRADIENT && !showCanvas && editedSongColor != null) {
+            val color = Color(editedSongColor)
+            gradientColors = listOf(color, androidx.compose.ui.graphics.lerp(color, Color.Black, .65f))
+        } else if (playerBackground == PlayerBackgroundStyle.GRADIENT && !showCanvas) {
+            gradientColors = emptyList()
             val currentMetadata = mediaMetadata
             if (currentMetadata != null && currentMetadata.thumbnailUrl != null) {
-                val cachedColors = gradientColorsCache[currentMetadata.id]
+                val cacheKey = currentMetadata.id + "|" + currentMetadata.thumbnailUrl
+                val cachedColors = gradientColorsCache[cacheKey]
                 if (cachedColors != null) {
                     gradientColors = cachedColors
                     return@LaunchedEffect
@@ -491,7 +497,7 @@ fun BottomSheetPlayer(
                             .data(currentMetadata.thumbnailUrl)
                             .size(100, 100)
                             .allowHardware(false)
-                            .memoryCacheKey("gradient_${currentMetadata.id}")
+                            .memoryCacheKey("gradient_$cacheKey")
                             .build()
 
                     val result = runCatching { context.imageLoader.execute(request) }.getOrNull()
@@ -511,7 +517,7 @@ fun BottomSheetPlayer(
                                     palette = palette,
                                     fallbackColor = fallbackColor,
                                 )
-                            gradientColorsCache[currentMetadata.id] = extractedColors
+                            gradientColorsCache[cacheKey] = extractedColors
                             withContext(Dispatchers.Main) { gradientColors = extractedColors }
                         }
                     }

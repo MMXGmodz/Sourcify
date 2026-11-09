@@ -6,7 +6,6 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -28,6 +27,7 @@ import com.metrolist.music.R
 import com.metrolist.music.constants.*
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
+import com.metrolist.music.ui.component.VideoSearchResult
 import com.metrolist.music.ui.player.CanvasVideoBackground
 import com.metrolist.music.utils.*
 import kotlinx.coroutines.CancellationException
@@ -157,26 +157,25 @@ fun CanvasSettings(navController: NavController) {
                     }) { Text(stringResource(R.string.search)) }
                     if (searched && results.isEmpty()) Text(stringResource(R.string.sourcify_canvas_no_results))
                     results.forEach { video ->
-                        ListItem(headlineContent = { Text(video.title) }, supportingContent = { Text(video.artists.joinToString { it.name }) },
-                            modifier = Modifier.clickable(enabled = !busy && metadata != null) {
-                                val songId = metadata?.id ?: return@clickable
-                                scope.launch {
-                                    busy = true; error = false
-                                    try {
-                                        edit = withContext(Dispatchers.IO) {
-                                            withTimeout(25_000) {
-                                                check(CanvasNetworkPolicy.get(context).mayLoadRemote())
-                                                val source = requireNotNull(resolveSelectedCanvasVideo(video.id))
-                                                val duration = requireNotNull(source.stream?.mediaMetadata?.durationSeconds?.times(1_000)).also { require(it > 0) }
-                                                CanvasEdit(songId, source, duration, video.id)
-                                            }
+                        VideoSearchResult(video = video, enabled = !busy && metadata != null) {
+                            val songId = metadata?.id ?: return@VideoSearchResult
+                            scope.launch {
+                                busy = true; error = false
+                                try {
+                                    edit = withContext(Dispatchers.IO) {
+                                        withTimeout(25_000) {
+                                            check(CanvasNetworkPolicy.get(context).mayLoadRemote())
+                                            val source = requireNotNull(resolveSelectedCanvasVideo(video.id))
+                                            val duration = requireNotNull(source.stream?.mediaMetadata?.durationSeconds?.times(1_000)).also { require(it > 0) }
+                                            CanvasEdit(songId, source, duration, video.id)
                                         }
-                                    } catch (e: kotlinx.coroutines.TimeoutCancellationException) { error = true }
-                                    catch (e: CancellationException) { throw e }
-                                    catch (_: Exception) { error = true }
-                                    finally { busy = false }
-                                }
-                            })
+                                    }
+                                } catch (e: kotlinx.coroutines.TimeoutCancellationException) { error = true }
+                                catch (e: CancellationException) { throw e }
+                                catch (_: Exception) { error = true }
+                                finally { busy = false }
+                            }
+                        }
                     }
                 }
                 2 -> {

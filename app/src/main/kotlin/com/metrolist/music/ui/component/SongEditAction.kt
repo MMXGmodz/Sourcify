@@ -55,6 +55,7 @@ private fun SongEditDialog(metadata: MediaMetadata, onDismiss: () -> Unit, onSav
     var cover by remember { mutableStateOf(store.cover(metadata.id)) }
     val initialCanvas = remember { store.canvas(metadata.id) }
     var canvas by remember { mutableStateOf(initialCanvas) }
+    var accentColor by remember { mutableStateOf(store.color(metadata.id)) }
     var busy by remember { mutableStateOf(false) }
     val imported = remember { mutableListOf<Uri>() }
     DisposableEffect(store, metadata.id) {
@@ -81,7 +82,8 @@ private fun SongEditDialog(metadata: MediaMetadata, onDismiss: () -> Unit, onSav
             busy = true
             try {
                 val updated = withContext(Dispatchers.IO) {
-                    val song = store.updateSong(database, metadata, title, songEditArtistNames(artists), cover, canvas, reset)
+                    val song = store.updateSong(database, metadata, title, songEditArtistNames(artists), cover, canvas,
+                        reset = reset, accentColor = accentColor)
                     if (!reset && canvas != null && canvas != initialCanvas) CanvasVideoStore(context).setEnabled(metadata.id, true)
                     song
                 }
@@ -104,6 +106,7 @@ private fun SongEditDialog(metadata: MediaMetadata, onDismiss: () -> Unit, onSav
                 OutlinedTextField(artists, { artists = it }, enabled = !busy, minLines = 2, maxLines = 5,
                     label = { Text(stringResource(R.string.sourcify_edit_artists)) },
                     supportingText = { Text(stringResource(R.string.sourcify_edit_artists_hint)) }, modifier = Modifier.fillMaxWidth())
+                SongColorOptions(accentColor, { accentColor = it }, enabled = !busy)
                 Text(stringResource(R.string.sourcify_edit_cover), style = MaterialTheme.typography.titleSmall)
                 (cover?.toString() ?: store.original(metadata).thumbnailUrl)?.let { artwork ->
                     AsyncImage(artwork, stringResource(R.string.sourcify_edit_cover), Modifier.size(88.dp), contentScale = ContentScale.Crop)

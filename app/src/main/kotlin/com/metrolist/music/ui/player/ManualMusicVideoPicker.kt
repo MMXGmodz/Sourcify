@@ -3,7 +3,6 @@ package com.metrolist.music.ui.player
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -44,7 +44,7 @@ import com.metrolist.music.playback.MusicVideoSelection
 import com.metrolist.music.playback.MusicVideoSelectionStore
 import com.metrolist.music.playback.localMusicVideoSelection
 import com.metrolist.music.playback.musicVideoId
-import com.metrolist.music.ui.component.YouTubeListItem
+import com.metrolist.music.ui.component.VideoSearchResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -53,6 +53,17 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+
+@Composable
+internal fun InitialMusicVideoSearch(songId: String, query: String, onSearch: (String) -> Unit) {
+    var started by rememberSaveable(songId) { mutableStateOf(false) }
+    LaunchedEffect(songId) {
+        if (!started) {
+            started = true
+            query.trim().takeIf { it.isNotEmpty() }?.let(onSearch)
+        }
+    }
+}
 
 internal suspend fun searchManualMusicVideos(
     query: String,
@@ -68,11 +79,11 @@ internal suspend fun searchManualMusicVideos(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun ManualMusicVideoPicker(songId: String, service: MusicService, onDismiss: () -> Unit, onSaved: () -> Unit) {
+internal fun ManualMusicVideoPicker(songId: String, songTitle: String, service: MusicService, onDismiss: () -> Unit, onSaved: () -> Unit) {
     val context = LocalContext.current
     val store = remember(context) { MusicVideoSelectionStore(context) }
     val scope = rememberCoroutineScope()
-    var query by rememberSaveable(songId) { mutableStateOf("") }
+    var query by rememberSaveable(songId) { mutableStateOf(songTitle.trim()) }
     var pickerSongId by rememberSaveable { mutableStateOf<String?>(null) }
     var results by remember(songId) { mutableStateOf(emptyList<SongItem>()) }
     var searchJob by remember { mutableStateOf<Job?>(null) }
@@ -127,10 +138,9 @@ internal fun ManualMusicVideoPicker(songId: String, service: MusicService, onDis
         if (uri != null && targetSongId != null) save(targetSongId) { localMusicVideoSelection(context, uri) }
     }
 
-    fun submit() {
-        val submitted = query.trim()
+    fun submit(submitted: String = query.trim(), allowLink: Boolean = true) {
         if (saving || submitted.isEmpty()) return
-        musicVideoId(submitted)?.let { videoId -> save { MusicVideoSelection.YouTube(videoId) }; return }
+        if (allowLink) musicVideoId(submitted)?.let { videoId -> save { MusicVideoSelection.YouTube(videoId) }; return }
         searchJob?.cancel()
         val currentRequest = ++request
         searching = true
@@ -147,6 +157,8 @@ internal fun ManualMusicVideoPicker(songId: String, service: MusicService, onDis
             finally { if (request == currentRequest) searching = false }
         }
     }
+
+    InitialMusicVideoSearch(songId, query) { submit(it, allowLink = false) }
 
     ModalBottomSheet(onDismissRequest = { if (!saving) onDismiss() },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = { !saving })) {
@@ -183,8 +195,7 @@ internal fun ManualMusicVideoPicker(songId: String, service: MusicService, onDis
                 }
             }
             items(results, key = { it.id }) { video ->
-                YouTubeListItem(item = video, badges = {}, isSwipeable = false,
-                    modifier = Modifier.clickable(enabled = !saving) { save { MusicVideoSelection.YouTube(video.id) } })
+                VideoSearchResult(video = video, enabled = !saving) { save { MusicVideoSelection.YouTube(video.id) } }
             }
         }
     }

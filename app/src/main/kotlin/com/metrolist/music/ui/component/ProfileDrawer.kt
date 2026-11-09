@@ -77,7 +77,8 @@ internal fun ProfileNavigationDrawer(state: DrawerState, sheetContent: @Composab
     val direction = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1 else 1
     ModalNavigationDrawer(drawerState = state, gesturesEnabled = state.isOpen, scrimColor = Color.Black.copy(alpha = .55f),
         drawerContent = {
-            ModalDrawerSheet(drawerState = state, modifier = Modifier.fillMaxWidth(.9f).onSizeChanged { width = it.width.toFloat() },
+            // A much wider sheet can make Material resolve the old closed anchor to Open on rotation.
+            ModalDrawerSheet(drawerState = state, modifier = Modifier.widthIn(max = 360.dp).fillMaxWidth(.9f).onSizeChanged { width = it.width.toFloat() },
                 drawerShape = androidx.compose.ui.graphics.RectangleShape, drawerContainerColor = Color(0xFF202020), windowInsets = WindowInsets(0, 0, 0, 0)) { sheetContent() }
         }) {
         Box(Modifier.fillMaxSize().graphicsLayer {

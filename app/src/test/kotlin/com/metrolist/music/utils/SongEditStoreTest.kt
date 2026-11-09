@@ -44,6 +44,43 @@ class SongEditStoreTest {
         store = SongEditStore(context)
     }
 
+    @Test fun songColorPersistsIndependentlyAndCanReturnToAutomaticWithoutLosingOtherEdits() {
+        val chosen = 0xFF8E44AD.toInt()
+        store.save(metadata, "Edited", listOf("Artist"), null, null, accentColor = chosen)
+        val reopened = SongEditStore(context)
+        assertEquals(chosen, reopened.color(metadata.id))
+        assertNull(reopened.color("other"))
+        store.save(metadata, "Renamed", listOf("Artist"), null, null)
+        assertEquals("Other edits must preserve the selected color", chosen, reopened.color(metadata.id))
+        store.save(metadata, "Renamed", listOf("Artist"), null, null, accentColor = null)
+        assertNull(reopened.color(metadata.id))
+        assertEquals("Renamed", reopened.resolve(metadata).title)
+    }
+
+    @Test fun failedEditRestoresTheSavedColorAndResetAllClearsIt() = runBlocking {
+        val database = MusicDatabase(Room.inMemoryDatabaseBuilder(context, InternalDatabase::class.java).allowMainThreadQueries().build())
+        try {
+            store.updateSong(database, metadata, "Saved", listOf("Artist"), null, null, accentColor = 0xFF4169E1.toInt())
+            assertEquals(0xFF4169E1.toInt(), store.color(metadata.id))
+            try {
+                store.updateSong(database, metadata, "", emptyList(), null, null, accentColor = 0xFFFF0000.toInt())
+                fail("Invalid edit must fail")
+            } catch (_: IllegalArgumentException) { }
+            assertEquals(0xFF4169E1.toInt(), store.color(metadata.id))
+            store.updateSong(database, metadata, "", emptyList(), null, null, reset = true)
+            assertNull(store.color(metadata.id))
+        } finally { database.close() }
+    }
+
+    @Test fun translucentAccentIsRejectedBeforeOverwritingThePreviousEdit() {
+        store.save(metadata, "Saved", emptyList(), null, null, accentColor = 0xFF0000FF.toInt())
+        assertThrows(IllegalArgumentException::class.java) {
+            store.save(metadata, "Invalid", emptyList(), null, null, accentColor = 0x440000FF)
+        }
+        assertEquals("Saved", store.resolve(metadata).title)
+        assertEquals(0xFF0000FF.toInt(), store.color(metadata.id))
+    }
+
     @Test fun persistentPerSongNamesKeepProviderIdsAndDoNotChangeOtherSongs() {
         store.save(metadata, " Edited ", listOf("Custom first", "Custom second", "Guest"), null, null)
         val reopened = SongEditStore(context)

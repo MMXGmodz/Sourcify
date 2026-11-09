@@ -202,6 +202,7 @@ private fun NewMiniPlayer(
     // Player states - only collect what's needed at this level
     val playbackState by playerConnection.playbackState.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val editedSongColor = com.metrolist.music.utils.rememberSongEditColor(mediaMetadata?.id)
     val canSkipNext by playerConnection.canSkipNext.collectAsStateWithLifecycle()
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsStateWithLifecycle()
 
@@ -251,9 +252,12 @@ private fun NewMiniPlayer(
             (600 / (1f + kotlin.math.exp(-(-11.44748 * swipeSensitivity + 9.04945)))).roundToInt()
         }
 
-    LaunchedEffect(mediaMetadata?.id, miniPlayerBackground) {
+    LaunchedEffect(mediaMetadata?.id, mediaMetadata?.thumbnailUrl, miniPlayerBackground, editedSongColor) {
         gradientColors = emptyList()
-        if (miniPlayerBackground == MiniPlayerBackgroundStyle.GRADIENT) {
+        if (miniPlayerBackground == MiniPlayerBackgroundStyle.GRADIENT && editedSongColor != null) {
+            val color = Color(editedSongColor)
+            gradientColors = listOf(color, androidx.compose.ui.graphics.lerp(color, Color.Black, .65f))
+        } else if (miniPlayerBackground == MiniPlayerBackgroundStyle.GRADIENT) {
             val url = mediaMetadata?.thumbnailUrl
             if (url != null) {
                 withContext(Dispatchers.IO) {

@@ -1197,76 +1197,10 @@ fun HomeScreen(
                 contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
             ) {
                 item(key = "sourcify_hero") {
-                    Column(
-                        Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
-                            .fillMaxWidth().clip(RoundedCornerShape(24.dp))
-.padding(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(20.dp),
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(stringResource(R.string.sourcify_home_label),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    letterSpacing = 2.sp)
-                                Spacer(Modifier.height(12.dp))
-                                Text(stringResource(R.string.sourcify_home_heading),
-                                    style = MaterialTheme.typography.headlineLarge,
-                                    fontWeight = FontWeight.Black)
-                            }
-                            Image(painterResource(R.drawable.sourcify_mark), null,
-                                modifier = Modifier.size(76.dp))
-                        }
-                        Row(
-                            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f))
-                                .combinedClickable(onClick = { navController.navigate("search_input") })
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Icon(painterResource(R.drawable.search), null,
-                                tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                            Text(stringResource(R.string.search), style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
+                    HomeHero { navController.navigate("search_input") }
                 }
                 item(key = "sourcify_library_shortcuts") {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        listOf(
-                            Triple(R.string.liked, R.drawable.favorite, "auto_playlist/liked"),
-                            Triple(R.string.downloaded_songs, R.drawable.offline, "auto_playlist/downloaded"),
-                        ).forEach { (title, icon, route) ->
-                            Card(
-                                onClick = { navController.navigate(route) },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(16.dp),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                ),
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                                ) {
-                                    Icon(
-                                        painter = painterResource(icon),
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(28.dp),
-                                    )
-                                    Text(
-                                        text = stringResource(title),
-                                        style = MaterialTheme.typography.titleSmall,
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    HomeLibraryShortcuts { navController.navigate(it) }
                 }
                 item {
                     ChipsRow(

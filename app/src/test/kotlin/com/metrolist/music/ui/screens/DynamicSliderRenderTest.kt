@@ -32,7 +32,7 @@ import java.time.Duration
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class DynamicSliderRenderTest {
     @Test fun maximumIntensityHasTallWavesAndZeroKeepsTheGlowingThumb() {
-        listOf(1f, 0f).forEach { amplitude ->
+        listOf(1f, .25f, 0f).forEach { amplitude ->
             val bitmap = render(amplitude)
             try {
                 val grayRows = (0 until bitmap.height).filter { y -> android.graphics.Color.green(bitmap.getPixel(326, y)) > 40 }
@@ -41,8 +41,16 @@ class DynamicSliderRenderTest {
                 val waveTop = (0 until baseline - 3).firstOrNull { y ->
                     (45..190).any { x -> android.graphics.Color.green(bitmap.getPixel(x, y)) > 40 }
                 }
-                if (amplitude > 0) assertTrue("100% waves must rise at least 20dp", waveTop != null && baseline - waveTop >= 20)
-                else assertTrue("0% must keep the played range flat", waveTop == null)
+                if (amplitude == 1f) {
+                    assertTrue("100% waves must rise at least 40dp without clipping", waveTop != null && baseline - waveTop >= 40)
+                    val broadCrest = (45..190).count { x ->
+                        (baseline - 48..baseline - 24).any { y -> android.graphics.Color.green(bitmap.getPixel(x, y)) > 40 }
+                    }
+                    assertTrue("100% must show a broad crest, at least 60dp wide above 24dp", broadCrest >= 60)
+                    assertTrue("Wave crest must remain inside the track canvas", waveTop != null && baseline - waveTop < 55)
+                } else if (amplitude > 0) {
+                    assertTrue("Normal audio energy must still produce a visible 20dp wave", waveTop != null && baseline - waveTop >= 20)
+                } else assertTrue("0% must keep the played range flat", waveTop == null)
                 val white = buildList {
                     for (y in baseline - 14..baseline + 14) for (x in 205..285) {
                         val pixel = bitmap.getPixel(x, y)
