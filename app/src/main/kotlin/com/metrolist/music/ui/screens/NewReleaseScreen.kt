@@ -7,6 +7,13 @@ package com.metrolist.music.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import com.metrolist.music.ui.theme.screenHeaderBrush
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -60,9 +67,31 @@ fun NewReleaseScreen(
     val coroutineScope = rememberCoroutineScope()
     val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
 
+    Column(Modifier.fillMaxSize().background(screenHeaderBrush())) {
+    TopAppBar(
+        title = { Text(stringResource(R.string.new_release_albums),
+            style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 2) },
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent,
+            scrolledContainerColor = Color.Transparent),
+        navigationIcon = {
+            IconButton(
+                onClick = navController::navigateUp,
+                onLongClick = navController::backToMain,
+            ) {
+                Icon(
+                    painterResource(R.drawable.arrow_back),
+                    contentDescription = null,
+                )
+            }
+        },
+    )
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp),
-        contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
+        modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = LocalPlayerAwareWindowInsets.current
+            .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom).asPaddingValues(),
     ) {
         items(
             items = newReleaseAlbums.distinctBy { it.id },
@@ -102,18 +131,6 @@ fun NewReleaseScreen(
         }
     }
 
-    TopAppBar(
-        title = { Text(stringResource(R.string.new_release_albums)) },
-        navigationIcon = {
-            IconButton(
-                onClick = navController::navigateUp,
-                onLongClick = navController::backToMain,
-            ) {
-                Icon(
-                    painterResource(R.drawable.arrow_back),
-                    contentDescription = null,
-                )
-            }
-        },
-    )
+
+    }
 }
