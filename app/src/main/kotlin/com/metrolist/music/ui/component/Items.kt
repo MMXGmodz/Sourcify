@@ -103,6 +103,7 @@ import com.metrolist.music.LocalArtistNameAliases
 import com.metrolist.music.LocalDownloadUtil
 import com.metrolist.music.LocalNavController
 import com.metrolist.music.LocalPlayerConnection
+import com.metrolist.music.lyrics.rememberTranslatedSongTitle
 import com.metrolist.music.R
 import com.metrolist.music.constants.CropAlbumArtKey
 import com.metrolist.music.constants.GridItemSize
@@ -516,7 +517,7 @@ fun SongListItem(
 
     val content: @Composable () -> Unit = {
          ListItem(
-             title = song.song.title,
+             title = rememberTranslatedSongTitle(song.song.title),
              subtitle = {
                   badges()
                   if (subtitleOverride == null) {
@@ -600,7 +601,7 @@ fun SongGridItem(
 ) = GridItem(
     title = {
         Text(
-            text = song.song.title,
+            text = rememberTranslatedSongTitle(song.song.title),
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
@@ -1098,7 +1099,7 @@ fun MediaMetadataListItem(
 ) {
     val artistNameAliases = LocalArtistNameAliases.current
     ListItem(
-        title = mediaMetadata.title,
+        title = rememberTranslatedSongTitle(mediaMetadata.title),
         subtitle = {
             if (mediaMetadata.explicit) Icon.Explicit()
             Text(
@@ -1183,6 +1184,8 @@ fun YouTubeListItem(
             title =
                 if (item is ArtistItem) {
                     ArtistNameAliases.resolve(artistNameAliases, item.id, item.title)
+                } else if (item is SongItem) {
+                    rememberTranslatedSongTitle(item.title)
                 } else {
                     item.title
                 },

@@ -5,6 +5,7 @@
 
 package com.metrolist.music.ui.player
 
+import com.metrolist.music.lyrics.rememberTranslatedSongTitle
 import androidx.lifecycle.repeatOnLifecycle
 
 import androidx.activity.compose.BackHandler
@@ -955,7 +956,7 @@ fun BottomSheetPlayer(
                     modifier = Modifier.weight(1f),
                 ) {
                     AnimatedContent(
-                        targetState = mediaMetadata.title,
+                        targetState = rememberTranslatedSongTitle(mediaMetadata.title),
                         transitionSpec = { fadeIn() togetherWith fadeOut() },
                         label = "",
                     ) { title ->
@@ -983,7 +984,7 @@ fun BottomSheetPlayer(
                                             }
                                         },
                                         onLongClick = {
-                                            val clip = ClipData.newPlainText(copiedTitleStr, title)
+                                            val clip = ClipData.newPlainText(copiedTitleStr, mediaMetadata.title)
                                             clipboardManager.setPrimaryClip(clip)
                                             Toast
                                                 .makeText(context, copiedTitleStr, Toast.LENGTH_SHORT)

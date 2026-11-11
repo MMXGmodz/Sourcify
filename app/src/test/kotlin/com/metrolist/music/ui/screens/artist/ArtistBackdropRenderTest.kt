@@ -18,6 +18,8 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.semantics.SemanticsNode
@@ -66,6 +68,7 @@ class ArtistBackdropRenderTest {
         var headerY = 0
         var activeColor = 0
         var backdropTop = 0
+        var measuredHeaderHeight by mutableIntStateOf(0)
         try {
             activity.setContent(parent = recomposer) {
                 MetrolistTheme(darkTheme = true, pureBlack = true) {
@@ -77,11 +80,14 @@ class ArtistBackdropRenderTest {
                             Box(Modifier.fillMaxSize().background(screenHeaderBrush())) {
                                 list = rememberLazyListState()
                                 activeColor = MaterialTheme.colorScheme.secondaryContainer.toArgb()
-                                ArtistBackdrop("KIDD KAWAKI", list.firstVisibleItemIndex > 0 || list.firstVisibleItemScrollOffset >= 100, {}, {},
+                                val fadeDistance = with(LocalDensity.current) { 112.dp.roundToPx() }
+                                val collapse = if (list.firstVisibleItemIndex > 0) 1f else
+                                    artistHeaderCollapseProgress(list.firstVisibleItemScrollOffset, measuredHeaderHeight, fadeDistance)
+                                ArtistBackdrop("KIDD KAWAKI", collapse > 0f, {}, {}, collapseProgress = collapse,
                                     modifier = Modifier.padding(end = 2.dp).onGloballyPositioned { backdropTop = it.positionInWindow().y.toInt() }) {
                                     LazyColumn(state = list, contentPadding = PaddingValues(top = 72.dp)) {
                                         item {
-                                            Column(Modifier.onGloballyPositioned { releaseY = it.positionInWindow().y.toInt() + it.size.height / 2 }) {
+                                            Column(Modifier.heightIn(min = 180.dp).onSizeChanged { measuredHeaderHeight = it.height }.onGloballyPositioned { releaseY = it.positionInWindow().y.toInt() + it.size.height / 2 }) {
                                                 ArtistHighlightRows("KIDD KAWAKI", 0, "Neue Single", null, true, true, {}, {})
                                             }
                                         }
@@ -134,9 +140,14 @@ class ArtistBackdropRenderTest {
                     if (view is ViewGroup) for (i in 0 until view.childCount) owner(view.getChildAt(i))?.let { return it }
                     return null
                 }
-                fun containsTitle(node: SemanticsNode): Boolean =
-                    (node.boundsInWindow.top < backdropTop + 160 && node.config.getOrNull(SemanticsProperties.Text)?.any { it.text == "KIDD KAWAKI" } == true) ||
+                fun containsTitle(node: SemanticsNode): Boolean {
+                    val bounds = node.boundsInWindow
+                    // Offscreen lazy rows can remain in the unmerged semantics tree
+                    // with empty clipped bounds at the origin.
+                    return (!bounds.isEmpty && bounds.bottom > backdropTop && bounds.top < backdropTop + 128 &&
+                        node.config.getOrNull(SemanticsProperties.Text)?.any { it.text == "KIDD KAWAKI" } == true) ||
                         node.children.any(::containsTitle)
+                }
                 return containsTitle(requireNotNull(owner(root)).unmergedRootSemanticsNode)
             }
             fun assertSameBackdrop(label: String, expected: Int, actual: Int) {
@@ -175,6 +186,100 @@ class ArtistBackdropRenderTest {
             assertTrue("Artist title appears in the toolbar after scrolling", toolbarTitleVisible())
             assertBackdrop(scrolled, "Scrolled unselected song", rowY, 50)
             scrolled.recycle()
+        } finally {
+            controller.pause().stop().destroy()
+            recomposer.cancel()
+            scope.cancel()
+        }
+    }
+
+    @Test fun paddedTabsStayInTheListUntilTheyReachTheToolbarThenRemainPinned() {
+        val controller = Robolectric.buildActivity(ComponentActivity::class.java).setup().visible()
+        val activity = controller.get()
+        val clock = BroadcastFrameClock()
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined + clock)
+        val recomposer = Recomposer(scope.coroutineContext)
+        scope.launch { recomposer.runRecomposeAndApplyChanges() }
+        lateinit var list: LazyListState
+        var toolbarHeight = 0
+        var measuredHeaderHeight = 0
+        var originalTabsY = 0f
+        var pinnedTabsY = 0f
+        var fixtureTop = 0f
+        var pinned = false
+        try {
+            activity.setContent(parent = recomposer) {
+                MetrolistTheme(darkTheme = true, pureBlack = true) {
+                    val topPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() +
+                        com.metrolist.music.constants.AppBarHeight
+                    toolbarHeight = with(LocalDensity.current) { topPadding.roundToPx() }
+                    list = rememberLazyListState()
+                    val tabsPinned by remember {
+                        derivedStateOf {
+                            val tabs = list.layoutInfo.visibleItemsInfo.firstOrNull { it.key == "artist_content_tabs" }
+                            tabs?.let { it.offset <= 0 } ?: (list.firstVisibleItemIndex > 1)
+                        }
+                    }
+                    pinned = tabsPinned
+                    ArtistBackdrop("KIDD KAWAKI", true, {}, {},
+                        modifier = Modifier.onGloballyPositioned { fixtureTop = it.positionInWindow().y }) {
+                        LazyColumn(state = list, contentPadding = PaddingValues(top = topPadding)) {
+                            item(key = "header") {
+                                Box(Modifier.fillMaxWidth().height(300.dp).onSizeChanged { measuredHeaderHeight = it.height })
+                            }
+                            item(key = "artist_content_tabs") {
+                                ArtistContentTabs(false, {}, Modifier.onGloballyPositioned { originalTabsY = it.positionInWindow().y })
+                            }
+                            items(30) { Text("Song $it", Modifier.fillMaxWidth().height(64.dp)) }
+                        }
+                        if (tabsPinned) {
+                            ArtistContentTabs(false, {}, Modifier.padding(top = topPadding)
+                                .onGloballyPositioned { pinnedTabsY = it.positionInWindow().y })
+                        }
+                    }
+                }
+            }
+            val root = activity.window.decorView
+            var frame = 0L
+            fun settle() {
+                val bitmap = Bitmap.createBitmap(824, 1784, Bitmap.Config.ARGB_8888)
+                try {
+                    repeat(8) {
+                        root.requestLayout()
+                        root.measure(View.MeasureSpec.makeMeasureSpec(824, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(1784, View.MeasureSpec.EXACTLY))
+                        root.layout(0, 0, 824, 1784)
+                        Snapshot.sendApplyNotifications()
+                        frame += 16_666_667L
+                        clock.sendFrame(frame)
+                        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(16))
+                        // AndroidComposeView flushes deferred Compose placement during
+                        // dispatchDraw; measuring the unchanged Android root is insufficient.
+                        root.draw(Canvas(bitmap))
+                    }
+                } finally {
+                    bitmap.recycle()
+                }
+            }
+            settle()
+            assertTrue("Fixture must include actual toolbar and status-bar padding", toolbarHeight >= 128)
+            // Keep the tabs half a toolbar below their final position. Comparing the
+            // lazy-item offset with toolbarHeight would incorrectly pin them here.
+            runBlocking { list.scrollToItem(0, measuredHeaderHeight - toolbarHeight / 2) }
+            settle()
+            assertEquals("The intermediate scroll must reach the requested offset", measuredHeaderHeight - toolbarHeight / 2, list.firstVisibleItemScrollOffset)
+            assertEquals("Lazy item offsets exclude the top padding", toolbarHeight / 2,
+                list.layoutInfo.visibleItemsInfo.first { it.key == "artist_content_tabs" }.offset)
+            assertFalse("Tabs must not duplicate above their still-visible list row", pinned)
+            assertEquals("List coordinates must include the top content padding", toolbarHeight * 1.5f, originalTabsY - fixtureTop, 1f)
+            runBlocking { list.scrollToItem(1) }
+            settle()
+            assertTrue("Tabs pin exactly as their list row reaches the toolbar", pinned)
+            assertEquals(toolbarHeight.toFloat(), originalTabsY - fixtureTop, 1f)
+            assertEquals(toolbarHeight.toFloat(), pinnedTabsY - fixtureTop, 1f)
+            runBlocking { list.scrollToItem(2, 32) }
+            settle()
+            assertTrue("Tabs remain pinned after the original row leaves the viewport", pinned)
+            assertEquals(toolbarHeight.toFloat(), pinnedTabsY - fixtureTop, 1f)
         } finally {
             controller.pause().stop().destroy()
             recomposer.cancel()

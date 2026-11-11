@@ -10,11 +10,8 @@ import org.junit.Test
 
 class OpenRouterServiceTest {
     @Test
-    fun `translation parsing handles fenced and short responses`() {
-        assertEquals(
-            listOf("uno", ""),
-            parseTranslationContent("```json\n[\"uno\"]\n```", 2).getOrThrow(),
-        )
+    fun `translation parsing rejects short responses instead of padding them`() {
+        assertTrue(parseTranslationContent("```json\n[\"uno\"]\n```", 2).isFailure)
     }
 
     @Test
@@ -23,6 +20,31 @@ class OpenRouterServiceTest {
             listOf("uno", "dos"),
             parseTranslationContent("""{"lines": ["uno", "dos"]}""", 2).getOrThrow(),
         )
+    }
+
+    @Test
+    fun `translation rejects invalid lines and unsolicited prose`() {
+        listOf(
+            """{"lines":["one","two","extra"]}""",
+            """{"lines":["one",""]}""",
+            """{"lines":["one",12]}""",
+            """{"lines":["one",null]}""",
+            """{"lines":["one","two\nthree"]}""",
+            "Here is the translation:\none\ntwo",
+            "{\"lines\":[\"one\",",
+        ).forEach { assertTrue(it, parseTranslationContent(it, 2).isFailure) }
+    }
+
+    @Test
+    fun `complete fenced response preserves line order and punctuation`() {
+        assertEquals(listOf("1. Uno", "- Dos"), parseTranslationContent("```json\n[\"1. Uno\",\"- Dos\"]\n```", 2).getOrThrow())
+    }
+
+    @Test
+    fun `API failures use status fallback for malformed or empty bodies`() {
+        assertEquals("bad key", apiErrorMessage("""{"error":{"message":"bad key"}}""", 401, "Unauthorized"))
+        assertEquals("HTTP 401: Unauthorized", apiErrorMessage("not json", 401, "Unauthorized"))
+        assertEquals("HTTP 429: Too Many Requests", apiErrorMessage("", 429, "Too Many Requests"))
     }
 
     @Test

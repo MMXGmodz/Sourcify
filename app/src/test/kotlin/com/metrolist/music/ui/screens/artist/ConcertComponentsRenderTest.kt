@@ -93,6 +93,10 @@ class ConcertComponentsRenderTest {
         }) { nodes ->
             val initial = nodes()
             assertTrue(text(initial).containsAll(listOf("Musik", "Events", "Köln", "Alle Events ansehen")))
+            val musicTab = initial.first { it.config.getOrNull(SemanticsProperties.Text)?.any { value -> value.text == "Musik" } == true }
+            val eventsTab = initial.first { it.config.getOrNull(SemanticsProperties.Text)?.any { value -> value.text == "Events" } == true }
+            assertTrue("Tabs must remain adjacent on the left", eventsTab.boundsInRoot.left - musicTab.boundsInRoot.right < 40f)
+            assertTrue("Events must not be centered in the right half", eventsTab.boundsInRoot.right < 220f)
             val month = initial.first { it.config.getOrNull(SemanticsProperties.Text)?.any { value -> value.text.startsWith("JAN") } == true }
             val day = initial.first { it.config.getOrNull(SemanticsProperties.Text)?.any { value -> value.text == "16" } == true }
             assertTrue("Month must be above day", month.boundsInRoot.top < day.boundsInRoot.top)
@@ -113,6 +117,28 @@ class ConcertComponentsRenderTest {
             assertTrue("Saving must expose the remove-saved-event accessibility label after recomposition. " +
                 "Before=${descriptions(initial)} After=${descriptions(after)}", updated)
         }
+    }
+
+    @Test fun musicConcertCardUsesTheProviderDateAndVenueWithoutInventingArtwork() {
+        render("concert-artist-music-de.png", content = {
+            ArtistUpcomingConcertCardContent(event, false, {}, {})
+        }) { nodes ->
+            val values = text(nodes())
+            assertTrue(values.containsAll(listOf("CAPO Live", "Köln", "16")))
+            assertTrue(values.any { it.startsWith("JAN") })
+            assertTrue(values.any { "20:00" in it && "E-Werk" in it })
+            assertTrue(values.contains("Alle anzeigen"))
+        }
+    }
+
+    @Test fun artistHeaderCollapsesOnlyNearItsMeasuredEndAndNeverJumpsAtOneHundredPixels() {
+        assertEquals(0f, artistHeaderCollapseProgress(0, 600, 100), 0f)
+        assertEquals(0f, artistHeaderCollapseProgress(100, 600, 100), 0f)
+        assertEquals(0f, artistHeaderCollapseProgress(500, 600, 100), 0f)
+        assertEquals(0.5f, artistHeaderCollapseProgress(550, 600, 100), 0f)
+        assertEquals(1f, artistHeaderCollapseProgress(600, 600, 100), 0f)
+        assertEquals(1f, artistHeaderCollapseProgress(900, 600, 100), 0f)
+        assertEquals(0f, artistHeaderCollapseProgress(100, 0, 100), 0f)
     }
 
     @Test fun manuallyChosenCityRequiresExactPublishedCityAndPartialDatesKeepNoDay() {

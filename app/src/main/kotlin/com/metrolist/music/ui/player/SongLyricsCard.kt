@@ -152,7 +152,7 @@ fun SongLyricsCard(song: MediaMetadata, position: Long, onSeekRequested: ((Long)
         Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(fullScreenTopColor, color))).padding(24.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(song.title, style = MaterialTheme.typography.titleLarge, color = Color.White)
+                    Text(com.metrolist.music.lyrics.rememberTranslatedSongTitle(song.title), style = MaterialTheme.typography.titleLarge, color = Color.White)
                     Text(song.artists.joinToString { it.name }, color = Color.White)
                     Text(com.metrolist.music.utils.makeTimeString(livePosition) + " / " +
                         com.metrolist.music.utils.makeTimeString(song.duration * 1000L), color = Color.White.copy(alpha = 0.8f))
@@ -172,6 +172,7 @@ fun SongLyricsCard(song: MediaMetadata, position: Long, onSeekRequested: ((Long)
                 else if (synced) LyricsUtils.parseLyrics(raw).filter { it.text.isNotBlank() }
                 else raw.lines().filter(String::isNotBlank).map { com.metrolist.music.lyrics.LyricsEntry(0, it) }
             }
+            LyricsTranslationControls(song.id, entries, lyrics?.takeIf { it.id == song.id })
             val active = if (synced) activeLyricsLine(entries.map { it.time }, livePosition + offset) else -1
             val listState = rememberLazyListState()
             LaunchedEffect(raw, active) {
@@ -180,11 +181,18 @@ fun SongLyricsCard(song: MediaMetadata, position: Long, onSeekRequested: ((Long)
             if (!synced) Text(stringResource(R.string.lyrics_unsynced), color = Color.White.copy(alpha = 0.75f))
             LazyColumn(state = listState, modifier = Modifier.weight(1f).padding(top = 24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 itemsIndexed(entries) { index, line ->
+                    val translation by line.translatedTextFlow.collectAsStateWithLifecycle()
+                    Column {
                     FullscreenLyricsLine(line.text, !synced || index == active,
                         lyricsSeekPosition(line.time, offset, synced, clickEnabled, guest) != null) {
                         lyricsSeekPosition(line.time, offset, synced, clickEnabled, guest)?.let { target ->
                             seek(target)
                         }
+                    }
+                    translation?.takeIf { it.isNotBlank() }?.let {
+                        Text(it, color = Color.White.copy(alpha = .8f), style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp))
+                    }
                     }
                 }
             }

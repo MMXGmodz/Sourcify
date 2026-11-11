@@ -72,14 +72,14 @@ object OpenRouterStreamingService {
                         .post(body.toString().toRequestBody(jsonMediaType))
                         .build()
 
-                client.newCall(request).execute().use { response ->
+                withTranslationResponse(client, request) { response ->
                     if (!response.isSuccessful) {
                         emit(
                             StreamChunk.Error(
                                 "Translation failed: ${apiErrorMessage(response.body.string(), response.code, response.message)}",
                             ),
                         )
-                        return@flow
+                        return@withTranslationResponse
                     }
 
                     val content = StringBuilder()
@@ -90,6 +90,11 @@ object OpenRouterStreamingService {
                             val data = line.removePrefix("data: ")
                             if (data == "[DONE]") break
 
+                            val event = runCatching { json.parseToJsonElement(data).jsonObject }.getOrNull()
+                            if (event?.containsKey("error") == true) {
+                                emit(StreamChunk.Error(apiErrorMessage(data, response.code, "Translation stream failed")))
+                                return@withTranslationResponse
+                            }
                             runCatching {
                                 json
                                     .parseToJsonElement(data)

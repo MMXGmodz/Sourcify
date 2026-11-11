@@ -1,5 +1,6 @@
 package com.metrolist.music.ui.player
 
+import com.metrolist.music.lyrics.rememberTranslatedSongTitle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -28,7 +29,7 @@ internal fun CompactSongRow(song: MediaMetadata, liked: Boolean, playing: Boolea
         AsyncImage(song.thumbnailUrl, null, Modifier.size(40.dp).clip(RoundedCornerShape(6.dp)), contentScale = ContentScale.Crop)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(song.title, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(rememberTranslatedSongTitle(song.title), color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(song.artists.joinToString { it.name }, color = Color.White.copy(alpha = .7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         IconButton(onClick = onLike, enabled = controlsEnabled) {

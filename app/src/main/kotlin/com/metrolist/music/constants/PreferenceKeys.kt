@@ -456,6 +456,7 @@ const val OpenRouterDefaultBaseUrl = "https://openrouter.ai/api/v1/chat/completi
 const val OpenRouterDefaultModel = "google/gemini-2.5-flash-lite"
 
 val TranslateModeKey = stringPreferencesKey("translateMode")
+val TranslateSongTitlesKey = booleanPreferencesKey("translateSongTitles")
 val TranslateLanguageKey = stringPreferencesKey("translateLanguage")
 val DeeplApiKey = stringPreferencesKey("deeplApiKey")
 val DeeplFormalityKey = stringPreferencesKey("deeplFormality")

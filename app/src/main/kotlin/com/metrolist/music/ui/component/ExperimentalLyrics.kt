@@ -229,7 +229,7 @@ fun ExperimentalLyrics(
     val isSynced = remember(lyrics) { lyricsTextLooksSynced(lyrics) }
     val hasWordTimings = remember(lines) { lines.any { it.words?.isNotEmpty() == true } }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(lines, currentSong?.id, translateLanguage, translateMode, aiProvider, openRouterApiKey, deeplApiKey, openRouterBaseUrl, openRouterModel, aiSystemPrompt, deeplFormality) {
         LyricsTranslationHelper.setCompositionActive(true)
         onDispose {
             LyricsTranslationHelper.setCompositionActive(false)
@@ -237,13 +237,13 @@ fun ExperimentalLyrics(
         }
     }
     
-    LaunchedEffect(lines, lyricsEntity, translateLanguage, translateMode) {
+    LaunchedEffect(lines, lyricsEntity, translateLanguage, translateMode, aiProvider, openRouterBaseUrl, openRouterModel, aiSystemPrompt, deeplFormality) {
         if (lines.isNotEmpty() && lyricsEntity != null) {
             LyricsTranslationHelper.loadTranslationsFromDatabase(
                 lyrics = lines,
                 lyricsEntity = lyricsEntity,
                 targetLanguage = translateLanguage,
-                mode = translateMode
+                mode = LyricsTranslationHelper.translationIdentity(translateMode, aiProvider, openRouterBaseUrl, openRouterModel, aiSystemPrompt, deeplFormality)
             )
         }
     }
