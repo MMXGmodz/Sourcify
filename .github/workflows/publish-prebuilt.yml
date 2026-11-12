@@ -1,0 +1,34 @@
+name: Publish verified Android release
+on:
+  push:
+    branches: [release-assets/v13.8.15]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify release files
+        working-directory: release-assets
+        run: |
+          sha256sum -c SHA256SUMS
+          python3 - <<'PYTHON'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('build-report.json').read_text())
+          assert report['version_name'] == '13.8.15' and report['version_code'] == 183
+          assert report['application_id'] == 'io.sourcify.player.uitest'
+          assert report['certificate_sha256'] == '56035322af932a3e8cbe942e6afa9792a8e744396990b2e9bb23b51a062b7aad'
+          assert report['test_count'] == 485
+          assert all(int(test['failures']) == 0 and int(test['errors']) == 0 for test in report['tests'])
+          PYTHON
+      - name: Publish Android 13.8.15
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload v13.8.15-preview.1 --repo "$GITHUB_REPOSITORY" release-assets/Sourcify.apk release-assets/Sourcify-13.8.15-source.zip release-assets/build-report.json release-assets/SHA256SUMS --clobber
+          gh release edit v13.8.15-preview.1 --repo "$GITHUB_REPOSITORY" --draft=false --prerelease
