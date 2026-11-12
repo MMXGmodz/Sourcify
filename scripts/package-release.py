@@ -108,7 +108,7 @@ def main():
         'tests': [{k: s[k] for k in ('name', 'tests', 'failures', 'errors', 'skipped')} for s in suites],
         'files': {p.name: {'bytes': p.stat().st_size, 'sha256': digest(p)} for p in (apk, archive)},
         'commands': [':app:assembleTvDebug', ':app:testTvDebugUnitTest'] if args.tv else [':app:assembleFossDebug', ':app:testFossDebugUnitTest'],
-        'limitations': ['No physical Android TV device test.' if args.tv else 'No physical Android device test.', 'FOSS debug build with the permanent release signer created on 2026-11-12. Older installations require a one-time reinstall after backing up app data.', 'YouTube Music availability determines streams and recommendations.'],
+        'limitations': ['No physical Android TV device test.' if args.tv else 'No physical Android device test.', 'FOSS debug build with the permanent release signer created on 2026-11-12. Installations signed before the 13.8.13 key migration require a one-time reinstall after backing up app data.', 'YouTube Music availability determines streams and recommendations.'],
     }
     report_path = output / 'build-report.json'
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')

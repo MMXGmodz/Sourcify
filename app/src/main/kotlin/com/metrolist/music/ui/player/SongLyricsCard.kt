@@ -240,6 +240,7 @@ internal val PlayerLyricsFont = FontFamily(Font(R.font.lato_bold, FontWeight.Bol
 
 @Composable
 internal fun LyricsPreviewCard(preview: List<String>, color: Color, onFullscreen: () -> Unit, highlightFirst: Boolean = true, activeLine: Int = if (highlightFirst) 0 else -1, startIndex: Int = 0) {
+    if (preview.none(String::isNotBlank)) return
     val top = lerp(color, Color.Black, 0.45f)
     val bottom = lerp(color, Color.Black, 0.12f)
     Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp), shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
