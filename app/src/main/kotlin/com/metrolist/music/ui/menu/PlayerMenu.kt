@@ -112,6 +112,7 @@ fun PlayerMenu(
     isQueueTrigger: Boolean? = false,
     onShowDetailsDialog: () -> Unit,
     onDismiss: () -> Unit,
+    onOpenQueue: (() -> Unit)? = null,
 ) {
     mediaMetadata ?: return
     var information by remember(mediaMetadata.id) { mutableStateOf(false) }
@@ -119,7 +120,7 @@ fun PlayerMenu(
     if (information) com.metrolist.music.ui.player.PlayerContextCards(mediaMetadata, {}, informationOnly = true, onDismissInformation = { information = false })
     if (sharing) com.metrolist.music.ui.player.SongShareSheet(mediaMetadata, onDismiss = { sharing = false })
     if (com.metrolist.music.utils.LocalAudioStore.isLocalId(mediaMetadata.id)) {
-        LocalAudioMenu(mediaMetadata, onDismiss, { information = true })
+        LocalAudioMenu(mediaMetadata, onDismiss, { information = true }, onOpenQueue)
         return
     }
     val navController = LocalNavController.current
@@ -403,6 +404,11 @@ fun PlayerMenu(
         item {
             Material3MenuGroup(
                 items = buildList {
+                    if (onOpenQueue != null) add(Material3MenuItemData(
+                        title = { Text(stringResource(R.string.queue)) },
+                        icon = { Icon(painterResource(R.drawable.queue_music), null) },
+                        onClick = { onDismiss(); onOpenQueue() },
+                    ))
                     add(Material3MenuItemData(
                         title = { Text(stringResource(R.string.sourcify_canvas)) },
                         icon = { Icon(painterResource(R.drawable.slow_motion_video), contentDescription = null) },

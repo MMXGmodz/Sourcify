@@ -43,11 +43,11 @@ internal fun CompactSongRow(song: MediaMetadata, liked: Boolean, playing: Boolea
 
 @Composable
 internal fun PlayerScrollHeader(song: MediaMetadata, fraction: Float, background: Color, liked: Boolean, playing: Boolean, progress: Float,
-    onCollapse: () -> Unit, onLike: () -> Unit, onPlay: () -> Unit, more: @Composable () -> Unit) {
+    onCollapse: () -> Unit, onLike: () -> Unit, onPlay: () -> Unit, more: @Composable () -> Unit, landscape: Boolean = false) {
     val amount = fraction.coerceIn(0f, 1f)
     Column(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(background.copy(alpha = .65f + .35f * amount), background.copy(alpha = amount))))
         .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))) {
-        Row(Modifier.fillMaxWidth().height(64.dp).clipToBounds().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().height(if (landscape) 48.dp else 64.dp).clipToBounds().padding(horizontal = if (landscape) 8.dp else 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) {
                 if (amount < 1f) Row(Modifier.fillMaxWidth().graphicsLayer { alpha = 1f - amount; translationY = amount * size.height / 2 }, verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onCollapse, enabled = amount < .5f) { Icon(painterResource(R.drawable.expand_more), stringResource(R.string.cd_back), tint = Color.White) }

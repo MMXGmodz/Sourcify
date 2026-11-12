@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
-internal fun LocalAudioMenu(metadata: MediaMetadata, onDismiss: () -> Unit, onInfo: (() -> Unit)? = null) {
+internal fun LocalAudioMenu(metadata: MediaMetadata, onDismiss: () -> Unit, onInfo: (() -> Unit)? = null, onOpenQueue: (() -> Unit)? = null) {
     val database = LocalDatabase.current
     val connection = LocalPlayerConnection.current ?: return
     val scope = rememberCoroutineScope()
@@ -33,6 +33,11 @@ internal fun LocalAudioMenu(metadata: MediaMetadata, onDismiss: () -> Unit, onIn
     Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(metadata.title, style = MaterialTheme.typography.titleLarge)
         Text(stringResource(R.string.local_audio_network_notice), style = MaterialTheme.typography.bodySmall)
+        if (onOpenQueue != null) TextButton(onClick = { onDismiss(); onOpenQueue() }) {
+            Icon(painterResource(R.drawable.queue_music), null)
+            Spacer(Modifier.width(12.dp))
+            Text(stringResource(R.string.queue))
+        }
         SongEditAction(metadata, onDismiss)
         PlayerSleepTimerAction()
         SongCanvasAction(metadata.id)
