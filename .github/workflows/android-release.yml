@@ -1,69 +1,37 @@
-name: Android release
+name: Verify existing update signing key
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag matching the Android version, for example v13.7.1-preview.1'
-        required: true
+        required: false
         type: string
 
 permissions:
-  contents: write
-
-concurrency:
-  group: android-release
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  release:
+  verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    env:
-      RELEASE_TAG: ${{ inputs.tag }}
-      METROLIST_APPLICATION_ID: io.sourcify.player.uitest
-      METROLIST_APP_NAME: Sourcify
+    timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - name: Check release tag and signing key
+      - name: Check existing update key without exporting it
         env:
-          SOURCIFY_SIGNING_KEYSTORE_B64: ${{ secrets.SOURCIFY_SIGNING_KEYSTORE_B64 }}
+          SIGNING_KEY: ${{ secrets.SOURCIFY_SIGNING_KEYSTORE_B64 }}
+        shell: bash
         run: |
-          python3 scripts/package-release.py --validate-tag "$RELEASE_TAG"
-          RELEASE_VERSION="${RELEASE_TAG#v}"
-          RELEASE_VERSION="${RELEASE_VERSION%%-preview.*}"
-          test -f "docs/releases/$RELEASE_VERSION.md"
-          echo "RELEASE_VERSION=$RELEASE_VERSION" >> "$GITHUB_ENV"
-          if [ -z "$SOURCIFY_SIGNING_KEYSTORE_B64" ]; then
-            echo 'Missing SOURCIFY_SIGNING_KEYSTORE_B64 repository secret.' >&2
+          set -euo pipefail
+          if [ -z "$SIGNING_KEY" ]; then
+            echo 'UPDATE_SIGNING_KEY_NOT_CONFIGURED'
             exit 1
           fi
-          printf '%s' "$SOURCIFY_SIGNING_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/sourcify-signing.jks"
-          chmod 600 "$RUNNER_TEMP/sourcify-signing.jks"
-          echo "METROLIST_DEBUG_KEYSTORE_PATH=$RUNNER_TEMP/sourcify-signing.jks" >> "$GITHUB_ENV"
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-      - uses: gradle/actions/setup-gradle@v4
-      - name: Install SDK
-        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;37.0.0" "build-tools;36.0.0"' 
-      - name: Test release tooling
-        run: python3 -m unittest discover -s scripts/tests -v
-      - name: Build and test
-        run: ./gradlew --no-configuration-cache --max-workers=2 :app:assembleFossDebug :app:testFossDebugUnitTest
-      - name: Package verified release files
-        run: python3 scripts/package-release.py --tag "$RELEASE_TAG" --output release-files
-      - name: Publish prerelease with all assets
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "Sourcify ${RELEASE_TAG#v}" --notes-file "docs/releases/$RELEASE_VERSION.md" \
-            --prerelease --draft release-files/*
-          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease
-      - name: Remove temporary signing key
-        if: always()
-        run: rm -f "$RUNNER_TEMP/sourcify-signing.jks"
+          umask 077
+          keyfile="$RUNNER_TEMP/update-signing-check.jks"
+          trap 'rm -f "$keyfile"' EXIT
+          printf '%s' "$SIGNING_KEY" | base64 --decode > "$keyfile"
+          actual=$(keytool -exportcert -keystore "$keyfile" -storepass android -alias androiddebugkey | sha256sum | cut -d ' ' -f 1)
+          if [ "$actual" != '213034870b96e6cd98d1b56225e668c5f81f1b198f3f4b4a28d4f686481f844e' ]; then
+            echo 'UPDATE_SIGNING_CERTIFICATE_MISMATCH'
+            exit 1
+          fi
+          echo 'EXISTING_UPDATE_SIGNING_KEY_CONFIRMED'
