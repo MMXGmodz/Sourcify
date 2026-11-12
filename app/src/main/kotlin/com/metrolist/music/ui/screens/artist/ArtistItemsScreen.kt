@@ -103,6 +103,8 @@ fun ArtistItemsScreen(
         }
     }
 
+    ArtistBackdrop(title = title, showTitle = true,
+        onNavigateUp = { navController.navigateUp() }, onBackToMain = navController::backToMain) {
     if (itemsPage == null) {
         ShimmerHost(
             modifier = Modifier.windowInsetsPadding(LocalPlayerAwareWindowInsets.current),
@@ -374,18 +376,6 @@ fun ArtistItemsScreen(
         }
     }
 
-    TopAppBar(
-        title = { Text(title) },
-        navigationIcon = {
-            IconButton(
-                onClick = navController::navigateUp,
-                onLongClick = navController::backToMain,
-            ) {
-                Icon(
-                    painterResource(R.drawable.arrow_back),
-                    contentDescription = null,
-                )
-            }
-        },
-    )
+
+    }
 }

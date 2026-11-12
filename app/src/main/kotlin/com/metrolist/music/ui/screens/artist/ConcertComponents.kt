@@ -1,6 +1,7 @@
 package com.metrolist.music.ui.screens.artist
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -66,11 +67,50 @@ internal fun rememberConcerts(artist: String, enabled: Boolean = true, retry: In
 internal fun ArtistConcert.matchesCity(city: String): Boolean =
     city.isNotBlank() && this.city.isNotBlank() && normalizeArtistName(this.city) == normalizeArtistName(city)
 
+internal fun artistHeaderCollapseProgress(scrollOffset: Int, headerHeight: Int, fadeDistance: Int): Float {
+    if (headerHeight <= 0) return 0f
+    return ((scrollOffset - headerHeight + fadeDistance).toFloat() / fadeDistance.coerceAtLeast(1)).coerceIn(0f, 1f)
+}
+
 @Composable
-internal fun ArtistContentTabs(eventsSelected: Boolean, onSelectEvents: (Boolean) -> Unit) {
-    TabRow(selectedTabIndex = if (eventsSelected) 1 else 0, containerColor = androidx.compose.ui.graphics.Color.Transparent) {
-        Tab(selected = !eventsSelected, onClick = { onSelectEvents(false) }, text = { Text(stringResource(R.string.s83_music_tab)) })
-        Tab(selected = eventsSelected, onClick = { onSelectEvents(true) }, text = { Text(stringResource(R.string.s83_events_tab)) })
+internal fun ArtistContentTabs(eventsSelected: Boolean, onSelectEvents: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+    Row(modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+        listOf(false, true).forEach { events ->
+            val selected = eventsSelected == events
+            Column(Modifier.selectable(selected = selected, role = androidx.compose.ui.semantics.Role.Tab,
+                onClick = { onSelectEvents(events) }).padding(top = 14.dp),
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(stringResource(if (events) R.string.s83_events_tab else R.string.s83_music_tab),
+                    style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+                    color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(12.dp))
+                Box(Modifier.width(48.dp).height(3.dp).background(if (selected) Color(0xFF1ED760) else Color.Transparent))
+            }
+        }
+    }
+}
+
+@Composable
+internal fun ArtistUpcomingConcertCard(artistName: String, onAllEvents: () -> Unit) {
+    val state = rememberConcerts(artistName)
+    val concert = state.events.firstOrNull() ?: return
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val saved by rememberPreference(ConcertPreferences.savedKey, emptySet<String>())
+    ArtistUpcomingConcertCardContent(concert, concert.id in saved, onAllEvents) {
+        scope.launch { ConcertPreferences.setSaved(context, concert.id, concert.id !in saved) }
+    }
+}
+
+@Composable
+internal fun ArtistUpcomingConcertCardContent(concert: ArtistConcert, saved: Boolean, onAllEvents: () -> Unit, onToggleSaved: () -> Unit) {
+    Card(Modifier.fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
+        ConcertCardHeading(false, onAllEvents, overImage = false)
+        Column(Modifier.padding(horizontal = 18.dp)) {
+            Text(concert.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            ConcertRow(concert, saved, onToggleSaved)
+        }
     }
 }
 

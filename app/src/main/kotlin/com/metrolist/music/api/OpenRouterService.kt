@@ -21,6 +21,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.put
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -76,12 +77,12 @@ object OpenRouterService {
                             .post(body.toString().toRequestBody(jsonMediaType))
                             .build()
 
-                    client.newCall(request).execute().use { response ->
+                    return@withContext withTranslationResponse(client, request) { response ->
                         val responseBody = response.body.string()
                         if (!response.isSuccessful) {
                             val error = apiErrorMessage(responseBody, response.code, response.message)
                             if (response.code >= 500) throw Exception(error)
-                            return@withContext Result.failure(Exception("Translation failed: $error"))
+                            return@withTranslationResponse Result.failure(Exception("Translation failed: $error"))
                         }
 
                         val content =
@@ -97,7 +98,7 @@ object OpenRouterService {
                                 ?.jsonPrimitive
                                 ?.contentOrNull
                                 .orEmpty()
-                        return@withContext parseTranslationContent(content, text.lines().size)
+                        parseTranslationContent(content, text.lines().size)
                     }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
@@ -239,6 +240,8 @@ Output MUST be a JSON object {"lines": [...]} with EXACTLY $lineCount strings.""
                                             "lines",
                                             buildJsonObject {
                                                 put("type", "array")
+                                                put("minItems", lineCount)
+                                                put("maxItems", lineCount)
                                                 put(
                                                     "description",
                                                     "Translated lines, one per input line, empty lines preserved as empty strings",
@@ -286,34 +289,24 @@ internal fun parseTranslationContent(
 ): Result<List<String>> =
     runCatching {
         val cleaned = content.replace("```json", "").replace("```", "").trim()
-        val bracketed =
-            cleaned
-                .substringAfter('[', "")
-                .substringBeforeLast(']', "")
-                .takeIf(String::isNotEmpty)
-                ?.let { "[$it]" }
-        val translatedLines =
-            sequenceOf(content.trim(), cleaned, bracketed)
-                .filterNotNull()
-                .mapNotNull { candidate ->
-                    runCatching { extractLines(translationJson.parseToJsonElement(candidate)) }.getOrNull()
-                }.firstOrNull()
-                ?: cleaned
-                    .lines()
-                    .filter(String::isNotBlank)
-                    .map { it.trim().removeSurrounding("\"").removeSurrounding("'") }
-                    .takeIf(List<String>::isNotEmpty)
-                ?: error("Failed to parse translation")
+        val translatedLines = extractLines(translationJson.parseToJsonElement(cleaned))
+            ?: error("Translation must contain a lines array")
+        require(translatedLines.size == expectedLineCount) {
+            "Translation line count mismatch: expected $expectedLineCount, received ${translatedLines.size}"
+        }
+        require(translatedLines.none { it.isBlank() || it.contains('\n') || it.contains('\r') }) {
+            "Translation contains embedded line breaks"
+        }
+        translatedLines
 
-        translatedLines.take(expectedLineCount) + List((expectedLineCount - translatedLines.size).coerceAtLeast(0)) { "" }
     }
 
 private fun extractLines(element: JsonElement): List<String>? =
     when (element) {
         // structured-output schema shape
-        is JsonObject -> (element["lines"] as? JsonArray)?.map { it.jsonPrimitive.content }
+        is JsonObject -> (element["lines"] as? JsonArray)?.map { require(it is JsonPrimitive && it.isString) { "Translation lines must be strings" }; it.content }
         // legacy lenient path: bare arrays from models/providers that ignore the schema
-        is JsonArray -> element.map { it.jsonPrimitive.content }
+        is JsonArray -> element.map { require(it is JsonPrimitive && it.isString) { "Translation lines must be strings" }; it.content }
         else -> null
     }
 

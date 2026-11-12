@@ -61,6 +61,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -118,6 +120,7 @@ import com.metrolist.music.ui.menu.YouTubeAlbumMenu
 import com.metrolist.music.ui.menu.YouTubeArtistMenu
 import com.metrolist.music.ui.menu.YouTubePlaylistMenu
 import com.metrolist.music.ui.menu.YouTubeSongMenu
+import com.metrolist.music.ui.theme.screenHeaderBrush
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.ui.utils.fadingEdge
 import com.metrolist.music.ui.utils.isScrollingUp
@@ -191,9 +194,19 @@ fun ArtistScreen(
             -(systemBarsTopPadding + AppBarHeight).roundToPx()
         }
 
-    val transparentAppBar by remember {
+    var headerHeight by remember { mutableStateOf(0) }
+    val toolbarHeight = with(density) { (systemBarsTopPadding + AppBarHeight).roundToPx() }
+    val collapseProgress by remember {
         derivedStateOf {
-            lazyListState.firstVisibleItemIndex == 0 && lazyListState.firstVisibleItemScrollOffset < 100
+            if (lazyListState.firstVisibleItemIndex > 0) 1f
+            else artistHeaderCollapseProgress(lazyListState.firstVisibleItemScrollOffset, headerHeight,
+                with(density) { 112.dp.roundToPx() })
+        }
+    }
+    val tabsPinned by remember {
+        derivedStateOf {
+            val tabs = lazyListState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == "artist_content_tabs" }
+            tabs?.let { it.offset <= 0 } ?: (lazyListState.firstVisibleItemIndex > 1)
         }
     }
 
@@ -210,7 +223,9 @@ fun ArtistScreen(
 
     ArtistBackdrop(
         title = displayArtistName.orEmpty(),
-        showTitle = !transparentAppBar,
+        showTitle = collapseProgress > 0f,
+        collapseProgress = collapseProgress,
+        onOptions = { artistOptions = true },
         onNavigateUp = { navController.navigateUp() },
         onBackToMain = navController::backToMain,
     ) {
@@ -314,7 +329,7 @@ fun ArtistScreen(
                 item(key = "header") {
                     val thumbnail = artistPage?.artist?.thumbnail ?: libraryArtist?.artist?.thumbnailUrl
 
-                    Box {
+                    Box(Modifier.onSizeChanged { headerHeight = it.height }) {
                         // Artist Image with offset
                         if (thumbnail != null) {
                             Box(
@@ -322,6 +337,11 @@ fun ArtistScreen(
                                     Modifier
                                         .fillMaxWidth()
                                         .aspectRatio(1f)
+                                        .graphicsLayer {
+                                            translationY = if (lazyListState.firstVisibleItemIndex == 0)
+                                                lazyListState.firstVisibleItemScrollOffset * 0.35f else 0f
+                                            alpha = 1f - collapseProgress
+                                        }
                                         .offset {
                                             IntOffset(x = 0, y = headerOffset)
                                         },
@@ -375,7 +395,7 @@ fun ArtistScreen(
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     fontSize = 32.sp,
-                                    modifier = Modifier.padding(bottom = 16.dp),
+                                    modifier = Modifier.padding(bottom = 16.dp).graphicsLayer { alpha = 1f - collapseProgress },
                                 )
 
                                 // Buttons Row
@@ -882,8 +902,16 @@ fun ArtistScreen(
                         }
                     }
                 }
+                item(key = "artist_upcoming_concert") {
+                    ArtistUpcomingConcertCard(concertArtistName) { eventsSelected = true }
+                }
                 }
             }
+        }
+
+        if (tabsPinned) {
+            ArtistContentTabs(eventsSelected, { eventsSelected = it },
+                Modifier.padding(top = systemBarsTopPadding + AppBarHeight).background(screenHeaderBrush()))
         }
 
         val isScrollingUp = lazyListState.isScrollingUp()

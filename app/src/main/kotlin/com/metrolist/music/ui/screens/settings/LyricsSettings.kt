@@ -31,6 +31,7 @@ import kotlin.math.roundToInt
 
 @Composable
 fun LyricsSettings(navController: NavController) {
+    val (translateTitles, onTranslateTitlesChange) = rememberPreference(TranslateSongTitlesKey, false)
     SettingsPage(stringResource(R.string.s80_lyrics_settings), navController::navigateUp,
         bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding(), onBackToMain = navController::backToMain) {
         LyricsAppearancePreferences()
@@ -39,6 +40,12 @@ fun LyricsSettings(navController: NavController) {
             icon = painterResource(R.drawable.translate),
             title = { Text(stringResource(R.string.ai_lyrics_translation)) },
             onClick = { navController.navigate("settings/ai") },
+        ), Material3SettingsItem(
+            icon = painterResource(R.drawable.translate),
+            title = { Text(stringResource(R.string.translate_song_titles)) },
+            description = { Text(stringResource(R.string.translate_song_titles_description)) },
+            trailingContent = { Switch(checked = translateTitles, onCheckedChange = onTranslateTitlesChange) },
+            onClick = { onTranslateTitlesChange(!translateTitles) },
         )))
     }
 }

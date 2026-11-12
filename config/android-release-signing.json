@@ -1,0 +1,8 @@
+{
+  "certificate_sha256": "56035322af932a3e8cbe942e6afa9792a8e744396990b2e9bb23b51a062b7aad",
+  "key_alias": "androiddebugkey",
+  "github_secret": "SOURCIFY_SIGNING_KEYSTORE_B64",
+  "created": "2026-11-12",
+  "migration": "Replaces the previous signer. Installations signed before this migration require a one-time reinstall after backing up app data. Keep using this key for all subsequent updates.",
+  "private_key_storage": "GitHub Actions secret and owner-held private backup. Never commit the keystore or generate a replacement automatically."
+}

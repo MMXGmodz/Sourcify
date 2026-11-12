@@ -86,9 +86,8 @@ fun ArtistSongsScreen(
     val songs by viewModel.songs.collectAsStateWithLifecycle()
     val lazyListState = rememberLazyListState()
 
-    Box(
-        modifier = Modifier.fillMaxSize(),
-    ) {
+    ArtistBackdrop(title = artist?.artist?.name.orEmpty(), showTitle = true,
+        onNavigateUp = { navController.navigateUp() }, onBackToMain = navController::backToMain) {
         LazyColumn(
             state = lazyListState,
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
@@ -181,21 +180,6 @@ fun ArtistSongsScreen(
                 )
             }
         }
-
-        TopAppBar(
-            title = { Text(artist?.artist?.name.orEmpty()) },
-            navigationIcon = {
-                IconButton(
-                    onClick = navController::navigateUp,
-                    onLongClick = navController::backToMain,
-                ) {
-                    Icon(
-                        painterResource(R.drawable.arrow_back),
-                        contentDescription = null,
-                    )
-                }
-            },
-        )
 
         HideOnScrollFAB(
             lazyListState = lazyListState,

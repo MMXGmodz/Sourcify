@@ -7,6 +7,7 @@
 
 package com.metrolist.music.ui.player
 
+import com.metrolist.music.lyrics.rememberTranslatedSongTitle
 import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
@@ -998,7 +999,7 @@ private fun LegacyMiniMediaInfo(
                     .padding(horizontal = 6.dp),
         ) {
             Text(
-                text = mediaMetadata.title,
+                text = rememberTranslatedSongTitle(mediaMetadata.title),
                 color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,

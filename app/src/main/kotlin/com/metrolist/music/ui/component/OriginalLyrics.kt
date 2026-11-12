@@ -363,7 +363,7 @@ fun OriginalLyrics(
     val translationStatus by LyricsTranslationHelper.status.collectAsStateWithLifecycle()
 
     // Track composition lifecycle
-    DisposableEffect(Unit) {
+    DisposableEffect(lines, currentSong?.id, translateLanguage, translateMode, aiProvider, openRouterApiKey, deeplApiKey, openRouterBaseUrl, openRouterModel, aiSystemPrompt, deeplFormality) {
         LyricsTranslationHelper.setCompositionActive(true)
         onDispose {
             LyricsTranslationHelper.setCompositionActive(false)
@@ -372,13 +372,13 @@ fun OriginalLyrics(
     }
 
     // Load translations from database on initial display
-    LaunchedEffect(lines, lyricsEntity, translateLanguage, translateMode) {
+    LaunchedEffect(lines, lyricsEntity, translateLanguage, translateMode, aiProvider, openRouterBaseUrl, openRouterModel, aiSystemPrompt, deeplFormality) {
         if (lines.isNotEmpty() && lyricsEntity != null) {
             LyricsTranslationHelper.loadTranslationsFromDatabase(
                 lyrics = lines,
                 lyricsEntity = lyricsEntity,
                 targetLanguage = translateLanguage,
-                mode = translateMode,
+                mode = LyricsTranslationHelper.translationIdentity(translateMode, aiProvider, openRouterBaseUrl, openRouterModel, aiSystemPrompt, deeplFormality),
             )
         }
     }
@@ -386,7 +386,7 @@ fun OriginalLyrics(
     val aiApiKeyRequiredStr = stringResource(R.string.ai_api_key_required)
 
     // Listen for manual trigger
-    LaunchedEffect(showLyrics, lines.size) {
+    LaunchedEffect(showLyrics, lines, translateLanguage, translateMode, aiProvider, openRouterApiKey, deeplApiKey, openRouterBaseUrl, openRouterModel, deeplFormality, aiSystemPrompt, currentSong?.id) {
         LyricsTranslationHelper.manualTrigger.collect {
             val effectiveApiKey = if (aiProvider == "DeepL") deeplApiKey else openRouterApiKey
             if (showLyrics && lines.isNotEmpty() && effectiveApiKey.isNotBlank()) {
