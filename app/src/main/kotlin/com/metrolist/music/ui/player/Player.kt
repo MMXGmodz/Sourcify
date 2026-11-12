@@ -263,6 +263,9 @@ fun BottomSheetPlayer(
     val canvasViewport = with(LocalDensity.current) { LocalConfiguration.current.screenHeightDp.dp.toPx() }
     val canvasInView by remember(portrait, canvasViewport) { derivedStateOf { !portrait || playerScrollState.value < canvasViewport } }
     val showCanvas = canvasEnabled && (canvasSource != null || editedCanvas?.isImage == true) && !canvasFailed && state.isExpanded
+    val landscapePlayer = !portrait && !showCanvas
+    val controlsHorizontalPadding = if (landscapePlayer) 12.dp else PlayerHorizontalPadding
+    KeepCanvasPlayerPortrait(showCanvas)
     LaunchedEffect(showCanvas) { if (!showCanvas) canvasFullscreen = false }
 
     val (useNewPlayerDesign, onUseNewPlayerDesignChange) =
@@ -276,7 +279,7 @@ fun BottomSheetPlayer(
 
     val coverLyricsEnabled by rememberPreference(com.metrolist.music.constants.CoverLyricsEnabledKey, false)
     val mediaControlsSpacing by animateDpAsState(
-        targetValue = if (musicVideoRequested || coverLyricsEnabled) 12.dp else 24.dp,
+        targetValue = if (landscapePlayer) 6.dp else if (musicVideoRequested || coverLyricsEnabled) 12.dp else 24.dp,
         animationSpec = PlayerVideoMorphSpec, label = "videoControlsSpacing")
 
     var showInlineLyrics by rememberSaveable {
@@ -909,7 +912,7 @@ fun BottomSheetPlayer(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = PlayerHorizontalPadding),
+                        .padding(horizontal = controlsHorizontalPadding),
             ) {
                 AnimatedContent(
                     targetState = showCanvas,
@@ -962,7 +965,7 @@ fun BottomSheetPlayer(
                     ) { title ->
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.headlineSmall,
+                            style = if (landscapePlayer) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Black,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -1272,7 +1275,7 @@ fun BottomSheetPlayer(
                         },
                         enabled = !isListenTogetherGuest,
                         colors = PlayerSliderColors.getSliderColors(textButtonColor, playerBackground, useDarkTheme),
-                        modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                        modifier = Modifier.padding(horizontal = controlsHorizontalPadding),
                     )
                 }
 
@@ -1296,7 +1299,7 @@ fun BottomSheetPlayer(
                                 }
                                 sliderPosition = null
                             },
-                            modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                            modifier = Modifier.padding(horizontal = controlsHorizontalPadding),
                             colors = PlayerSliderColors.getSliderColors(textButtonColor, playerBackground, useDarkTheme),
                             isPlaying = effectiveIsPlaying,
                         )
@@ -1320,7 +1323,7 @@ fun BottomSheetPlayer(
                                 sliderPosition = null
                             },
                             colors = PlayerSliderColors.getSliderColors(textButtonColor, playerBackground, useDarkTheme),
-                            modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                            modifier = Modifier.padding(horizontal = controlsHorizontalPadding),
                             isPlaying = effectiveIsPlaying,
                         )
                     }
@@ -1357,7 +1360,7 @@ fun BottomSheetPlayer(
                             }
                         },
                         enabled = !isListenTogetherGuest,
-                        modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                        modifier = Modifier.padding(horizontal = controlsHorizontalPadding),
                     )
                 }
                 SliderStyle.SLIM -> {
@@ -1396,7 +1399,7 @@ fun BottomSheetPlayer(
                                 colors = PlayerSliderColors.getSliderColors(textButtonColor, playerBackground, useDarkTheme),
                             )
                         },
-                        modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                        modifier = Modifier.padding(horizontal = controlsHorizontalPadding),
                     )
                 }
             }
@@ -1409,7 +1412,7 @@ fun BottomSheetPlayer(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = PlayerHorizontalPadding + 4.dp),
+                        .padding(horizontal = controlsHorizontalPadding + 4.dp),
             ) {
                 Text(
                     text = makeTimeString(sliderPosition ?: effectivePosition),
@@ -1443,7 +1446,7 @@ fun BottomSheetPlayer(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = PlayerHorizontalPadding),
+                                    .padding(horizontal = controlsHorizontalPadding),
                         ) {
                             val backInteractionSource = remember { MutableInteractionSource() }
                             val nextInteractionSource = remember { MutableInteractionSource() }
@@ -1576,7 +1579,7 @@ fun BottomSheetPlayer(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = PlayerHorizontalPadding),
+                                    .padding(horizontal = controlsHorizontalPadding),
                         ) {
                             Box(modifier = Modifier.weight(1f)) {
                                 ResizableIconButton(
@@ -1716,31 +1719,15 @@ fun BottomSheetPlayer(
             }
         }
 
-        if (!canvasFullscreen) when (LocalConfiguration.current.orientation) {
-            Configuration.ORIENTATION_LANDSCAPE -> {
-                // Calculate vertical padding like OuterTune
-                val density = LocalDensity.current
-                val verticalPadding =
-                    max(
-                        WindowInsets.systemBars.getTop(density),
-                        WindowInsets.systemBars.getBottom(density),
-                    )
-                val verticalPaddingDp = with(density) { verticalPadding.toDp() }
-                val verticalWindowInsets = WindowInsets(left = 0.dp, top = verticalPaddingDp, right = 0.dp, bottom = verticalPaddingDp)
-
-                Row(
-                    modifier =
-                        Modifier
-                            .windowInsetsPadding(
-                                WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).add(verticalWindowInsets),
-                            ).padding(bottom = 24.dp)
-                            .fillMaxSize(),
-                ) {
+        if (!canvasFullscreen) when (landscapePlayer) {
+            true -> {
+                PlayerLandscapeLayout(
+                    artwork = {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier =
                             Modifier
-                                .weight(1f)
+                                .fillMaxSize()
                                 .nestedScroll(state.preUpPostDownNestedScrollConnection),
                     ) {
                         // Remember lambdas to prevent unnecessary recomposition
@@ -1781,23 +1768,9 @@ fun BottomSheetPlayer(
                             })
                     }
 
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier =
-                            Modifier
-                                .weight(if (showInlineLyrics) 0.65f else 1f, false)
-                                .animateContentSize()
-                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top)),
-                    ) {
-                        Spacer(Modifier.weight(1f))
-
-                        mediaMetadata?.let {
-                            controlsContent(it)
-                        }
-
-                        Spacer(Modifier.weight(1f))
-                    }
-                }
+                    },
+                    controls = { mediaMetadata?.let { controlsContent(it) } },
+                )
             }
 
             else -> {
@@ -1891,7 +1864,7 @@ fun BottomSheetPlayer(
 
         if (mediaMetadata != null && !canvasFullscreen) {
             Box(Modifier.align(Alignment.TopCenter)) {
-                PlayerScrollHeader(mediaMetadata!!, headerFraction,
+                PlayerScrollHeader(mediaMetadata!!, if (landscapePlayer) 0f else headerFraction,
                     if (showCanvas) Color.Black else androidx.compose.ui.graphics.lerp(songColor, Color.Black, .75f),
                     currentSong?.song?.liked == true, effectiveIsPlaying,
                     (effectivePosition.toFloat() / duration.coerceAtLeast(1)).coerceIn(0f, 1f),
