@@ -36,7 +36,7 @@ with sync_playwright() as pw:
  assert page.locator('.track-info script').count()==0
  page.locator('.track-row').first.locator('[data-action=favorite]').click();page.locator('[data-view=favorites]').click();assert page.locator('.track-row').count()==1
  page.locator('.track-info').first.click();page.wait_for_function('() => document.querySelector("audio").currentTime>.1')
- page.wait_for_function('() => document.querySelector("video").currentTime>=7.9 && document.querySelector("video").currentTime<16.1')
+ page.wait_for_function('() => document.querySelector("#canvas-video").currentTime>=7.9 && document.querySelector("#canvas-video").currentTime<16.1')
  assert page.locator('#canvas-video').evaluate('(v)=>getComputedStyle(v).objectFit')=='cover'
  assert page.locator('#canvas-video').evaluate('(v)=>v.muted')
  page.locator('#play').click();assert page.locator('audio').evaluate('(a)=>a.paused');assert page.locator('#canvas-video').evaluate('(v)=>v.paused')
@@ -50,7 +50,7 @@ with sync_playwright() as pw:
  page.locator('.track-row [data-action=enqueue]').click();page.locator('#show-queue').click();assert page.locator('.track-row').count()==2
  page.locator('.track-row').nth(1).locator('[data-action=up]').click();page.locator('.track-row').nth(1).locator('[data-action=remove]').click();assert page.locator('.track-row').count()==1
  page.locator('[data-clear]').click();assert page.locator('audio').evaluate('(a)=>a.paused && !a.getAttribute("src")')
- page.locator('#credits-button').click();assert page.locator('#credits-dialog').inner_text().find('Vibecoded')>=0;assert page.locator('#credits-dialog').inner_text().find('MMXG')>=0
+ page.locator('#credits-button').click();assert page.locator('#credits-dialog').inner_text().find('ChatGPT / Codex')>=0;assert page.locator('#credits-dialog').inner_text().find('MMXG')>=0
  assert not errors,errors
  page.locator('#credits-dialog [data-close]').click()
  for width,height in [(1000,680),(1150,720),(1600,900)]:

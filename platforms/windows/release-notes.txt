@@ -1,0 +1,13 @@
+Sourcify Windows 1.3.0
+
+Player-Einstellungen mit Dynamic progressbar, Musikreaktion und 0–100 % Wellenintensität. Metallischer Play-/Pause-Knopf mit Songfarbe, ausblendbares Vollbild-Cover und schlanker Schieberegler.
+
+Musikvideo-Suche mit Thumbnails und eigenem Video über die vorhandene Canvas-Auswahl, Videoqualitätswahl und Bild-im-Bild. Das Video wird zum vorhandenen Audioplayer synchronisiert; die Qualität und Übereinstimmung hängen von der gewählten Quelle ab. Doppelklick spult mit einstellbaren 1–20 Sekunden.
+
+Lyrics-Fenster mit Cover, Wiedergabesteuerung und Ein-/Ausblenden. Fehlende Lyrics öffnen keine leere Karte. Übersetzung öffnet auf Wunsch den Browser; keine integrierte KI-Übersetzung.
+
+Konzerttermine aus MusicBrainz, Hörstatistik aus Wiedergabestarts, angepinnte Playlists, bearbeitbarer Songtitel/Künstlername und eigene Hauptfarbe. Überarbeitete Suchleiste und Credits mit MMXG, ChatGPT / Codex und Kokosr.
+
+Windows ist eine eigenständige Desktop-App. Diese Version gleicht die oben genannten Funktionen an; sie ist keine vollständige 1:1-Portierung aller Android-Funktionen. Das vorhandene Canvas, lokale Musik, Playlists und Account-Einstellungen bleiben erhalten. Ein gemeinsames Android-/Windows-Cloud-Backend ist weiterhin nicht eingerichtet.
+
+Unter Windows gebaut, Node-Tests und Paketprüfung bestanden. UI-Prüfungen unter Chromium auf Linux; kein physischer Windows-Gerätetest. Installer ohne Authenticode-Signatur: Windows kann eine SmartScreen-Rückfrage anzeigen.
