@@ -34,7 +34,7 @@ const engine=async(args,opts={})=>runEngine(await executable(),args,{nodePath:pr
 function track(id) {const t=store.state.tracks[id];if(!t)throw new Error('Titel nicht gefunden.');return t;}
 function publicState() {
   const s=store.state;
-  const tracks=Object.fromEntries(Object.entries(s.tracks).map(([id,t])=>[id,{id:t.id,kind:t.kind,title:t.title,artist:t.artist,album:t.album||'',duration:t.duration,thumbnail:t.thumbnail||'',downloaded:!!s.downloads[id],customCanvas:!!s.canvases[id]?.path}]));
+  const tracks=Object.fromEntries(Object.entries(s.tracks).map(([id,t])=>[id,{id:t.id,kind:t.kind,title:t.title,artist:t.artist,accent:t.accent||'',album:t.album||'',duration:t.duration,thumbnail:t.thumbnail||'',downloaded:!!s.downloads[id],customCanvas:!!s.canvases[id]?.path}]));
   return {tracks,favorites:s.favorites,library:s.library,playlists:s.playlists,history:s.history,resume:s.resume,remoteResume:s.remoteResume,queue:s.queue,queueIndex:s.queueIndex,recent:s.recent,preferences:s.preferences,downloads:Object.keys(s.downloads),activeDownloads:[...jobs.keys()],recovered:store.recovered};
 }
 function notify(){if(win&&!win.isDestroyed())win.webContents.send('sourcify:state',publicState());desktop?.update();}
@@ -63,7 +63,7 @@ async function mediaResponse(request) {
     if(item.path) {
       const size=fs.statSync(item.path).size,r=parseRange(request.headers.get('range'),size);
       if(!r)return new Response(null,{status:416,headers:{'Content-Range':`bytes */${size}`}});
-      const headers={'Content-Type':typeFor(item.path),'Accept-Ranges':'bytes','Content-Length':String(Math.max(0,r.end-r.start+1))};
+      const headers={'Access-Control-Allow-Origin':'*','Content-Type':typeFor(item.path),'Accept-Ranges':'bytes','Content-Length':String(Math.max(0,r.end-r.start+1))};
       if(r.partial)headers['Content-Range']=`bytes ${r.start}-${r.end}/${size}`;
       const stream=request.method==='HEAD'||!size?null:Readable.toWeb(fs.createReadStream(item.path,{start:r.start,end:r.end}));
       return new Response(stream,{status:r.partial?206:200,headers});
@@ -74,7 +74,7 @@ async function mediaResponse(request) {
       if(!safeMediaUrl(url))return new Response(null,{status:403});
       const response=await net.fetch(url,{method:request.method,headers,redirect:'manual',signal:request.signal,bypassCustomProtocolHandlers:true});
       if(response.status>=300&&response.status<400){const next=response.headers.get('location');if(!next)return response;url=new URL(next,url).href;await response.body?.cancel();continue;}
-      return response;
+      const outgoing=new Headers(response.headers);outgoing.set('Access-Control-Allow-Origin','*');return new Response(response.body,{status:response.status,headers:outgoing});
     }
     return new Response(null,{status:502});
   } catch {return new Response(null,{status:404});}
@@ -121,12 +121,15 @@ function handlers() {
   register('desktopState',()=>({fullscreen:win.isFullScreen(),windows:process.platform==='win32',autoStartAvailable:process.platform==='win32'&&app.isPackaged}));
   register('playbackState',p=>{
     if(!p||typeof p.paused!=='boolean'||!Number.isFinite(p.position)||p.position<0||p.position>86400||!Number.isFinite(p.duration)||p.duration<0||p.duration>86400)throw new Error('Ungültiger Playback-Status.');
-    const t=store.state.tracks[p.id];playback={track:t?{id:t.id,title:t.title,artist:t.artist,album:t.album||'',thumbnail:t.thumbnail||''}:null,paused:p.paused,position:p.position,duration:p.duration};desktop.update();return true;
+    const t=store.state.tracks[p.id];playback={track:t?{id:t.id,title:t.title,artist:t.artist,accent:t.accent||'',album:t.album||'',thumbnail:t.thumbnail||''}:null,paused:p.paused,position:p.position,duration:p.duration};desktop.update();return true;
   });
+  register('openLink',async raw=>{const u=new URL(raw);if(u.protocol!=='https:'||u.username||u.password||!['github.com','musicbrainz.org','www.youtube.com','translate.google.com'].includes(u.hostname))throw new Error('Link nicht erlaubt.');return shell.openExternal(u.href);});
+  const concertCache=new Map();
+  register('concerts',async id=>{const t=track(id),artist=t.originalDisplay?.artist||t.artist,old=concertCache.get(artist);if(old&&old.expires>Date.now())return old.events;const url=new URL('https://musicbrainz.org/ws/2/event/');url.search=new URLSearchParams({query:'artist:"'+artist.replace(/[\\"]/g,' ')+'" AND begin:['+new Date().toISOString().slice(0,10)+' TO *]',fmt:'json',limit:'25'});const r=await net.fetch(url.href,{headers:{'User-Agent':'Sourcify (https://github.com/MMXGmodz/Sourcify)'},signal:AbortSignal.timeout(15000)});const data=await require('./core/auth/google.cjs').jsonResponse(r,512*1024),events=require('./desktop-update.cjs').parseConcerts(data,artist);if(concertCache.size>=32)concertCache.delete(concertCache.keys().next().value);concertCache.set(artist,{events,expires:Date.now()+3600000});return events;});
   register('lyrics',async id=>{
     const t=track(id),url=new URL('https://lrclib.net/api/get');url.search=new URLSearchParams({track_name:t.title,artist_name:t.artist,...(t.album?{album_name:t.album}:{}),...(t.duration?{duration:String(Math.round(t.duration))}:{})}).toString();
-    const r=await net.fetch(url.href,{headers:{'User-Agent':'Sourcify Player/Windows'},signal:AbortSignal.timeout(15000),redirect:'error'});if(r.status===404)return {text:'Für diesen Titel sind keine Lyrics verfügbar.'};
-    const data=await require('./core/auth/google.cjs').jsonResponse(r,256*1024);return {text:String(data.plainLyrics||data.syncedLyrics||(data.instrumental?'Instrumental':'Keine Lyrics verfügbar.')).slice(0,120000)};
+    const r=await net.fetch(url.href,{headers:{'User-Agent':'Sourcify Player/Windows'},signal:AbortSignal.timeout(15000),redirect:'error'});if(r.status===404)return {text:'',available:false};
+    const data=await require('./core/auth/google.cjs').jsonResponse(r,256*1024);return {text:String(data.plainLyrics||data.syncedLyrics||'').slice(0,120000),available:!!(data.plainLyrics||data.syncedLyrics)};
   });
   ipcMain.handle('sourcify:mini-command',(event,action)=>{
     if(event.sender!==desktop.mini?.webContents||event.senderFrame!==event.sender.mainFrame||!['toggle','next','previous','open'].includes(action))return false;
@@ -192,6 +195,7 @@ function handlers() {
   register('preferences',p=>{
     if(!p||typeof p!=='object')throw new Error('Ungültige Einstellung.');
     const prefs=store.state.preferences;
+    require('./desktop-update.cjs').preferences(p,prefs);
     for(const key of ['shuffle','canvasEnabled','automaticCanvas','dynamicBackground','animations','showAlbum','showProgress','autoHideControls','miniAlwaysOnTop','minimizeToTray','startWithWindows','startMinimized'])if(typeof p[key]==='boolean')prefs[key]=p[key];
     if(['off','all','one'].includes(p.repeat))prefs.repeat=p.repeat;
     if(typeof p.volume==='number'&&Number.isFinite(p.volume))prefs.volume=Math.min(1,Math.max(0,p.volume));

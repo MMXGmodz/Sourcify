@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('sourcify',Object.freeze({
   jamState:()=>invoke('jamState'),jamStart:name=>invoke('jamStart',name),jamStop:()=>invoke('jamStop'),jamSettings:p=>invoke('jamSettings',p),jamKick:id=>invoke('jamKick',id),jamPlayback:p=>invoke('jamPlayback',p),jamCopy:i=>invoke('jamCopy',i),jamOpen:url=>invoke('jamOpen',url),
   onJam:fn=>{const h=(_,s)=>fn(s);ipcRenderer.on('sourcify:jam',h);return()=>ipcRenderer.removeListener('sourcify:jam',h);},
   onJamControl:fn=>{const h=(_,s)=>fn(s);ipcRenderer.on('sourcify:jam-control',h);return()=>ipcRenderer.removeListener('sourcify:jam-control',h);},
+  concerts:id=>invoke('concerts',id),openLink:url=>invoke('openLink',url),
   state:()=>invoke('state'),search:q=>invoke('search',q),action:(a,p)=>invoke('action',a,p),
   audio:id=>invoke('audio',id),canvas:id=>invoke('canvas',id),importMusic:()=>invoke('importMusic'),
   importCanvas:id=>invoke('importCanvas',id),resetCanvas:id=>invoke('resetCanvas',id),

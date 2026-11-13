@@ -17,7 +17,7 @@ with sync_playwright() as pw:
  assert page.locator('#canvas-video').evaluate('(v)=>v.paused')
  page.locator('#now-favorite').click();page.wait_for_function('()=>document.querySelector("#favorite-count").textContent!=="0"')
  page.locator('[data-view=favorites]').click();assert page.locator('.track-row').count()==1
- page.locator('#credits-button').click();assert page.locator('#credits-dialog').inner_text().find('Vibecoded')>=0;page.locator('#credits-dialog [data-close]').click()
+ page.locator('#credits-button').click();assert page.locator('#credits-dialog').inner_text().find('ChatGPT / Codex')>=0;page.locator('#credits-dialog [data-close]').click()
  assert not errors,errors
  page.screenshot(path=str(ARTIFACTS/'Sourcify-Windows-Playback.png'))
  print('Real Electron: sandbox, preload IPC, private paths, local audio/video, pause, seek/ranges, favorites and credits passed.')

@@ -53,7 +53,7 @@ function progressLine(line) {
   const max = total || estimate;
   return {percent:max>0 ? Math.min(100,done/max*100) : null, speed:Number.isFinite(speed)?speed:0};
 }
-const defaults = () => ({tracks:{},favorites:[],queue:[],queueIndex:-1,recent:[],library:[],playlists:{},history:[],resume:null,downloads:{},canvases:{},preferences:{volume:.75,repeat:'off',shuffle:false,canvasEnabled:true,automaticCanvas:true,canvasZoom:1.35,canvasQuality:480,downloadDir:'',theme:'dark',dynamicBackground:true,backgroundBlur:.5,backgroundBrightness:.6,animations:true,showAlbum:true,showProgress:true,autoHideControls:true,miniAlwaysOnTop:true,minimizeToTray:false,startWithWindows:false,startMinimized:false}});
+const defaults = () => ({tracks:{},favorites:[],queue:[],queueIndex:-1,recent:[],library:[],playlists:{},history:[],resume:null,downloads:{},canvases:{},preferences:{volume:.75,repeat:'off',shuffle:false,canvasEnabled:true,automaticCanvas:true,canvasZoom:1,canvasQuality:480,downloadDir:'',theme:'dark',dynamicBackground:true,backgroundBlur:.5,backgroundBrightness:.6,animations:true,showAlbum:true,showProgress:true,autoHideControls:true,miniAlwaysOnTop:true,minimizeToTray:false,startWithWindows:false,startMinimized:false,sliderStyle:'standard',playStyle:'standard',waveIntensity:100,dynamicMusic:true,landscapeCover:true,lyricsEnabled:true,seekSeconds:5}});
 class Store {
   constructor(file) {
     this.file=file; this.state=defaults(); this.recovered=false;
@@ -71,7 +71,7 @@ class Store {
     }
   }
   save(emit=true) {fs.mkdirSync(path.dirname(this.file),{recursive:true});const tmp=this.file+'.tmp';fs.writeFileSync(tmp,JSON.stringify(this.state));fs.renameSync(tmp,this.file);if(emit)this.onSave?.();}
-  add(tracks) {for(const t of tracks) if(t&&validId(t.id)) this.state.tracks[t.id]={...this.state.tracks[t.id],...t};this.prune(tracks.map(t=>t?.id));this.save();}
+  add(tracks) {for(const t of tracks) if(t&&validId(t.id)) {const old=this.state.tracks[t.id];this.state.tracks[t.id]={...old,...t,...(old?.originalDisplay?{title:old.title,artist:old.artist,accent:old.accent,originalDisplay:{title:t.title,artist:t.artist}}:{})};}this.prune(tracks.map(t=>t?.id));this.save();}
   prune(extra=[]) {
     const s=this.state,keep=new Set([...extra,...s.favorites,...s.queue,...s.recent,...(s.library||[]),...Object.keys(s.downloads),...(s.history||[]).map(x=>x.trackId),...Object.values(s.playlists||{}).flatMap(x=>x.tracks),...Object.entries(s.canvases).flatMap(([id,c])=>[id,c.videoId]),s.resume?.id,s.remoteResume?.id]);
     const unused=Object.keys(s.tracks).filter(id=>s.tracks[id].kind!=='local'&&!keep.has(id));
@@ -98,6 +98,8 @@ class Store {
       case 'select': {const i=Number(payload.index);if(!Number.isInteger(i)||!s.queue[i])throw new Error('Ungültige Position.');s.queueIndex=i;s.recent=[s.queue[i],...s.recent.filter(x=>x!==s.queue[i])].slice(0,50);break;}
       case 'remove': {const i=Number(payload.index);if(!Number.isInteger(i)||!s.queue[i])throw new Error('Ungültige Position.');s.queue.splice(i,1);if(i<s.queueIndex)s.queueIndex--;else if(s.queueIndex>=s.queue.length)s.queueIndex=s.queue.length-1;break;}
       case 'move': {const from=Number(payload.from),to=Number(payload.to);if(!Number.isInteger(from)||!Number.isInteger(to)||!s.queue[from]||!s.queue[to])throw new Error('Ungültige Position.');const original=s.queueIndex;const [item]=s.queue.splice(from,1);s.queue.splice(to,0,item);if(original===from)s.queueIndex=to;else if(from<original&&to>=original)s.queueIndex--;else if(from>original&&to<=original)s.queueIndex++;break;}
+      case 'playlistPin': {const p=s.playlists[payload.playlistId];if(!p)throw new Error('Playlist nicht gefunden.');p.pinned=!p.pinned;break;}
+      case 'editTrack': if(!validId(id)||!s.tracks[id])throw new Error('Titel nicht gefunden.');require('./desktop-update.cjs').editTrack(s.tracks[id],payload);break;
       case 'clear':s.queue=[];s.queueIndex=-1;break;
       default: throw new Error('Unbekannte Aktion.');
     }
