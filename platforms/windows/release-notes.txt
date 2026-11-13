@@ -1,4 +1,4 @@
-Sourcify Windows 1.3.2
+Sourcify Windows 1.3.3
 
 Player-Einstellungen mit Dynamic progressbar, Musikreaktion und 0–100 % Wellenintensität. Metallischer Play-/Pause-Knopf mit Songfarbe, ausblendbares Vollbild-Cover und schlanker Schieberegler.
 
