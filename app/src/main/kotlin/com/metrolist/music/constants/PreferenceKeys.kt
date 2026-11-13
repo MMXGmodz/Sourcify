@@ -736,6 +736,7 @@ val CanvasMobileHeightKey = intPreferencesKey("canvasMobileHeight")
 val DownloadMobileAllowedKey = booleanPreferencesKey("downloadMobileAllowed")
 val DownloadBackgroundAllowedKey = booleanPreferencesKey("downloadBackgroundAllowed")
 
+val HiddenSongLyricsKey = androidx.datastore.preferences.core.stringSetPreferencesKey("hiddenSongLyrics")
 val CoverLyricsEnabledKey = booleanPreferencesKey("coverLyricsEnabled")
 
 val DynamicProgressMusicKey = booleanPreferencesKey("dynamicProgressMusic")

@@ -317,6 +317,7 @@ fun PlayerMenu(
         item { MusicVideoAction(mediaMetadata.id, onDismiss) }
         item { SongEditAction(mediaMetadata, onDismiss) }
         item { CoverLyricsAction(onDismiss) }
+        item { com.metrolist.music.ui.player.LyricsVisibilityAction(mediaMetadata.id, onDismiss) }
         item { PlayerSleepTimerAction() }
         item { SongCanvasAction(mediaMetadata.id) }
         item { DownloadExtrasAction(mediaMetadata.id) }

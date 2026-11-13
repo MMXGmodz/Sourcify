@@ -39,6 +39,7 @@ internal fun CoverLyricsFrame(enabled: Boolean, modifier: Modifier = Modifier, l
 
 @Composable
 internal fun CoverLyricsDisplay(song: MediaMetadata, position: Long, textColor: Color = Color.White) {
+    if (!rememberSongLyricsVisible(song.id)) return
     val connection = LocalPlayerConnection.current ?: return
     val lyrics by connection.currentLyrics.collectAsStateWithLifecycle()
     val currentSong by connection.currentSong.collectAsStateWithLifecycle(initialValue = null)

@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.IconButton
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -133,6 +134,59 @@ class PlayerLayoutRenderTest {
         assertEquals(640f, transportBounds.center.x, 1f)
         assertTrue(transportBounds.width < 600f)
         assertTrue(transportBounds.bottom <= 720f)
+    }
+
+    @Test
+    @Config(qualifiers = "w412dp-h892dp-xhdpi")
+    fun lyricsTransportIsCenteredAndGuestControlsCannotChangePlayback() {
+        var guest by mutableStateOf(false)
+        val clicks = intArrayOf(0, 0, 0)
+        render(width = 824, height = 1784, snapshot = "lyrics-fullscreen-controls.png", check = { activity, settle ->
+            val root = activity.findViewById<View>(android.R.id.content)
+            fun owner(view: View): androidx.compose.ui.semantics.SemanticsOwner? {
+                view.javaClass.methods.firstOrNull { it.name == "getSemanticsOwner" && it.parameterCount == 0 }?.let {
+                    return it.invoke(view) as? androidx.compose.ui.semantics.SemanticsOwner
+                }
+                if (view is android.view.ViewGroup) for (index in 0 until view.childCount) owner(view.getChildAt(index))?.let { return it }
+                return null
+            }
+            fun nodes(node: androidx.compose.ui.semantics.SemanticsNode): List<androidx.compose.ui.semantics.SemanticsNode> = listOf(node) + node.children.flatMap(::nodes)
+            fun bounds(resource: Int): Rect {
+                val description = activity.getString(resource)
+                return nodes(requireNotNull(owner(root)).unmergedRootSemanticsNode).first {
+                    it.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.ContentDescription)?.contains(description) == true
+                }.boundsInWindow
+            }
+            val previous = bounds(com.metrolist.music.R.string.previous)
+            val play = bounds(com.metrolist.music.R.string.pause)
+            val next = bounds(com.metrolist.music.R.string.next)
+            assertEquals(412f, play.center.x, 1f)
+            assertTrue(previous.right < play.left && play.right < next.left)
+            assertTrue(bounds(com.metrolist.music.R.string.s16_lyrics_options).right > 700f)
+            fun tap(resource: Int) {
+                val point = bounds(resource).center
+                val time = android.os.SystemClock.uptimeMillis()
+                listOf(android.view.MotionEvent.ACTION_DOWN, android.view.MotionEvent.ACTION_UP).forEach { action ->
+                    android.view.MotionEvent.obtain(time, time + if (action == android.view.MotionEvent.ACTION_UP) 50 else 0,
+                        action, point.x, point.y, 0).also { root.dispatchTouchEvent(it); it.recycle() }
+                }
+                shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(100))
+                settle()
+            }
+            tap(com.metrolist.music.R.string.previous); tap(com.metrolist.music.R.string.pause); tap(com.metrolist.music.R.string.next)
+            assertArrayEquals(intArrayOf(1, 1, 1), clicks)
+            guest = true; settle()
+            tap(com.metrolist.music.R.string.previous); tap(com.metrolist.music.R.string.pause); tap(com.metrolist.music.R.string.next)
+            assertArrayEquals("Room guests must not skip or pause the shared queue", intArrayOf(1, 1, 1), clicks)
+        }) {
+            Column(Modifier.fillMaxSize().padding(24.dp)) {
+                LyricsFullscreenHeader(com.metrolist.music.R.drawable.small_icon, "I vs ME", "Celo, Abdi", "0:13 / 3:25", {}, {}, {})
+                Spacer(Modifier.height(40.dp))
+                Text("Lyrics", style = androidx.compose.material3.MaterialTheme.typography.headlineLarge)
+                Spacer(Modifier.weight(1f))
+                LyricsPlaybackControls(true, guest, true, true, { clicks[0]++ }, { clicks[1]++ }, { clicks[2]++ })
+            }
+        }
     }
 
     private fun render(check: (ComponentActivity, () -> Unit) -> Unit = { _, _ -> }, width: Int = 720, height: Int = 360, snapshot: String? = null, content: @Composable () -> Unit) {
