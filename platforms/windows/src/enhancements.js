@@ -42,6 +42,7 @@
       const bins=new Map(),pixels=context.getImageData(0,0,32,32).data;
       for(let i=0;i<pixels.length;i+=4){const [r,g,b]=pixels.slice(i,i+3),key=[r>>4,g>>4,b>>4].join(',');bins.set(key,(bins.get(key)||0)+1+(Math.max(r,g,b)-Math.min(r,g,b))/64);}
       const colors=[...bins].sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k])=>'rgb('+k.split(',').map(v=>Math.max(20,Math.min(170,Number(v)*16+8))).join(',')+')');
+      fullscreen.style.setProperty('--artwork-accent',colors[0]||'#65e4da');document.body.style.setProperty('--song-accent',activeTrack()?.accent||colors[0]||'#65e4da');
       fullscreen.style.setProperty('--cover-a',colors[0]||'#234c57');fullscreen.style.setProperty('--cover-b',colors[1]||'#514568');
       const next=$('background-'+(bgLayer?'a':'b')),old=$('background-'+(bgLayer?'b':'a'));next.src=source;next.classList.add('visible');old.classList.remove('visible');bgLayer=1-bgLayer;
     }catch{if(ticket===bgTicket){fullscreen.style.setProperty('--cover-a','#234c57');fullscreen.style.setProperty('--cover-b','#514568');}}
