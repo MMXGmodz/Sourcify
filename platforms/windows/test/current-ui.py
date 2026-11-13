@@ -14,6 +14,9 @@ checks='''
  page.locator('.current-tools button',has_text='Lyrics').click()
  page.locator('.current-lyrics pre').filter(has_text='First line').wait_for()
  assert page.locator('.current-lyrics img').count()==1
+ page.evaluate("window.sourcify.action('enqueue',{id:'abcdefghi02'})")
+ page.locator('dialog[open] button',has_text='Nächster Titel').click()
+ page.wait_for_function('()=>document.querySelector(".lyrics-heading h3").textContent.includes("Zweiter Testsong")')
  page.locator('.current-lyrics').evaluate('(e)=>e.closest("dialog").close()')
  page.locator('.current-tools button',has_text='Konzerte').click()
  page.get_by_text('Keine kommenden Konzerte gefunden.',exact=True).wait_for()
