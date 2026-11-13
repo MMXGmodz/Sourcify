@@ -35,7 +35,11 @@ internal fun LandscapePlayerSettings(songId: String, onDismiss: () -> Unit, onQu
             val labels = listOf(R.string.default_, R.string.wavy, R.string.squiggly, R.string.slim, R.string.s13_dynamic)
             SettingsChoice(stringResource(R.string.s16_slider_style), styles.mapIndexed { index, (style, wave) ->
                 stringResource(labels[index]) to (style == sliderStyle && (style != SliderStyle.WAVY || wave == squiggly))
-            }) { index -> sliderStyle = styles[index].first; if (sliderStyle == SliderStyle.WAVY) squiggly = styles[index].second }
+            }) { index ->
+                val selected = styles[index]
+                sliderStyle = selected.first
+                if (selected.first == SliderStyle.WAVY) squiggly = selected.second
+            }
             if (sliderStyle == SliderStyle.DYNAMIC) {
                 Text(stringResource(R.string.s16_dynamic_intensity, intensity.coerceIn(0, 100)))
                 Slider(value = intensity.coerceIn(0, 100).toFloat(), onValueChange = { intensity = it.toInt() }, valueRange = 0f..100f, steps = 99)
