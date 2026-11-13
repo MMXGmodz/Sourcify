@@ -5,7 +5,7 @@ const executable=r.NtExecutable.from(fs.readFileSync(path.join(dir,'Sourcify Pla
 const record=JSON.parse(Buffer.from(res.entries.find(x=>x.type==='INTEGRITY').bin))[0];
 const hash=crypto.createHash('sha256').update(asar.getRawHeader(archive).headerString).digest('hex');
 if(hash!==record.value)throw new Error('ASAR header integrity mismatch');
-function verifyDirectory(dir,relative=''){for(const e of fs.readdirSync(dir,{withFileTypes:true})){const name=relative?relative+'/'+e.name:e.name;if(e.isDirectory())verifyDirectory(path.join(dir,e.name),name);else{const source=fs.readFileSync(path.join(dir,e.name)),packaged=asar.extractFile(archive,'src/'+name);if(!source.equals(packaged))throw new Error('Stale packaged file: '+name);}}}
+function verifyDirectory(dir,relative=''){for(const e of fs.readdirSync(dir,{withFileTypes:true})){const name=relative?relative+'/'+e.name:e.name;if(e.isDirectory())verifyDirectory(path.join(dir,e.name),name);else{const source=fs.readFileSync(path.join(dir,e.name)),packaged=asar.extractFile(archive,path.join('src',...name.split('/')));if(!source.equals(packaged))throw new Error('Stale packaged file: '+name);}}}
 verifyDirectory(path.join(__dirname,'..','src'));
 const version=r.Resource.VersionInfo.fromEntries(res.entries)[0].getStringValues({lang:1033,codepage:1200});
 if(version.ProductVersion!==require('../package.json').version+'.0')throw new Error('Version mismatch');
