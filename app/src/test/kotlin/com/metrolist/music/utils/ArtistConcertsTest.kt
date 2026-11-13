@@ -17,6 +17,12 @@ class ArtistConcertsTest {
         """{"id":"11111111-1111-1111-1111-111111111111","name":"CAPO Live","life-span":{"begin":"$date"},"relations":$relations}"""
     private fun parse(vararg events: String) = ArtistConcerts.parse("""{"events":[${events.joinToString(",") }]}""", "CAPO", today)
 
+    @Test fun posterBelongsToTheEventAndRejectsInvalidIds() {
+        val concert = parse(event("2027-01-02")).single()
+        assertEquals("https://eventartarchive.org/event/${concert.id}/front-500", concert.posterUrl)
+        assertNull(concert.copy(id = "../bad").posterUrl)
+    }
+
     @Test fun upcomingPartialDatesStayPartialAndTodaysConcertIsIncluded() {
         assertEquals(listOf("2026-11-02"), parse(event("2026-11-02")).map { it.date })
         assertEquals(listOf("2026-12"), parse(event("2026-12")).map { it.date })
