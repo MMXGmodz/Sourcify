@@ -119,7 +119,6 @@ internal fun PlayerConcertCard(
     song: MediaMetadata,
     onAllEvents: (String) -> Unit,
     modifier: Modifier = Modifier,
-    artistThumbnailUrl: String? = null,
     enabled: Boolean = true,
 ) {
     val context = LocalContext.current
@@ -139,7 +138,7 @@ internal fun PlayerConcertCard(
     val city by rememberPreference(ConcertPreferences.cityKey, "")
     val concert = state.events.firstOrNull { it.matchesCity(city) } ?: state.events.firstOrNull()
     if (enabled && !state.failed && concert != null) {
-        PlayerConcertCardContent(artist, concert, artistThumbnailUrl ?: providerArtist?.thumbnailUrl ?: sourceSong.thumbnailUrl,
+        PlayerConcertCardContent(artist, concert, concert.posterUrl,
             concert.matchesCity(city), { onAllEvents(artist) }, modifier)
     }
 }
@@ -148,7 +147,7 @@ internal fun PlayerConcertCard(
 internal fun PlayerConcertCardContent(
     artistName: String,
     concert: ArtistConcert,
-    thumbnailUrl: String?,
+    posterUrl: String?,
     nearby: Boolean,
     onAllEvents: () -> Unit,
     modifier: Modifier = Modifier,
@@ -156,15 +155,14 @@ internal fun PlayerConcertCardContent(
     val uri = LocalUriHandler.current
     Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
-        if (!thumbnailUrl.isNullOrBlank()) {
-            Box(Modifier.fillMaxWidth().height(240.dp)) {
-                AsyncImage(model = thumbnailUrl, contentDescription = null, contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().clickable { uri.openUri(concert.url) })
-                Box(Modifier.fillMaxWidth().height(110.dp).background(Brush.verticalGradient(
-                    listOf(Color.Black.copy(alpha = 0.65f), Color.Transparent))))
-                ConcertCardHeading(nearby, onAllEvents, overImage = true)
-            }
-        } else ConcertCardHeading(nearby, onAllEvents, overImage = false)
+        Box(Modifier.fillMaxWidth().height(240.dp)) {
+            ConcertArtwork(concert, Modifier.fillMaxSize().clickable { uri.openUri(concert.url) })
+            if (!posterUrl.isNullOrBlank()) AsyncImage(model = posterUrl, contentDescription = null, contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().clickable { uri.openUri(concert.url) })
+            Box(Modifier.fillMaxWidth().height(110.dp).background(Brush.verticalGradient(
+                listOf(Color.Black.copy(alpha = 0.65f), Color.Transparent))))
+            ConcertCardHeading(nearby, onAllEvents, overImage = true)
+        }
         Column(Modifier.fillMaxWidth().clickable { uri.openUri(concert.url) }.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(artistName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,

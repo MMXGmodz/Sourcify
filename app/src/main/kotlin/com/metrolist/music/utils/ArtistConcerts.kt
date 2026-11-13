@@ -28,6 +28,8 @@ internal data class ArtistConcert(
     val time: String = "",
 ) {
     val url: String get() = "https://musicbrainz.org/event/$id"
+    val posterUrl: String? get() = id.takeIf { Regex("[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}").matches(it) }
+        ?.let { "https://eventartarchive.org/event/$it/front-500" }
     val day: LocalDate? get() = runCatching { LocalDate.parse(date) }.getOrNull()
 }
 
