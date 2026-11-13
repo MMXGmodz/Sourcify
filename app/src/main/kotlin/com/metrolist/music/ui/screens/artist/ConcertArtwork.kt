@@ -36,7 +36,7 @@ internal fun ConcertArtwork(concert: ArtistConcert, modifier: Modifier = Modifie
                 drawPath(beam, Brush.verticalGradient(listOf(Color(0xFF93E9FF).copy(alpha = .35f), Color.Transparent)))
                 drawCircle(Color(0xFFD0FAFF), 3.dp.toPx(), Offset(size.width * origin, 4.dp.toPx()))
             }
-            drawRect(Brush.verticalGradient(listOf(Color.Transparent, Color(0xFF0D1423))), topLeft = Offset(0f, size.height * .5f), size = androidx.compose.ui.geometry.Size(size.width, size.height * .5f))
+            drawRect(Brush.verticalGradient(listOf(Color.Transparent, Color(0xFF0D1423)), startY = size.height * .5f, endY = size.height), topLeft = Offset(0f, size.height * .5f), size = androidx.compose.ui.geometry.Size(size.width, size.height * .5f))
             repeat(14) { index ->
                 val radius = (9 + index % 3 * 3).dp.toPx()
                 val center = Offset(size.width * index / 13f, size.height - radius * .6f)

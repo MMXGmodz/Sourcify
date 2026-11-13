@@ -92,6 +92,13 @@ class ConcertComponentsRenderTest {
             assertTrue("Missing artwork must keep its image area without a layout jump", artist.boundsInRoot.top >= 250f)
             assertTrue(values.containsAll(listOf("Live-Event", "Alle anzeigen", "CAPO Live")))
         }
+        val image = android.graphics.BitmapFactory.decodeFile("build/reports/sourcify-ui/concert-player-fallback-de.png")
+        try {
+            val above = image.getPixel(5, 118)
+            val below = image.getPixel(5, 122)
+            for (shift in listOf(0, 8, 16)) assertTrue("Stage fade must not create a horizontal band",
+                kotlin.math.abs((above shr shift and 255) - (below shr shift and 255)) < 8)
+        } finally { image.recycle() }
     }
 
     @Test fun eventsRowsPutMonthAboveDayAndSaveToggleChangesItsAccessibleAction() {
