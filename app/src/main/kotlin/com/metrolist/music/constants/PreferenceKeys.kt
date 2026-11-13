@@ -757,3 +757,5 @@ val MusicVideoLargeMiniPlayerKey = booleanPreferencesKey("musicVideoLargeMiniPla
 val MusicVideoPipEnabledKey = booleanPreferencesKey("musicVideoPipEnabled")
 
 val MusicVideoSeekSecondsKey = intPreferencesKey("musicVideoSeekSeconds")
+
+val LandscapeShowCoverKey = booleanPreferencesKey("landscapeShowCover")

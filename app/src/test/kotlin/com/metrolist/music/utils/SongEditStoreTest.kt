@@ -92,6 +92,27 @@ class SongEditStoreTest {
         assertEquals(edited, reopened.resolve(edited))
     }
 
+    @Test fun landscapeBackgroundPersistsSeparatelySurvivesOtherEditsAndCleansUnusedMedia() {
+        val directory = File(context.filesDir, "song_edits").apply { mkdirs() }
+        val file = File(directory, "landscape").apply { writeBytes(byteArrayOf(1)) }
+        val background = SongEditCanvas(Uri.fromFile(file), true)
+        store.save(metadata, metadata.title, metadata.artists.map { it.name }, null, null, landscapeBackground = background)
+        val reopened = SongEditStore(context)
+        assertEquals(background, reopened.landscapeBackground(metadata.id))
+        assertNull(reopened.canvas(metadata.id))
+        assertNull(reopened.cover(metadata.id))
+        assertEquals(metadata, reopened.resolve(metadata))
+        store.save(metadata, "Edited", listOf("Artist"), null, null)
+        assertEquals(background, reopened.landscapeBackground(metadata.id))
+        assertTrue(file.exists())
+        store.save(metadata.copy(id = "other"), "Other", emptyList(), null, background)
+        store.save(metadata, "Edited", listOf("Artist"), null, null, landscapeBackground = null)
+        assertNull(reopened.landscapeBackground(metadata.id))
+        assertTrue("Media referenced by another song must survive", file.exists())
+        store.clear("other")
+        assertFalse(file.exists())
+    }
+
     @Test fun resetRestoresOriginalAfterRepeatedEditsAndDeletesOnlyUnusedOwnedFiles() {
         val directory = File(context.filesDir, "song_edits").apply { mkdirs() }
         val cover = File(directory, "cover").apply { writeBytes(byteArrayOf(1)) }

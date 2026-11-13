@@ -1,6 +1,8 @@
 package com.metrolist.music.ui.screens.search
 
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -12,16 +14,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.metrolist.music.LocalNavController
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
+import com.metrolist.music.ui.theme.screenHeaderBrush
 import com.metrolist.music.utils.SearchRoutes
 import com.metrolist.music.viewmodels.MoodAndGenresViewModel
 
@@ -79,24 +85,47 @@ internal fun SearchBrowseContent(categories: List<BrowseCategory>, onSearch: () 
     val genresTitle=stringResource(R.string.s6_genres)
     val moodsTitle=stringResource(R.string.s6_moods)
     val listenTitle=stringResource(R.string.s6_listen)
-    Column(Modifier.fillMaxSize().background(Color(0xFF101010)).statusBarsPadding()) {
-        Row(Modifier.fillMaxWidth().padding(start=4.dp,top=12.dp,bottom=16.dp),verticalAlignment=Alignment.CenterVertically) {
-            accountButton();Text(stringResource(R.string.search),style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Bold,color=Color.White,modifier=Modifier.padding(start=8.dp))
+    val colors = MaterialTheme.colorScheme
+    Column(Modifier.fillMaxSize().background(screenHeaderBrush()).statusBarsPadding()) {
+        Row(
+            Modifier.fillMaxWidth().padding(start = 4.dp, top = 12.dp, bottom = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            accountButton()
+            Text(
+                stringResource(R.string.search),
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = colors.onBackground,
+                modifier = Modifier.padding(start = 8.dp),
+            )
         }
-        Row(Modifier.padding(horizontal=16.dp).fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Color.White)
-            .clickable(onClick=onSearch).padding(16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-            Icon(painterResource(R.drawable.search),null,tint=Color.Black)
-            Text(stringResource(R.string.search_listen_prompt),color=Color.Black)
+        Surface(
+            onClick = onSearch,
+            modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            color = lerp(colors.surfaceContainerHigh, colors.primary, 0.12f),
+            contentColor = colors.onSurface,
+            border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.3f)),
+        ) {
+            Row(
+                Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(painterResource(R.drawable.search), null, tint = colors.primary)
+                Text(stringResource(R.string.search_listen_prompt), style = MaterialTheme.typography.bodyLarge)
+            }
         }
         LazyVerticalGrid(columns=GridCells.Fixed(2),modifier=Modifier.weight(1f),contentPadding=PaddingValues(16.dp,24.dp,16.dp,bottom+16.dp),
             horizontalArrangement=Arrangement.spacedBy(12.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-            items(entries) { BrowseTile(it,onCategory,artwork[it.title],onNeedArtwork,2.6f) }
+            items(entries) { BrowseTile(it,onCategory,artwork[it.title],onNeedArtwork,80.dp) }
             item(span={GridItemSpan(maxLineSpan)}) { SectionHeading(stringResource(R.string.s6_playlists)) }
             item(span={GridItemSpan(maxLineSpan)}) {
                 if(playlists.isEmpty()) TextButton(onClick=onRetry){Text(stringResource(R.string.s6_retry_playlists))}
                 else androidx.compose.foundation.lazy.LazyRow(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                     items(playlists.size) { index -> val playlist=playlists[index]
-                        Box(Modifier.width(150.dp).height(220.dp).clip(RoundedCornerShape(12.dp)).clickable { onCategory("online_playlist/${Uri.encode(playlist.id)}") }) {
+                        Box(Modifier.width(150.dp).height(220.dp).clip(RoundedCornerShape(20.dp)).border(1.dp, colors.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(20.dp)).clickable { onCategory("online_playlist/${Uri.encode(playlist.id)}") }) {
                             coil3.compose.AsyncImage(playlist.thumbnail,null,Modifier.fillMaxSize(),contentScale=androidx.compose.ui.layout.ContentScale.Crop)
                             Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color.Transparent,Color.Black.copy(alpha=.85f)))))
                             Text(playlist.title,color=Color.White,fontWeight=FontWeight.Bold,modifier=Modifier.align(Alignment.BottomStart).padding(12.dp),maxLines=3)
@@ -118,20 +147,64 @@ internal fun SearchBrowseContent(categories: List<BrowseCategory>, onSearch: () 
 }
 
 @Composable
-private fun SectionHeading(title: String, action: String?=null, onClick: () -> Unit = {}) {
-    Row(Modifier.fillMaxWidth().padding(top=8.dp),verticalAlignment=Alignment.CenterVertically) {
-        Text(title,color=Color.White,fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleLarge,modifier=Modifier.weight(1f))
-        if(action!=null)TextButton(onClick=onClick){Text(action,color=Color.LightGray)}
+private fun SectionHeading(title: String, action: String? = null, onClick: () -> Unit = {}) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            title,
+            color = MaterialTheme.colorScheme.onBackground,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.weight(1f),
+        )
+        if (action != null) TextButton(onClick = onClick) {
+            Text(action, color = MaterialTheme.colorScheme.primary)
+        }
     }
 }
+
 @Composable
-private fun BrowseTile(category: BrowseCategory,onCategory:(String)->Unit,artwork:String?,onNeedArtwork:(String)->Unit,aspect:Float=1.6f) {
+private fun BrowseTile(
+    category: BrowseCategory,
+    onCategory: (String) -> Unit,
+    artwork: String?,
+    onNeedArtwork: (String) -> Unit,
+    minHeight: Dp = 112.dp,
+) {
     LaunchedEffect(category.title) { onNeedArtwork(category.title) }
-    Box(Modifier.fillMaxWidth().aspectRatio(aspect).clip(RoundedCornerShape(8.dp)).background(category.color).clickable{onCategory(category.route)}) {
-        Box(Modifier.align(Alignment.BottomEnd).offset(x=10.dp,y=12.dp).rotate(23f).size(70.dp).clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha=.25f)),contentAlignment=Alignment.Center) {
-            if(artwork!=null) coil3.compose.AsyncImage(artwork,null,Modifier.fillMaxSize(),contentScale=androidx.compose.ui.layout.ContentScale.Crop)
-            else Icon(painterResource(category.icon),null,tint=Color.White,modifier=Modifier.size(40.dp))
+    val shape = RoundedCornerShape(20.dp)
+    Box(
+        Modifier.fillMaxWidth().heightIn(min = minHeight).clip(shape)
+            .background(Brush.linearGradient(listOf(
+                lerp(category.color, Color.Black, 0.2f),
+                lerp(category.color, Color.Black, 0.55f),
+            )))
+            .border(1.dp, Color.White.copy(alpha = 0.12f), shape)
+            .clickable { onCategory(category.route) },
+    ) {
+        Box(
+            Modifier.align(Alignment.BottomEnd).offset(x = 12.dp, y = 16.dp).rotate(18f)
+                .size(76.dp).clip(RoundedCornerShape(12.dp))
+                .background(Color.Black.copy(alpha = 0.2f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (artwork != null) coil3.compose.AsyncImage(
+                artwork, null, Modifier.fillMaxSize(),
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            ) else Icon(painterResource(category.icon), null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(36.dp))
         }
-        Text(category.title,color=Color.White,fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleMedium,maxLines=3,modifier=Modifier.padding(12.dp).fillMaxWidth(.8f))
+        Box(Modifier.matchParentSize().background(Brush.horizontalGradient(listOf(
+            Color.Black.copy(alpha = 0.24f), Color.Transparent,
+        ))))
+        Text(
+            category.title,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 3,
+            modifier = Modifier.padding(14.dp).fillMaxWidth(0.8f),
+        )
     }
 }

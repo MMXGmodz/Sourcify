@@ -70,11 +70,13 @@ internal fun LandscapeArtworkBackdrop(image: Any?, color: Color, fallback: Any? 
 
 @Composable
 internal fun LandscapeTrackRow(cover: Any?, title: String, liked: Boolean, onLike: () -> Unit,
-    onTitleClick: () -> Unit, onTitleLongClick: () -> Unit, artists: @Composable () -> Unit) {
+    onTitleClick: () -> Unit, onTitleLongClick: () -> Unit, showCover: Boolean = true, artists: @Composable () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 32.dp), verticalAlignment = Alignment.CenterVertically) {
-        AsyncImage(cover, null, Modifier.size(48.dp).clip(RoundedCornerShape(2.dp)),
-            contentScale = ContentScale.Crop)
-        Spacer(Modifier.width(14.dp))
+        if (showCover) {
+            AsyncImage(cover, null, Modifier.size(48.dp).clip(RoundedCornerShape(2.dp)),
+                contentScale = ContentScale.Crop)
+            Spacer(Modifier.width(14.dp))
+        }
         Column(Modifier.weight(1f)) {
             Text(title, color = Color.White,
                 fontSize = 16.sp, lineHeight = 20.sp, fontWeight = FontWeight.Bold, maxLines = 1,
@@ -95,17 +97,17 @@ internal fun LandscapeTrackRow(cover: Any?, title: String, liked: Boolean, onLik
 internal fun LandscapeTransport(playIcon: Int, playDescription: String, playStyle: PlayButtonStyle,
     accent: Color, shuffle: Boolean, repeat: Int, previousEnabled: Boolean, nextEnabled: Boolean,
     guest: Boolean, onShuffle: () -> Unit, onPrevious: () -> Unit, onPlay: () -> Unit, onNext: () -> Unit, onRepeat: () -> Unit, playModifier: Modifier = Modifier) {
-    Row(Modifier.widthIn(max = 272.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+    Row(Modifier.widthIn(max = 320.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically) {
         @Composable fun action(icon: Int, description: Int, enabled: Boolean, selected: Boolean = false, onClick: () -> Unit) {
-            IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(48.dp)) {
+            IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(56.dp)) {
                 Icon(painterResource(icon), stringResource(description),
-                    tint = if (selected) accent else Color.White.copy(alpha = if (enabled) 1f else .4f), modifier = Modifier.size(18.dp))
+                    tint = if (selected) accent else Color.White.copy(alpha = if (enabled) 1f else .4f), modifier = Modifier.size(22.dp))
             }
         }
         action(R.drawable.landscape_shuffle, R.string.player_shuffle, !guest, shuffle, onShuffle)
         action(R.drawable.landscape_previous, R.string.previous, previousEnabled && !guest, onClick = onPrevious)
-        PlayerPlayButton(playModifier.size(48.dp).padding(4.dp), onPlay, iconRes = when (playIcon) { R.drawable.play -> R.drawable.landscape_play; R.drawable.pause -> R.drawable.landscape_pause; else -> playIcon },
+        PlayerPlayButton(playModifier.size(56.dp).padding(4.dp), onPlay, iconRes = when (playIcon) { R.drawable.play -> R.drawable.landscape_play; R.drawable.pause -> R.drawable.landscape_pause; else -> playIcon },
             contentDescription = playDescription, style = playStyle, accentColor = accent)
         action(R.drawable.landscape_next, R.string.next, nextEnabled && !guest, onClick = onNext)
         action(if (repeat == Player.REPEAT_MODE_ONE) R.drawable.repeat_one else R.drawable.landscape_repeat,

@@ -169,6 +169,7 @@ import com.metrolist.music.constants.SleepTimerDefaultKey
 import com.metrolist.music.constants.SleepTimerFadeOutKey
 import com.metrolist.music.constants.SleepTimerStopAfterCurrentSongKey
 import com.metrolist.music.constants.SliderStyle
+import com.metrolist.music.constants.LandscapeShowCoverKey
 import com.metrolist.music.constants.SliderStyleKey
 import com.metrolist.music.constants.SquigglySliderKey
 import com.metrolist.music.constants.ThumbnailCornerRadius
@@ -239,7 +240,7 @@ fun BottomSheetPlayer(
         compactHeaderProgress(playerScrollState.value.toFloat(), compactThreshold, headerTransitionDistance),
         animationSpec = tween(140), label = "compactSongHeader")
     var canvasFullscreen by rememberSaveable(mediaMetadata?.id) { mutableStateOf(false) }
-    var landscapeOptions by rememberSaveable { mutableStateOf(false) }
+    var showPlayerSettings by rememberSaveable { mutableStateOf(false) }
 
     val musicVideoState by playerConnection.service.musicVideoState.collectAsStateWithLifecycle()
     val musicVideoRequested = musicVideoState.currentSongId == mediaMetadata?.id &&
@@ -266,9 +267,11 @@ fun BottomSheetPlayer(
     val canvasInView by remember(portrait, canvasViewport) { derivedStateOf { !portrait || playerScrollState.value < canvasViewport } }
     val showCanvas = canvasEnabled && (canvasSource != null || editedCanvas?.isImage == true) && !canvasFailed && state.isExpanded
     val landscapePlayer = !portrait && !showCanvas
+    val landscapeShowCover by rememberPreference(LandscapeShowCoverKey, true)
+    val landscapeBackground = rememberLandscapeBackground(mediaMetadata, landscapePlayer && state.isExpanded && !musicVideoRequested)
     val controlsHorizontalPadding = PlayerHorizontalPadding
     KeepCanvasPlayerPortrait(showCanvas)
-    LaunchedEffect(landscapePlayer, state.isExpanded) { if (!landscapePlayer || !state.isExpanded) landscapeOptions = false }
+    LaunchedEffect(state.isExpanded) { if (!state.isExpanded) showPlayerSettings = false }
     LaunchedEffect(showCanvas) { if (!showCanvas) canvasFullscreen = false }
 
     val (useNewPlayerDesign, onUseNewPlayerDesignChange) =
@@ -1015,7 +1018,7 @@ fun BottomSheetPlayer(
                     onTitleLongClick = {
                         clipboardManager.setPrimaryClip(ClipData.newPlainText(copiedTitleStr, mediaMetadata.title))
                         Toast.makeText(context, copiedTitleStr, Toast.LENGTH_SHORT).show()
-                    }, artists = artistNames)
+                    }, showCover = landscapeShowCover, artists = artistNames)
             } else {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1765,8 +1768,7 @@ fun BottomSheetPlayer(
                 PlayerLandscapeLayout(
                     artwork = {
                         if (musicVideoRequested) MusicVideoDisplay(playerConnection.service, Modifier.fillMaxSize())
-                        else LandscapeArtworkBackdrop(currentSong?.takeIf { it.song.id == mediaMetadata?.id }?.artists?.firstOrNull()?.thumbnailUrl ?: mediaMetadata?.thumbnailUrl,
-                            songColor, fallback = mediaMetadata?.thumbnailUrl)
+                        else LandscapeBackground(landscapeBackground, songColor, isPlaying && state.isExpanded)
                     },
                     controls = { mediaMetadata?.let { controlsContent(it) } },
                 )
@@ -1869,17 +1871,17 @@ fun BottomSheetPlayer(
                     (effectivePosition.toFloat() / duration.coerceAtLeast(1)).coerceIn(0f, 1f),
                     onCollapse = { state.collapseSoft() }, onLike = playerConnection::toggleLike, onPlay = playerConnection::togglePlayPause,
                     more = {
-                        if (landscapePlayer) IconButton(onClick = { landscapeOptions = true }) {
-                            Icon(painterResource(R.drawable.settings), stringResource(R.string.s16_player_options), tint = Color.White)
-                        } else PlayerMoreMenuButton(mediaMetadata!!, state, Color.White.copy(alpha = .14f), Color.White)
+                        IconButton(onClick = { showPlayerSettings = true }) {
+                            Icon(painterResource(if (landscapePlayer) R.drawable.settings else R.drawable.more_horiz), stringResource(R.string.s16_player_options), tint = Color.White)
+                        }
                     }, landscape = landscapePlayer)
             }
         }
-        if (landscapeOptions && landscapePlayer && mediaMetadata != null) {
-            LandscapePlayerSettings(mediaMetadata!!.id, onDismiss = { landscapeOptions = false },
-                onQueue = { landscapeOptions = false; showQueue = true },
+        if (showPlayerSettings && mediaMetadata != null) {
+            PlayerSettingsSheet(mediaMetadata!!, onDismiss = { showPlayerSettings = false },
+                onQueue = { showPlayerSettings = false; showQueue = true },
                 onSongOptions = {
-                    landscapeOptions = false
+                    showPlayerSettings = false
                     val menuSong = mediaMetadata!!
                     menuState.show {
                         PlayerMenu(mediaMetadata = menuSong, playerBottomSheetState = state,
@@ -2051,50 +2053,5 @@ fun InlineLyricsView(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun PlayerMoreMenuButton(
-    mediaMetadata: MediaMetadata,
-    state: BottomSheetState,
-    textButtonColor: Color,
-    iconButtonColor: Color,
-    onOpenQueue: (() -> Unit)? = null,
-) {
-    val navController = LocalNavController.current
-    val menuState = LocalMenuState.current
-    val bottomSheetPageState = LocalBottomSheetPageState.current
-
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier =
-            Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .background(textButtonColor)
-                .clickable {
-                    menuState.show {
-                        PlayerMenu(
-                            mediaMetadata = mediaMetadata,
-                            playerBottomSheetState = state,
-                            onShowDetailsDialog = {
-                                mediaMetadata.id.let {
-                                    bottomSheetPageState.show {
-                                        ShowMediaInfo(it)
-                                    }
-                                }
-                            },
-                            onDismiss = menuState::dismiss,
-                            onOpenQueue = onOpenQueue,
-                        )
-                    }
-                },
-    ) {
-        Image(
-            painter = painterResource(R.drawable.more_horiz),
-            contentDescription = null,
-            colorFilter = ColorFilter.tint(iconButtonColor),
-        )
     }
 }

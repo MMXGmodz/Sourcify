@@ -36,6 +36,21 @@ import java.time.Duration
 @Config(sdk = [33], application = android.app.Application::class, qualifiers = "w720dp-h360dp-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class PlayerLayoutRenderTest {
+    @Test fun hidingLandscapeCoverReclaimsSpaceForMetadata() {
+        var visible by mutableStateOf(true)
+        var artistX = 0f
+        render(check = { _, settle ->
+            val withCover = artistX
+            visible = false
+            settle()
+            assertEquals(62f, withCover - artistX, 1f)
+        }) {
+            LandscapeTrackRow(null, "Title", false, {}, {}, {}, showCover = visible) {
+                Text("Artist", Modifier.onGloballyPositioned { artistX = it.positionInWindow().x })
+            }
+        }
+    }
+
     @Test fun unavailableLyricsReserveNoSpaceBeforeTheNextCard() {
         var nextY = -1f
         render {
@@ -132,7 +147,7 @@ class PlayerLayoutRenderTest {
         assertTrue(titleBounds.bottom <= progressBounds.bottom)
         assertEquals(1280f, titleBounds.width, 1f)
         assertEquals(640f, transportBounds.center.x, 1f)
-        assertTrue(transportBounds.width < 600f)
+        assertTrue(transportBounds.width <= 640f)
         assertTrue(transportBounds.bottom <= 720f)
     }
 

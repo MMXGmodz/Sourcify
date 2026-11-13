@@ -57,6 +57,11 @@ class SongEditStore internal constructor(context: Context) {
         return ownedUri(edit.optString("canvas"))?.let { SongEditCanvas(it, edit.optBoolean("canvasImage")) }
     }
 
+    fun landscapeBackground(id: String): SongEditCanvas? {
+        val edit = record(id) ?: return null
+        return ownedUri(edit.optString("landscapeBackground"))?.let { SongEditCanvas(it, edit.optBoolean("landscapeImage")) }
+    }
+
     fun color(id: String): Int? = record(id)?.takeIf { it.has("accentColor") && !it.isNull("accentColor") }
         ?.optInt("accentColor")?.takeIf { it ushr 24 == 0xFF }
 
@@ -75,12 +80,13 @@ class SongEditStore internal constructor(context: Context) {
         )
     }
 
-    fun save(metadata: MediaMetadata, title: String, artistNames: List<String>, cover: Uri?, canvas: SongEditCanvas?, cleanUp: Boolean = true, accentColor: Int? = this.color(metadata.id)) {
+    fun save(metadata: MediaMetadata, title: String, artistNames: List<String>, cover: Uri?, canvas: SongEditCanvas?, cleanUp: Boolean = true, accentColor: Int? = this.color(metadata.id), landscapeBackground: SongEditCanvas? = this.landscapeBackground(metadata.id)) {
         require(accentColor == null || accentColor ushr 24 == 0xFF)
         require(title.trim().isNotEmpty() && title.trim().length <= 300)
         require(artistNames.size <= 30 && artistNames.all { it.isNotBlank() && it.length <= 300 })
         require(cover == null || ownedUri(cover.toString()) != null)
         require(canvas == null || ownedUri(canvas.uri.toString()) != null)
+        require(landscapeBackground == null || ownedUri(landscapeBackground.uri.toString()) != null)
         val previous = record(metadata.id)
         val original = previous?.optJSONObject("original") ?: JSONObject().apply {
             put("title", metadata.title)
@@ -92,6 +98,7 @@ class SongEditStore internal constructor(context: Context) {
         val edit = JSONObject().put("original", original).put("title", title.trim())
             .put("artists", JSONArray(artistNames)).put("cover", cover?.toString().orEmpty())
             .put("canvas", canvas?.uri?.toString().orEmpty()).put("canvasImage", canvas?.isImage ?: false)
+        edit.put("landscapeBackground", landscapeBackground?.uri?.toString().orEmpty()).put("landscapeImage", landscapeBackground?.isImage ?: false)
         accentColor?.let { edit.put("accentColor", it) }
         if (!preferences.edit().putString(metadata.id, edit.toString()).commit()) throw IOException("Could not save song edits")
         mutableRevision.value++
@@ -133,7 +140,7 @@ class SongEditStore internal constructor(context: Context) {
     }
 
     private fun cleanPrevious(previous: JSONObject?) {
-        listOf("cover", "canvas").forEach { key -> previous?.optString(key)?.let(::deleteIfUnused) }
+        listOf("cover", "canvas", "landscapeBackground").forEach { key -> previous?.optString(key)?.let(::deleteIfUnused) }
     }
 
     /** Copy picker bytes into durable private storage; the provider URI is never retained. */
@@ -186,7 +193,7 @@ class SongEditStore internal constructor(context: Context) {
     private fun deleteIfUnused(value: String) {
         val uri = ownedUri(value) ?: return
         if (preferences.all.values.none { raw ->
-            runCatching { JSONObject(raw as String).let { it.optString("cover") == value || it.optString("canvas") == value } }.getOrDefault(false)
+            runCatching { JSONObject(raw as String).let { it.optString("cover") == value || it.optString("canvas") == value || it.optString("landscapeBackground") == value } }.getOrDefault(false)
         }) File(requireNotNull(uri.path)).delete()
     }
 

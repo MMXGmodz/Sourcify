@@ -30,7 +30,7 @@ internal fun LyricsFullscreenHeader(cover: Any?, title: String, artists: String,
         }
         IconButton(onClick = onShare) { Icon(painterResource(R.drawable.share), stringResource(R.string.s6_share_lyrics), tint = Color.White) }
         IconButton(onClick = onExit) { Icon(painterResource(R.drawable.fullscreen_exit), stringResource(R.string.sourcify_exit_fullscreen), tint = Color.White) }
-        IconButton(onClick = onOptions, modifier = Modifier.align(Alignment.Top)) {
+        IconButton(onClick = onOptions) {
             Icon(painterResource(R.drawable.more_vert), stringResource(R.string.s16_lyrics_options), tint = Color.White)
         }
     }
