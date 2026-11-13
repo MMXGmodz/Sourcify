@@ -1,6 +1,16 @@
 package com.metrolist.music.ui.player
 
 import androidx.compose.foundation.layout.*
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import com.metrolist.music.models.MediaMetadata
+import com.metrolist.music.utils.SongEditStore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CancellationException
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -19,7 +29,32 @@ import com.metrolist.music.utils.rememberPreference
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun LandscapePlayerSettings(songId: String, onDismiss: () -> Unit, onQueue: () -> Unit, onSongOptions: () -> Unit) {
+internal fun PlayerSettingsSheet(song: MediaMetadata, onDismiss: () -> Unit, onQueue: () -> Unit, onSongOptions: () -> Unit) {
+    val songId = song.id
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val store = remember(context) { SongEditStore.get(context) }
+    val revision by store.revision.collectAsState()
+    val background = remember(songId, revision) { store.landscapeBackground(songId) }
+    var showCover by rememberPreference(LandscapeShowCoverKey, true)
+    var importing by remember { mutableStateOf(false) }
+    var importFailed by remember(songId) { mutableStateOf(false) }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            importing = true
+            importFailed = false
+            var imported: com.metrolist.music.utils.SongEditCanvas? = null
+            try {
+                imported = store.importMedia(uri, imageOnly = false)
+                withContext(NonCancellable + Dispatchers.IO) {
+                    val current = store.resolve(song)
+                    store.save(current, current.title, current.artists.map { it.name }, store.cover(songId), store.canvas(songId), landscapeBackground = imported)
+                }
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { importFailed = true }
+            finally { imported?.let { store.discard(it.uri) }; importing = false }
+        }
+    }
     var playStyle by rememberEnumPreference(PlayButtonStyleKey, PlayButtonStyle.STANDARD)
     var sliderStyle by rememberEnumPreference(SliderStyleKey, SliderStyle.DEFAULT)
     var squiggly by rememberPreference(SquigglySliderKey, false)
@@ -48,6 +83,27 @@ internal fun LandscapePlayerSettings(songId: String, onDismiss: () -> Unit, onQu
                     Switch(checked = music, onCheckedChange = { music = it })
                 }
             }
+            HorizontalDivider()
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.s17_landscape_cover), Modifier.weight(1f))
+                Switch(checked = showCover, onCheckedChange = { showCover = it })
+            }
+            Text(stringResource(R.string.s17_landscape_background), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.s17_landscape_background_description), style = MaterialTheme.typography.bodySmall)
+            OutlinedButton(onClick = { picker.launch(arrayOf("image/*", "video/*")) }, enabled = !importing, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(if (importing) R.string.s17_importing else R.string.s17_choose_background))
+            }
+            if (background != null) TextButton(onClick = {
+                scope.launch {
+                    try {
+                        withContext(NonCancellable + Dispatchers.IO) {
+                            val current = store.resolve(song)
+                            store.save(current, current.title, current.artists.map { it.name }, store.cover(songId), store.canvas(songId), landscapeBackground = null)
+                        }
+                    } catch (_: Exception) { importFailed = true }
+                }
+            }) { Text(stringResource(R.string.s17_background_automatic)) }
+            if (importFailed) Text(stringResource(R.string.s17_background_failed), color = MaterialTheme.colorScheme.error)
             LyricsVisibilityAction(songId)
             TextButton(onClick = onQueue) { Icon(painterResource(R.drawable.queue_music), null); Spacer(Modifier.width(12.dp)); Text(stringResource(R.string.queue)) }
             TextButton(onClick = onSongOptions) { Icon(painterResource(R.drawable.more_horiz), null); Spacer(Modifier.width(12.dp)); Text(stringResource(R.string.s16_song_options)) }

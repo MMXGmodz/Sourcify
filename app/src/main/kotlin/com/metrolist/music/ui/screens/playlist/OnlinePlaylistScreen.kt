@@ -18,11 +18,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
@@ -82,7 +85,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.metrolist.music.ui.component.PlaylistArtworkHeader
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.windowInsetsPadding
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.metrolist.innertube.models.PlaylistItem
@@ -211,8 +214,17 @@ private fun OnlinePlaylistScreenContent(
         modifier = Modifier.fillMaxSize(),
     ) {
         LazyColumn(
+            modifier = Modifier.windowInsetsPadding(
+                if (isSearching) LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
+                else WindowInsets(0),
+            ),
             state = lazyListState,
-            contentPadding = LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues(),
+            contentPadding = LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime)
+                .only(
+                    if (isSearching) WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
+                    else WindowInsetsSides.Horizontal + WindowInsetsSides.Vertical,
+                )
+                .asPaddingValues(),
         ) {
             if (playlist == null || songs.isEmpty()) {
                 if (isLoading) {
@@ -379,7 +391,10 @@ private fun OnlinePlaylistScreenContent(
         }
 
         if (isSearching || inSelectMode || songs.isEmpty()) TopAppBar(
-            colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent, scrolledContainerColor = Color.Transparent),
+            colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                containerColor = if (isSearching) MaterialTheme.colorScheme.background else Color.Transparent,
+                scrolledContainerColor = if (isSearching) MaterialTheme.colorScheme.background else Color.Transparent,
+            ),
             title = {
                 if (inSelectMode) {
                     Text(

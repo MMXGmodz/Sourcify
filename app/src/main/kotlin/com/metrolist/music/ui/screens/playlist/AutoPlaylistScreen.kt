@@ -518,8 +518,17 @@ private fun AutoPlaylistScreenContent(
                 ),
     ) {
         LazyColumn(
+            modifier = Modifier.windowInsetsPadding(
+                if (isSearching) LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
+                else WindowInsets(0),
+            ),
             state = state,
-            contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
+            contentPadding = LocalPlayerAwareWindowInsets.current
+                .only(
+                    if (isSearching) WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
+                    else WindowInsetsSides.Horizontal + WindowInsetsSides.Vertical,
+                )
+                .asPaddingValues(),
         ) {
             if (songs != null) {
                 if (songs!!.isEmpty()) {
@@ -722,7 +731,10 @@ private fun AutoPlaylistScreenContent(
         }
 
         if (isSearching || inSelectMode || songs.isNullOrEmpty()) TopAppBar(
-            colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent, scrolledContainerColor = Color.Transparent),
+            colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                containerColor = if (isSearching) MaterialTheme.colorScheme.background else Color.Transparent,
+                scrolledContainerColor = if (isSearching) MaterialTheme.colorScheme.background else Color.Transparent,
+            ),
             title = {
                 when {
                     inSelectMode -> {

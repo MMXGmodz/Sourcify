@@ -14,14 +14,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -246,8 +249,17 @@ fun TopPlaylistScreen(
         modifier = Modifier.fillMaxSize(),
     ) {
         LazyColumn(
+            modifier = Modifier.windowInsetsPadding(
+                if (isSearching) LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
+                else WindowInsets(0),
+            ),
             state = state,
-            contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
+            contentPadding = LocalPlayerAwareWindowInsets.current
+                .only(
+                    if (isSearching) WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
+                    else WindowInsetsSides.Horizontal + WindowInsetsSides.Vertical,
+                )
+                .asPaddingValues(),
         ) {
             if (songs != null) {
                 if (songs!!.isEmpty()) {
@@ -406,6 +418,10 @@ fun TopPlaylistScreen(
         )
 
         TopAppBar(
+            colors = if (isSearching) androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.background,
+                scrolledContainerColor = MaterialTheme.colorScheme.background,
+            ) else androidx.compose.material3.TopAppBarDefaults.topAppBarColors(),
             title = {
                 when {
                     inSelectMode -> {

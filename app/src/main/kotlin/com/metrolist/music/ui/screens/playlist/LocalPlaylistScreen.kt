@@ -27,15 +27,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -105,7 +107,7 @@ import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
 import com.metrolist.music.ui.component.PlaylistArtworkHeader
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.windowInsetsPadding
 import coil3.compose.AsyncImage
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.PlaylistItem
@@ -486,8 +488,17 @@ private fun LocalPlaylistScreenContent(
         modifier = Modifier.fillMaxSize(),
     ) {
         LazyColumn(
+            modifier = Modifier.windowInsetsPadding(
+                if (isSearching) LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
+                else WindowInsets(0),
+            ),
             state = lazyListState,
-            contentPadding = LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues(),
+            contentPadding = LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime)
+                .only(
+                    if (isSearching) WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
+                    else WindowInsetsSides.Horizontal + WindowInsetsSides.Vertical,
+                )
+                .asPaddingValues(),
         ) {
             playlist?.let { playlist ->
                 if (playlist.songCount == 0 && playlist.playlist.remoteSongCount == 0) {
@@ -743,7 +754,10 @@ private fun LocalPlaylistScreenContent(
         )
 
         if (isSearching || inSelectMode || songs.isEmpty()) TopAppBar(
-            colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent, scrolledContainerColor = Color.Transparent),
+            colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                containerColor = if (isSearching) MaterialTheme.colorScheme.background else Color.Transparent,
+                scrolledContainerColor = if (isSearching) MaterialTheme.colorScheme.background else Color.Transparent,
+            ),
             title = {
                 if (inSelectMode) {
                     Text(pluralStringResource(R.plurals.n_selected, selection.size, selection.size))
