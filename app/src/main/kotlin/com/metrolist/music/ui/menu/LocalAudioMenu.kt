@@ -43,6 +43,7 @@ internal fun LocalAudioMenu(metadata: MediaMetadata, onDismiss: () -> Unit, onIn
         SongCanvasAction(metadata.id)
         VolumeSlider(value = volume, onValueChange = { connection.service.playerVolume.value = it }, modifier = Modifier.fillMaxWidth())
         CoverLyricsAction(onDismiss)
+        com.metrolist.music.ui.player.LyricsVisibilityAction(metadata.id, onDismiss)
         Material3MenuGroup(items = listOf(
             Material3MenuItemData(title = { Text(stringResource(R.string.share)) }, icon = { Icon(painterResource(R.drawable.share), null) }, onClick = { sharing = true }),
             Material3MenuItemData(title = { Text(stringResource(R.string.details)) }, icon = { Icon(painterResource(R.drawable.info), null) },

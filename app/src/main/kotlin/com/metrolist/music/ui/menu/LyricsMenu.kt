@@ -392,6 +392,7 @@ fun LyricsMenu(
             bottom = 8.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding(),
         ),
     ) {
+        item { com.metrolist.music.ui.player.LyricsVisibilityAction(mediaMetadataProvider().id, onDismiss) }
         item {
             NewActionGrid(
                 actions =

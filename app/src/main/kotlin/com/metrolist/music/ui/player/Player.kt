@@ -230,7 +230,7 @@ fun BottomSheetPlayer(
     val bottomSheetPageState = LocalBottomSheetPageState.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
-    mediaMetadata?.let { EnsureSongLyrics(it) }
+    val lyricsAvailable = mediaMetadata?.let { EnsureSongLyrics(it) }
     val playbackShuffle by playerConnection.shuffleModeEnabled.collectAsStateWithLifecycle()
     val playerScrollState = rememberScrollState()
     val compactThreshold = with(LocalDensity.current) { (LocalConfiguration.current.screenHeightDp * 0.7f).dp.toPx() }
@@ -239,6 +239,7 @@ fun BottomSheetPlayer(
         compactHeaderProgress(playerScrollState.value.toFloat(), compactThreshold, headerTransitionDistance),
         animationSpec = tween(140), label = "compactSongHeader")
     var canvasFullscreen by rememberSaveable(mediaMetadata?.id) { mutableStateOf(false) }
+    var landscapeOptions by rememberSaveable { mutableStateOf(false) }
 
     val musicVideoState by playerConnection.service.musicVideoState.collectAsStateWithLifecycle()
     val musicVideoRequested = musicVideoState.currentSongId == mediaMetadata?.id &&
@@ -267,6 +268,7 @@ fun BottomSheetPlayer(
     val landscapePlayer = !portrait && !showCanvas
     val controlsHorizontalPadding = PlayerHorizontalPadding
     KeepCanvasPlayerPortrait(showCanvas)
+    LaunchedEffect(landscapePlayer, state.isExpanded) { if (!landscapePlayer || !state.isExpanded) landscapeOptions = false }
     LaunchedEffect(showCanvas) { if (!showCanvas) canvasFullscreen = false }
 
     val (useNewPlayerDesign, onUseNewPlayerDesignChange) =
@@ -278,7 +280,8 @@ fun BottomSheetPlayer(
     val (hideStatusBarOnFullscreen) = rememberPreference(HideStatusBarOnFullscreenKey, false)
     val cropAlbumArt by rememberPreference(CropAlbumArtKey, false)
 
-    val coverLyricsEnabled by rememberPreference(com.metrolist.music.constants.CoverLyricsEnabledKey, false)
+    val coverLyricsRequested by rememberPreference(com.metrolist.music.constants.CoverLyricsEnabledKey, false)
+    val coverLyricsEnabled = coverLyricsRequested && rememberSongLyricsVisible(mediaMetadata?.id.orEmpty())
     val mediaControlsSpacing by animateDpAsState(
         targetValue = if (landscapePlayer) 0.dp else if (musicVideoRequested || coverLyricsEnabled) 12.dp else 24.dp,
         animationSpec = PlayerVideoMorphSpec, label = "videoControlsSpacing")
@@ -1803,7 +1806,7 @@ fun BottomSheetPlayer(
                             transitionSpec = { fadeIn() togetherWith fadeOut() },
                         ) { showLyrics ->
                             if (showLyrics) {
-                                mediaMetadata?.let { SongLyricsCard(it, effectivePosition, onSeekRequested = onLyricsSeek) }
+                                mediaMetadata?.let { SongLyricsCard(it, effectivePosition, onSeekRequested = onLyricsSeek, lyricsAvailable = lyricsAvailable) }
                             } else if (showCanvas) {
                                 Box(Modifier.fillMaxSize().clickable(onClickLabel = stringResource(R.string.s7_canvas_fullscreen)) { canvasFullscreen = true }) {
                                     IconButton(onClick = { canvasFullscreen = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
@@ -1830,7 +1833,7 @@ fun BottomSheetPlayer(
 
                     Spacer(Modifier.height(mediaControlsSpacing))
                     mediaMetadata?.let { song ->
-                        SongLyricsCard(song, effectivePosition, onSeekRequested = onLyricsSeek)
+                        SongLyricsCard(song, effectivePosition, onSeekRequested = onLyricsSeek, lyricsAvailable = lyricsAvailable)
                     }
                     if (canvasEnabled && canvasFailed) {
                         androidx.compose.material3.TextButton(onClick = { canvasFailed = false; canvasAttempt++ }) {
@@ -1865,9 +1868,25 @@ fun BottomSheetPlayer(
                     currentSong?.song?.liked == true, effectiveIsPlaying,
                     (effectivePosition.toFloat() / duration.coerceAtLeast(1)).coerceIn(0f, 1f),
                     onCollapse = { state.collapseSoft() }, onLike = playerConnection::toggleLike, onPlay = playerConnection::togglePlayPause,
-                    more = { PlayerMoreMenuButton(mediaMetadata!!, state, if (landscapePlayer) Color.Transparent else Color.White.copy(alpha = .14f), Color.White,
-                        onOpenQueue = if (landscapePlayer) ({ showQueue = true }) else null) }, landscape = landscapePlayer)
+                    more = {
+                        if (landscapePlayer) IconButton(onClick = { landscapeOptions = true }) {
+                            Icon(painterResource(R.drawable.settings), stringResource(R.string.s16_player_options), tint = Color.White)
+                        } else PlayerMoreMenuButton(mediaMetadata!!, state, Color.White.copy(alpha = .14f), Color.White)
+                    }, landscape = landscapePlayer)
             }
+        }
+        if (landscapeOptions && landscapePlayer && mediaMetadata != null) {
+            LandscapePlayerSettings(mediaMetadata!!.id, onDismiss = { landscapeOptions = false },
+                onQueue = { landscapeOptions = false; showQueue = true },
+                onSongOptions = {
+                    landscapeOptions = false
+                    val menuSong = mediaMetadata!!
+                    menuState.show {
+                        PlayerMenu(mediaMetadata = menuSong, playerBottomSheetState = state,
+                            onShowDetailsDialog = { bottomSheetPageState.show { ShowMediaInfo(menuSong.id) } },
+                            onDismiss = menuState::dismiss, onOpenQueue = { showQueue = true })
+                    }
+                })
         }
         AnimatedVisibility(visible = canvasFullscreen && showCanvas,
             enter = fadeIn(tween(250)), exit = fadeOut(tween(180))) {
