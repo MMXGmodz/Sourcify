@@ -10,10 +10,14 @@ internal fun streamingAudioQuality(prefs: Preferences, metered: Boolean): AudioQ
     readAudioQuality(prefs[if (metered) StreamingMobileQualityKey else StreamingWifiQualityKey])
         ?: readAudioQuality(prefs[AudioQualityKey]) ?: AudioQuality.AUTO
 
-internal val supportedCanvasHeights = listOf(240, 360, 480, 720)
-internal fun normalizedCanvasHeight(height: Int?): Int = height?.takeIf { it in supportedCanvasHeights } ?: 720
+internal const val DefaultCanvasWifiHeight = 1080
+internal const val DefaultCanvasMobileHeight = 720
+internal val supportedCanvasHeights = listOf(240, 360, 480, 720, 1080)
+internal fun normalizedCanvasHeight(height: Int?, defaultHeight: Int = DefaultCanvasWifiHeight): Int =
+    height?.takeIf { it in supportedCanvasHeights } ?: defaultHeight
 internal fun canvasVideoHeight(prefs: Preferences, metered: Boolean): Int =
-    normalizedCanvasHeight(prefs[if (metered) CanvasMobileHeightKey else CanvasWifiHeightKey])
+    normalizedCanvasHeight(prefs[if (metered) CanvasMobileHeightKey else CanvasWifiHeightKey],
+        if (metered) DefaultCanvasMobileHeight else DefaultCanvasWifiHeight)
 
 internal fun canvasVideoFitsQuality(height: Int?, maxHeight: Int): Boolean =
     height != null && height in 1..maxHeight

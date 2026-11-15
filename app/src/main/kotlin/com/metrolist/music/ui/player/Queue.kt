@@ -121,6 +121,7 @@ import com.metrolist.music.ui.component.MediaMetadataListItem
 import com.metrolist.music.ui.menu.PlayerMenu
 import com.metrolist.music.ui.menu.QueueMenu
 import com.metrolist.music.ui.menu.SelectionMediaMetadataMenu
+import com.metrolist.music.ui.theme.screenHeaderBrush
 import com.metrolist.music.ui.utils.ShowMediaInfo
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.makeTimeString
@@ -148,8 +149,6 @@ import androidx.compose.material3.Button
 fun Queue(
     playerBottomSheetState: BottomSheetState,
     modifier: Modifier = Modifier,
-    background: Color,
-    pureBlack: Boolean,
 ) {
     val navController = LocalNavController.current
     val context = LocalContext.current
@@ -219,7 +218,8 @@ fun Queue(
     val coroutineScope = rememberCoroutineScope()
     var footerHeight by remember { mutableStateOf(104.dp) }
     val footerDensity = androidx.compose.ui.platform.LocalDensity.current
-    Box(modifier.fillMaxSize().background(background)) {
+    val backdrop = screenHeaderBrush()
+    Box(modifier.fillMaxSize().background(backdrop)) {
         val queueTitle by playerConnection.queueTitle.collectAsStateWithLifecycle()
         val queueWindows by playerConnection.queueWindows.collectAsStateWithLifecycle()
         val automix by playerConnection.service.automixItems.collectAsStateWithLifecycle()
@@ -311,8 +311,7 @@ fun Queue(
         Box(
             modifier =
                 Modifier
-                    .fillMaxSize()
-                    .background(background),
+                    .fillMaxSize(),
         ) {
             LazyColumn(
                 state = lazyListState,
@@ -335,7 +334,7 @@ fun Queue(
                     ReorderableItem(
                         state = reorderableState,
                         key = window.uid.hashCode(),
-                    ) {
+                    ) { isDragging ->
                         val currentItem by rememberUpdatedState(window)
                         val isActive = window.uid == currentPlayingUid
                         val dismissBoxState =
@@ -445,7 +444,10 @@ fun Queue(
                                     modifier =
                                         Modifier
                                             .fillMaxWidth()
-                                            .background(background)
+                                            .background(
+                                                if (isDragging) MaterialTheme.colorScheme.surfaceContainerHigh
+                                                else Color.Transparent,
+                                            )
                                             .combinedClickable(
                                                 onClick = {
                                                     if (inSelectMode) {
@@ -592,15 +594,8 @@ fun Queue(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() },
                     ) { }
-                    .background(
-                        if (pureBlack) {
-                            Color.Black
-                        } else {
-                            MaterialTheme.colorScheme
-                                .secondaryContainer
-                                .copy(alpha = 0.90f)
-                        },
-                    ).windowInsetsPadding(
+                    .background(backdrop)
+                    .windowInsetsPadding(
                         WindowInsets.systemBars
                             .only(WindowInsetsSides.Horizontal),
                     ),
@@ -692,15 +687,12 @@ fun Queue(
                     }
                 }
             }
-            if (pureBlack) {
-                HorizontalDivider()
-            }
         }
 
         val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsStateWithLifecycle()
 
         Row(Modifier.align(Alignment.BottomCenter).fillMaxWidth()
-            .background(background.copy(alpha = 0.98f))
+            .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.94f))
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
             .onSizeChanged { footerHeight = with(footerDensity) { it.height.toDp() } }
             .padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

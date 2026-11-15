@@ -24,8 +24,8 @@ fun MediaQualitySettings(navController: NavController) {
     val (download, setDownload) = rememberPreference(AudioQualityKey, AudioQuality.AUTO.name)
     val (wifi, setWifi) = rememberPreference(StreamingWifiQualityKey, download)
     val (mobile, setMobile) = rememberPreference(StreamingMobileQualityKey, download)
-    val (wifiHeight, setWifiHeight) = rememberPreference(CanvasWifiHeightKey, 720)
-    val (mobileHeight, setMobileHeight) = rememberPreference(CanvasMobileHeightKey, 720)
+    val (wifiHeight, setWifiHeight) = rememberPreference(CanvasWifiHeightKey, DefaultCanvasWifiHeight)
+    val (mobileHeight, setMobileHeight) = rememberPreference(CanvasMobileHeightKey, DefaultCanvasMobileHeight)
     LaunchedEffect(Unit) {
         context.dataStore.edit { prefs ->
             val previous = readAudioQuality(prefs[AudioQualityKey]) ?: AudioQuality.AUTO
@@ -35,7 +35,7 @@ fun MediaQualitySettings(navController: NavController) {
         }
     }
     MediaQualityContent(readAudioQuality(wifi) ?: readAudioQuality(download) ?: AudioQuality.AUTO, readAudioQuality(mobile) ?: readAudioQuality(download) ?: AudioQuality.AUTO,
-        readAudioQuality(download) ?: AudioQuality.AUTO, normalizedCanvasHeight(wifiHeight), normalizedCanvasHeight(mobileHeight),
+        readAudioQuality(download) ?: AudioQuality.AUTO, normalizedCanvasHeight(wifiHeight), normalizedCanvasHeight(mobileHeight, DefaultCanvasMobileHeight),
         { setWifi(it.name) }, { setMobile(it.name) }, { setDownload(it.name) }, setWifiHeight, setMobileHeight,
         { navController.navigateUp() }, { navController.navigate("settings/integrations") },
         LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding(), onBackToMain = navController::backToMain)
@@ -125,9 +125,7 @@ private fun AudioQualitySetting(title: String, selected: AudioQuality, onSelect:
 
 @Composable
 private fun videoQualityName(height: Int): String {
-    val name = listOf(R.string.audio_quality_low, R.string.s8_quality_normal,
-        R.string.audio_quality_high, R.string.s8_quality_very_high)[supportedCanvasHeights.indexOf(height).coerceAtLeast(0)]
-    return stringResource(name) + " · " + stringResource(R.string.s8_video_height, height)
+    return stringResource(R.string.s8_video_height, height)
 }
 
 @Composable

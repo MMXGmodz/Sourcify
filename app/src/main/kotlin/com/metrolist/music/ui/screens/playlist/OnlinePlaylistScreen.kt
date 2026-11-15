@@ -85,6 +85,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.metrolist.music.ui.component.PlaylistArtworkHeader
+import com.metrolist.music.utils.rememberClassicPlaylistCover
 import androidx.compose.foundation.layout.windowInsetsPadding
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -534,7 +535,10 @@ private fun OnlinePlaylistHeader(
     val menuState = LocalMenuState.current
 
     Column(modifier = modifier.fillMaxWidth().background(Color.Transparent).playlistHeaderAnchor()) {
-        PlaylistArtworkHeader(playlist.title) {
+        PlaylistArtworkHeader(
+            title = playlist.title,
+            classic = rememberClassicPlaylistCover(playlist.id).value,
+        ) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current).data(playlist.thumbnail?.resize(1080, 1080)).build(),
                 contentDescription = null,

@@ -556,39 +556,50 @@ private fun TopPlaylistHeader(
             .padding(top = 8.dp, bottom = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Playlist Thumbnail - Large centered with shadow
-        Box(
-            modifier = Modifier.padding(top = 8.dp, bottom = 20.dp)
-        ) {
-            androidx.compose.material3.Surface(
-                modifier = Modifier
-                    .size(240.dp)
-                    .shadow(
-                        elevation = 24.dp,
-                        shape = RoundedCornerShape(3.dp),
-                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                    ),
-                shape = RoundedCornerShape(3.dp)
+        if (com.metrolist.music.utils.rememberClassicPlaylistCover("auto:top", defaultValue = true).value) {
+            // Playlist Thumbnail - Large centered with shadow
+            Box(
+                modifier = Modifier.padding(top = 8.dp, bottom = 20.dp)
             ) {
+                androidx.compose.material3.Surface(
+                    modifier = Modifier
+                        .size(240.dp)
+                        .shadow(
+                            elevation = 24.dp,
+                            shape = RoundedCornerShape(3.dp),
+                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                        ),
+                    shape = RoundedCornerShape(3.dp)
+                ) {
+                    AsyncImage(
+                        model = songs[0].thumbnailUrl,
+                        contentDescription = null,
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+
+            // Playlist Name
+            Text(
+                text = name,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 32.dp)
+            )
+        } else {
+            com.metrolist.music.ui.component.PlaylistArtworkHeader(name) {
                 AsyncImage(
-                    model = songs[0].thumbnailUrl,
+                    model = songs.firstOrNull()?.thumbnailUrl,
                     contentDescription = null,
                     contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
         }
-
-        // Playlist Name
-        Text(
-            text = name,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 32.dp)
-        )
 
         Spacer(modifier = Modifier.height(12.dp))
 

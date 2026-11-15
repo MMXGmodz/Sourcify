@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -76,12 +77,15 @@ import com.metrolist.music.ui.component.ExpandableBottomSheet
 import com.metrolist.music.ui.component.HideOnScrollFAB
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.LocalMenuState
+import com.metrolist.music.ui.component.LocalSwipeToSongContainerColor
 import com.metrolist.music.ui.component.NavigationTitle
 import com.metrolist.music.ui.component.SongListItem
 import com.metrolist.music.ui.component.YouTubeListItem
 import com.metrolist.music.ui.menu.SelectionMediaMetadataMenu
 import com.metrolist.music.ui.menu.SongMenu
 import com.metrolist.music.ui.menu.YouTubeSongMenu
+import com.metrolist.music.ui.theme.LocalSongColor
+import com.metrolist.music.ui.theme.screenHeaderBrush
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.DateAgo
@@ -94,9 +98,17 @@ fun HistoryScreen(
     navController: NavController,
     viewModel: HistoryViewModel = hiltViewModel(),
 ) {
-    ExpandableBottomSheet(onDismissRequest = { navController.navigateUp() }) {
-        CompositionLocalProvider(LocalPlayerAwareWindowInsets provides WindowInsets(0)) {
-            Box(Modifier.fillMaxSize()) {
+    val backdrop = screenHeaderBrush()
+    ExpandableBottomSheet(
+        onDismissRequest = { navController.navigateUp() },
+        containerBrush = backdrop,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+        CompositionLocalProvider(
+            LocalPlayerAwareWindowInsets provides WindowInsets(0),
+            LocalSwipeToSongContainerColor provides Color.Transparent,
+        ) {
+            Box(Modifier.fillMaxSize().background(backdrop)) {
                 HistoryContent(navController, viewModel)
             }
         }
@@ -226,6 +238,8 @@ private fun HistoryContent(
     }
 
     val lazyListState = rememberLazyListState()
+    val sectionColor = LocalSongColor.current.copy(alpha = 0.12f)
+        .compositeOver(MaterialTheme.colorScheme.surfaceContainer)
 
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
@@ -268,7 +282,7 @@ private fun HistoryContent(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.background),
+                                    .background(sectionColor),
                         )
                     }
 
@@ -336,7 +350,7 @@ private fun HistoryContent(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.surface),
+                                    .background(sectionColor),
                         )
                     }
 
@@ -451,7 +465,12 @@ private fun HistoryContent(
     }
 
     TopAppBar(
+        modifier = Modifier.background(screenHeaderBrush()),
         windowInsets = WindowInsets(0),
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent,
+            scrolledContainerColor = Color.Transparent,
+        ),
         title = {
             if (inSelectMode) {
                 Text(pluralStringResource(R.plurals.n_selected, selection.size, selection.size))

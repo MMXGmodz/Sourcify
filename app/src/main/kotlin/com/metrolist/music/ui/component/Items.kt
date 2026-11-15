@@ -1118,7 +1118,7 @@ fun MediaMetadataListItem(
                         }
                     }
                 },
-                style = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
+                style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

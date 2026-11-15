@@ -18,6 +18,19 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33], application = android.app.Application::class)
 class AutomaticCanvasResolverTest {
+    @Test fun upgradingToFullHdDoesNotReuseTheCachedLowerResolutionSource() = runBlocking {
+        val requests = mutableListOf<Int>()
+        val resolver = AutomaticCanvasResolver(search = { emptyList() }, resolveVideo = { _, height ->
+            requests += height
+            CanvasVideoSource(Uri.parse("https://example.com/$height.mp4"))
+        })
+        val selected = MediaMetadata("abcdefghijk", "Song", emptyList(), 100, musicVideoType = "MUSIC_VIDEO_TYPE_OMV")
+        assertEquals("https://example.com/240.mp4", resolver.resolve(selected, 240)?.uri.toString())
+        assertEquals("https://example.com/1080.mp4", resolver.resolve(selected, 1080)?.uri.toString())
+        assertEquals("https://example.com/1080.mp4", resolver.resolve(selected, 1080)?.uri.toString())
+        assertEquals(listOf(240, 1080), requests)
+    }
+
     @Test fun switchingVideoQualityCannotReuseThePreviousHeightSource() = runBlocking {
         var height = 720
         val resolver = AutomaticCanvasResolver(search = { emptyList() }, videoHeight = { height },

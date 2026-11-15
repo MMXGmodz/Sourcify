@@ -47,8 +47,8 @@ android {
         minSdk = 26
         targetSdk = 36
         buildConfigField("Boolean", "TV_INTERFACE", "false")
-        versionCode = 186
-        versionName = "13.8.18"
+        versionCode = 187
+        versionName = "13.8.19"
         val baseVersionName = requireNotNull(versionName)
         buildConfigField("String", "BASE_VERSION_NAME", "\"$baseVersionName\"")
         buildCommit?.let { versionName = "$baseVersionName+$it" }

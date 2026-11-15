@@ -9,6 +9,7 @@ import android.view.inspector.WindowInspector
 import androidx.activity.ComponentActivity
 import androidx.activity.ComponentDialog
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -24,6 +25,11 @@ import androidx.compose.runtime.Recomposer
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollDispatcher
@@ -43,6 +49,7 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowDialog
 import java.time.Duration
 
@@ -50,6 +57,42 @@ import java.time.Duration
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33], application = android.app.Application::class, qualifiers = "w412dp-h892dp-xhdpi")
 class ExpandableBottomSheetTest {
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun containerBrushCoversTheDragHandleAreaAndContent() {
+        val harness = Harness()
+        val backdrop = Color(0xFF486580)
+        var contentTop = 0
+        try {
+            harness.content {
+                MaterialTheme {
+                    ExpandableBottomSheet(
+                        onDismissRequest = {},
+                        containerColor = Color.Black,
+                        containerBrush = Brush.verticalGradient(listOf(backdrop, backdrop)),
+                    ) {
+                        Box(Modifier.fillMaxSize().onGloballyPositioned {
+                            contentTop = it.positionInWindow().y.toInt()
+                        })
+                    }
+                }
+            }
+            harness.frames()
+            val bitmap = harness.captureSheet()
+            try {
+                assertTrue("The sheet must reserve its existing drag handle above content", contentTop > 48)
+                assertEquals("The drag handle area must use the supplied backdrop", backdrop.toArgb(),
+                    bitmap.getPixel(80, contentTop - 24))
+                assertEquals("Sheet content must continue the same backdrop", backdrop.toArgb(),
+                    bitmap.getPixel(80, contentTop + 24))
+            } finally {
+                bitmap.recycle()
+            }
+        } finally {
+            harness.close()
+        }
+    }
+
     @Test fun opensHalfHeightAndUpwardListGestureExpandsBeforeScrollingTheList() {
         val harness = Harness()
         val dispatcher = NestedScrollDispatcher()
@@ -146,6 +189,13 @@ class ExpandableBottomSheetTest {
                 }
             } finally {
                 bitmap.recycle()
+            }
+        }
+
+        fun captureSheet(): Bitmap {
+            val root = requireNotNull(ShadowDialog.getLatestDialog()?.window?.decorView)
+            return Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888).also {
+                root.draw(Canvas(it))
             }
         }
 

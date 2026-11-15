@@ -118,6 +118,7 @@ fun YouTubePlaylistMenu(
         .collectAsStateWithLifecycle(initialValue = emptyList())
     val isPinned = pinnedItems.any { it.id == playlist.id || it.id == dbPlaylist?.id }
     val artistNameAliases = LocalArtistNameAliases.current
+    val coverStyleItem = playlistCoverStyleMenuItem(playlist.id)
 
     var showChoosePlaylistDialog by rememberSaveable { mutableStateOf(false) }
     var showImportPlaylistDialog by rememberSaveable { mutableStateOf(false) }
@@ -406,6 +407,10 @@ fun YouTubePlaylistMenu(
                 bottom = 8.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding(),
             ),
     ) {
+        item {
+            Material3MenuGroup(items = listOf(coverStyleItem))
+            Spacer(modifier = Modifier.height(12.dp))
+        }
         item {
             NewActionGrid(
                 actions =

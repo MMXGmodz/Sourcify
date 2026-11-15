@@ -2,7 +2,9 @@ package com.metrolist.music.ui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,7 +25,38 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun PlaylistArtworkHeader(title: String, content: @Composable BoxScope.() -> Unit) {
+fun PlaylistArtworkHeader(
+    title: String,
+    classic: Boolean = false,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    if (classic) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Surface(
+                modifier = Modifier.padding(horizontal = 24.dp).widthIn(max = 240.dp)
+                    .fillMaxWidth().aspectRatio(1f),
+                shape = RoundedCornerShape(3.dp),
+                shadowElevation = 6.dp,
+            ) {
+                Box(Modifier.fillMaxSize()) { content() }
+            }
+            Text(
+                title,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth().padding(start = 28.dp, end = 28.dp, top = 20.dp)
+                    .playlistTitleAnchor(),
+            )
+        }
+        return
+    }
     val configuration = LocalConfiguration.current
     val height = configuration.screenWidthDp.coerceAtMost(540).dp
     Box(Modifier.fillMaxWidth().height(height).clipToBounds()) {

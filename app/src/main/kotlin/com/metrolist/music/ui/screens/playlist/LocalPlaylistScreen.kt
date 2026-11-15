@@ -151,6 +151,7 @@ import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.utils.makeTimeString
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.rememberClassicPlaylistCover
 import com.metrolist.music.utils.reportException
 import com.metrolist.music.viewmodels.LocalPlaylistViewModel
 import com.yalantis.ucrop.UCrop
@@ -942,7 +943,10 @@ fun LocalPlaylistHeader(
         modifier = modifier.fillMaxWidth().background(Color.Transparent).playlistHeaderAnchor(),
         horizontalAlignment = Alignment.Start,
     ) {
-        PlaylistArtworkHeader(playlist.playlist.name) {
+        PlaylistArtworkHeader(
+            title = playlist.playlist.name,
+            classic = rememberClassicPlaylistCover(playlist.playlist.browseId ?: playlist.id).value,
+        ) {
             when (playlist.thumbnails.size) {
                 0 -> {
                     Surface(

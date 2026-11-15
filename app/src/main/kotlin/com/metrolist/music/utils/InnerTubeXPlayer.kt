@@ -55,7 +55,7 @@ object InnerTubeXPlayer {
     suspend fun prewarm() = bundle().extractor.prewarm()
 
     internal suspend fun currentCanvasVideoHeight(): Int {
-        val context = applicationContext ?: return 720
+        val context = applicationContext ?: return DefaultCanvasWifiHeight
         val manager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         return canvasVideoHeight(context.dataStore.data.first(), networkUsesMobileQuality(manager))
     }

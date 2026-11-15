@@ -1879,6 +1879,7 @@ fun BottomSheetPlayer(
         }
         if (showPlayerSettings && mediaMetadata != null) {
             PlayerSettingsSheet(mediaMetadata!!, onDismiss = { showPlayerSettings = false },
+                onCanvasSettings = { showPlayerSettings = false; state.collapseSoft(); navController.navigate("settings/canvas") },
                 onQueue = { showPlayerSettings = false; showQueue = true },
                 onSongOptions = {
                     showPlayerSettings = false
@@ -1902,13 +1903,11 @@ fun BottomSheetPlayer(
         if (showQueue && !isFullScreen && !canvasFullscreen) {
             ExpandableBottomSheet(
                 onDismissRequest = { showQueue = false },
-                containerColor = Color(0xFF171717),
-                contentColor = onBackgroundColor,
+                containerBrush = com.metrolist.music.ui.theme.screenHeaderBrush(),
+                contentColor = MaterialTheme.colorScheme.onSurface,
             ) {
                 Queue(
                     playerBottomSheetState = state,
-                    background = Color(0xFF171717),
-                    pureBlack = pureBlack,
                 )
             }
         }
