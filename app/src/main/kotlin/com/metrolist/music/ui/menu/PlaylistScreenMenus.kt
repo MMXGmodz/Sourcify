@@ -68,6 +68,8 @@ fun LocalPlaylistMenu(
 
     val (showExportDialog, setShowExportDialog) = remember { mutableStateOf(false) }
 
+    val coverStyleItem = playlistCoverStyleMenuItem(playlist.playlist.browseId ?: playlist.id)
+
     val downloadMenuItem =
         when (downloadState) {
             Download.STATE_COMPLETED -> {
@@ -126,6 +128,7 @@ fun LocalPlaylistMenu(
 
     val menuItems =
         buildList {
+            add(coverStyleItem)
             add(
                 Material3MenuItemData(
                     title = { Text(stringResource(R.string.edit)) },
@@ -313,6 +316,7 @@ fun LocalPlaylistMenu(
  */
 @Composable
 fun AutoPlaylistMenu(
+    playlistId: String,
     downloadState: Int,
     onQueue: () -> Unit,
     onDownload: () -> Unit,
@@ -326,6 +330,8 @@ fun AutoPlaylistMenu(
     val localContext = LocalContext.current
 
     val (showExportDialog, setShowExportDialog) = remember { mutableStateOf(false) }
+
+    val coverStyleItem = playlistCoverStyleMenuItem("auto:$playlistId")
 
     val downloadMenuItem =
         when (downloadState) {
@@ -384,6 +390,7 @@ fun AutoPlaylistMenu(
     Material3MenuGroup(
         items =
             listOfNotNull(
+                coverStyleItem,
                 if (!isGuest) {
                     Material3MenuItemData(
                         title = { Text(stringResource(R.string.add_to_queue)) },
@@ -506,6 +513,7 @@ fun TopPlaylistMenu(
 ) {
     val listenTogetherManager = LocalListenTogetherManager.current
     val isGuest = listenTogetherManager?.isInRoom == true && !listenTogetherManager.isHost
+    val coverStyleItem = playlistCoverStyleMenuItem("auto:top", defaultClassic = true)
 
     val downloadMenuItem =
         when (downloadState) {
@@ -564,6 +572,7 @@ fun TopPlaylistMenu(
     Material3MenuGroup(
         items =
             listOfNotNull(
+                coverStyleItem,
                 if (!isGuest) {
                     Material3MenuItemData(
                         title = { Text(stringResource(R.string.add_to_queue)) },
@@ -670,6 +679,7 @@ fun CachePlaylistMenu(
 ) {
     val listenTogetherManager = LocalListenTogetherManager.current
     val isGuest = listenTogetherManager?.isInRoom == true && !listenTogetherManager.isHost
+    val coverStyleItem = playlistCoverStyleMenuItem("auto:cache", defaultClassic = true)
 
     val downloadMenuItem =
         when (downloadState) {
@@ -728,6 +738,7 @@ fun CachePlaylistMenu(
     Material3MenuGroup(
         items =
             listOfNotNull(
+                coverStyleItem,
                 if (!isGuest) {
                     Material3MenuItemData(
                         title = { Text(stringResource(R.string.add_to_queue)) },

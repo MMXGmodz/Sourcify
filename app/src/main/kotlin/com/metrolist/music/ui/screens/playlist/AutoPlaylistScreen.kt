@@ -542,6 +542,7 @@ private fun AutoPlaylistScreenContent(
                     if (!isSearching) {
                         item(key = "playlist_header") {
                             AutoPlaylistHeader(
+                                playlistId = playlistId,
                                 name = playlist,
                                 songs = songs!!,
                                 likeLength = likeLength,
@@ -857,6 +858,7 @@ private fun AutoPlaylistScreenContent(
 
 @Composable
 private fun AutoPlaylistHeader(
+    playlistId: String,
     name: String,
     songs: List<Song>,
     likeLength: Int,
@@ -870,7 +872,10 @@ private fun AutoPlaylistHeader(
     val downloadUtil = LocalDownloadUtil.current
 
     Column(modifier.fillMaxWidth().playlistHeaderAnchor()) {
-        com.metrolist.music.ui.component.PlaylistArtworkHeader(name) {
+        com.metrolist.music.ui.component.PlaylistArtworkHeader(
+            title = name,
+            classic = com.metrolist.music.utils.rememberClassicPlaylistCover("auto:$playlistId").value,
+        ) {
             AsyncImage(
                 model = songs.firstOrNull()?.song?.thumbnailUrl,
                 contentDescription = null,
@@ -928,6 +933,7 @@ private fun AutoPlaylistHeader(
                 onClick = {
                     menuState.show {
                         AutoPlaylistMenu(
+                            playlistId = playlistId,
                             downloadState = downloadState,
                             onQueue = { playerConnection.addToQueue(songs.map { it.toMediaItem() }) },
                             onDownload = {

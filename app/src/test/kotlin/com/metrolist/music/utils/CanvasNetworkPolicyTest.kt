@@ -4,6 +4,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class CanvasNetworkPolicyTest {
+    @Test fun defaultProfileRaisesWifiQualityAndKeepsMobileAndWifiOnlyLimits() {
+        val prefs = androidx.datastore.preferences.core.mutablePreferencesOf()
+        assertEquals(CanvasNetworkProfile(true, 1080), canvasNetworkProfile(prefs, true, false))
+        assertEquals(CanvasNetworkProfile(true, 720), canvasNetworkProfile(prefs, false, true))
+        prefs[com.metrolist.music.constants.CanvasWifiOnlyKey] = true
+        assertEquals(CanvasNetworkProfile(false, 720), canvasNetworkProfile(prefs, false, true))
+    }
+
     @Test fun networkChangesPublishPermissionAndSelectedQualityTogether() {
         val prefs = androidx.datastore.preferences.core.mutablePreferencesOf(
             com.metrolist.music.constants.CanvasWifiHeightKey to 720,

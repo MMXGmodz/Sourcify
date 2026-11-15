@@ -29,7 +29,7 @@ import com.metrolist.music.utils.rememberPreference
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun PlayerSettingsSheet(song: MediaMetadata, onDismiss: () -> Unit, onQueue: () -> Unit, onSongOptions: () -> Unit) {
+internal fun PlayerSettingsSheet(song: MediaMetadata, onDismiss: () -> Unit, onQueue: () -> Unit, onSongOptions: () -> Unit, onCanvasSettings: () -> Unit) {
     val songId = song.id
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -60,9 +60,11 @@ internal fun PlayerSettingsSheet(song: MediaMetadata, onDismiss: () -> Unit, onQ
     var squiggly by rememberPreference(SquigglySliderKey, false)
     var intensity by rememberPreference(DynamicProgressIntensityKey, 100)
     var music by rememberPreference(DynamicProgressMusicKey, true)
-    ExpandableBottomSheet(onDismissRequest = onDismiss, containerColor = Color(0xFF171C1A), contentColor = Color.White) {
+    ExpandableBottomSheet(onDismissRequest = onDismiss, containerBrush = com.metrolist.music.ui.theme.screenHeaderBrush(), contentColor = MaterialTheme.colorScheme.onSurface) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.s16_player_options), style = MaterialTheme.typography.titleLarge)
+            PlayerQuickActions(song, onDismiss, onCanvasSettings)
+            HorizontalDivider()
             SettingsChoice(stringResource(R.string.player_play_button_style), PlayButtonStyle.entries.map {
                 stringResource(if (it == PlayButtonStyle.STANDARD) R.string.play_button_standard else R.string.play_button_metal_ring) to (it == playStyle)
             }) { playStyle = PlayButtonStyle.entries[it] }
@@ -104,7 +106,6 @@ internal fun PlayerSettingsSheet(song: MediaMetadata, onDismiss: () -> Unit, onQ
                 }
             }) { Text(stringResource(R.string.s17_background_automatic)) }
             if (importFailed) Text(stringResource(R.string.s17_background_failed), color = MaterialTheme.colorScheme.error)
-            LyricsVisibilityAction(songId)
             TextButton(onClick = onQueue) { Icon(painterResource(R.drawable.queue_music), null); Spacer(Modifier.width(12.dp)); Text(stringResource(R.string.queue)) }
             TextButton(onClick = onSongOptions) { Icon(painterResource(R.drawable.more_horiz), null); Spacer(Modifier.width(12.dp)); Text(stringResource(R.string.s16_song_options)) }
         }
