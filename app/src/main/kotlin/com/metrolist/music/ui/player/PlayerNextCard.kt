@@ -1,6 +1,7 @@
 package com.metrolist.music.ui.player
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -58,11 +59,20 @@ internal fun NextQueueCardContent(next: com.metrolist.music.models.MediaMetadata
 @Composable
 internal fun QueueControl(icon: Int, label: String, active: Boolean, enabled: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Surface(onClick = onClick, enabled = enabled, modifier = modifier, shape = RoundedCornerShape(14.dp),
-        color = if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant) {
+        color = (if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant).copy(alpha = 1f)) {
         Column(Modifier.padding(vertical = 14.dp), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Icon(painterResource(icon), label)
             Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
         }
     }
+}
+
+@Composable
+internal fun QueueFooter(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
+    Row(modifier.fillMaxWidth()
+        .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 1f))
+        .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
+        .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp), content = content)
 }

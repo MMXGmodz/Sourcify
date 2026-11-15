@@ -690,11 +690,8 @@ fun Queue(
 
         val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsStateWithLifecycle()
 
-        Row(Modifier.align(Alignment.BottomCenter).fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.94f))
-            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-            .onSizeChanged { footerHeight = with(footerDensity) { it.height.toDp() } }
-            .padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        QueueFooter(Modifier.align(Alignment.BottomCenter)
+            .onSizeChanged { footerHeight = with(footerDensity) { it.height.toDp() } }) {
             QueueControl(R.drawable.shuffle, stringResource(R.string.shuffle), shuffleModeEnabled, !isListenTogetherGuest,
                 Modifier.weight(1f)) { playerConnection.player.shuffleModeEnabled = !playerConnection.player.shuffleModeEnabled }
             QueueControl(if (repeatMode == Player.REPEAT_MODE_ONE) R.drawable.repeat_one else R.drawable.repeat,

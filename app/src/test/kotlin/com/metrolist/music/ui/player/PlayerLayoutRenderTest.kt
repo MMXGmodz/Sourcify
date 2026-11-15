@@ -36,6 +36,36 @@ import java.time.Duration
 @Config(sdk = [33], application = android.app.Application::class, qualifiers = "w720dp-h360dp-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class PlayerLayoutRenderTest {
+    @Test fun queueFooterAndControlsHideContentBehindThemEvenWithTranslucentThemeColors() {
+        var footer = Rect.Zero
+        var control = Rect.Zero
+        render(check = { activity, _ ->
+            val root = activity.findViewById<View>(android.R.id.content)
+            val bitmap = Bitmap.createBitmap(720, 360, Bitmap.Config.ARGB_8888)
+            try {
+                root.draw(Canvas(bitmap))
+                assertEquals("The footer gap must be opaque", android.graphics.Color.GREEN,
+                    bitmap.getPixel(footer.left.toInt() + 4, footer.center.y.toInt()))
+                assertEquals("The button must be opaque", android.graphics.Color.BLUE,
+                    bitmap.getPixel(control.center.x.toInt(), control.bottom.toInt() - 8))
+            } finally { bitmap.recycle() }
+        }) {
+            androidx.compose.material3.MaterialTheme(colorScheme = androidx.compose.material3.darkColorScheme().copy(
+                surfaceContainer = Color.Green.copy(alpha = .25f),
+                surfaceVariant = Color.Blue.copy(alpha = .25f),
+            )) {
+                Box(Modifier.fillMaxSize()) {
+                    androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) { drawRect(Color.Red) }
+                    QueueFooter(Modifier.align(androidx.compose.ui.Alignment.BottomCenter)
+                        .onGloballyPositioned { footer = it.boundsInWindow() }) {
+                        QueueControl(com.metrolist.music.R.drawable.shuffle, "Shuffle", false, true,
+                            Modifier.weight(1f).onGloballyPositioned { control = it.boundsInWindow() }) {}
+                    }
+                }
+            }
+        }
+    }
+
     @Test fun hidingLandscapeCoverReclaimsSpaceForMetadata() {
         var visible by mutableStateOf(true)
         var artistX = 0f
