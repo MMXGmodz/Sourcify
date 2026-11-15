@@ -17,6 +17,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
@@ -218,8 +219,7 @@ fun Queue(
     val coroutineScope = rememberCoroutineScope()
     var footerHeight by remember { mutableStateOf(104.dp) }
     val footerDensity = androidx.compose.ui.platform.LocalDensity.current
-    val backdrop = screenHeaderBrush()
-    Box(modifier.fillMaxSize().background(backdrop)) {
+    Box(modifier.fillMaxSize()) {
         val queueTitle by playerConnection.queueTitle.collectAsStateWithLifecycle()
         val queueWindows by playerConnection.queueWindows.collectAsStateWithLifecycle()
         val automix by playerConnection.service.automixItems.collectAsStateWithLifecycle()
@@ -315,8 +315,8 @@ fun Queue(
         ) {
             LazyColumn(
                 state = lazyListState,
-                contentPadding = PaddingValues(top = ListItemHeight + 8.dp, bottom = footerHeight + 8.dp),
-                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(top = 8.dp, bottom = footerHeight + 8.dp),
+                modifier = Modifier.fillMaxSize().padding(top = ListItemHeight + if (inSelectMode) 48.dp else 0.dp).clipToBounds(),
             ) {
                 item(key = "queue_top_spacer") {
                     Spacer(
@@ -594,7 +594,6 @@ fun Queue(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() },
                     ) { }
-                    .background(backdrop)
                     .windowInsetsPadding(
                         WindowInsets.systemBars
                             .only(WindowInsetsSides.Horizontal),

@@ -41,6 +41,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -63,11 +64,14 @@ class ExpandableBottomSheetTest {
         val harness = Harness()
         val backdrop = Color(0xFF486580)
         var contentTop = 0
+        lateinit var sheetState: SheetState
         try {
             harness.content {
                 MaterialTheme {
+                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
                     ExpandableBottomSheet(
                         onDismissRequest = {},
+                        sheetState = sheetState,
                         containerColor = Color.Black,
                         containerBrush = Brush.verticalGradient(listOf(backdrop, backdrop)),
                     ) {
@@ -80,6 +84,9 @@ class ExpandableBottomSheetTest {
             harness.frames()
             val bitmap = harness.captureSheet()
             try {
+                assertEquals(SheetValue.PartiallyExpanded, sheetState.currentValue)
+                assertNotEquals("The backdrop must not paint above the partial sheet", backdrop.toArgb(),
+                    bitmap.getPixel(80, (sheetState.requireOffset() / 2).toInt()))
                 assertTrue("The sheet must reserve its existing drag handle above content", contentTop > 48)
                 assertEquals("The drag handle area must use the supplied backdrop", backdrop.toArgb(),
                     bitmap.getPixel(80, contentTop - 24))
@@ -104,7 +111,8 @@ class ExpandableBottomSheetTest {
                 MaterialTheme {
                     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
                     scope = rememberCoroutineScope()
-                    ExpandableBottomSheet(onDismissRequest = {}, sheetState = sheetState) {
+                    ExpandableBottomSheet(onDismissRequest = {}, sheetState = sheetState,
+                        containerBrush = Brush.verticalGradient(listOf(Color.DarkGray, Color.Black))) {
                         val listState = rememberLazyListState()
                         firstItem = listState.firstVisibleItemIndex
                         LazyColumn(state = listState, modifier = Modifier.fillMaxSize().nestedScroll(

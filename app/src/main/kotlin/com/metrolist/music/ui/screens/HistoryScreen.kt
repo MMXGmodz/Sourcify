@@ -108,7 +108,7 @@ fun HistoryScreen(
             LocalPlayerAwareWindowInsets provides WindowInsets(0),
             LocalSwipeToSongContainerColor provides Color.Transparent,
         ) {
-            Box(Modifier.fillMaxSize().background(backdrop)) {
+            Box(Modifier.fillMaxSize()) {
                 HistoryContent(navController, viewModel)
             }
         }

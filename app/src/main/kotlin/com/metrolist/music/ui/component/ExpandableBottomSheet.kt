@@ -1,6 +1,11 @@
 package com.metrolist.music.ui.component
 
-import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.SheetValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.*
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.material3.BottomSheetDefaults
@@ -25,15 +30,29 @@ fun ExpandableBottomSheet(
     containerBrush: Brush? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val scope = rememberCoroutineScope()
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        modifier = modifier.fillMaxHeight().then(
-            if (containerBrush != null) Modifier.background(containerBrush, BottomSheetDefaults.ExpandedShape)
-            else Modifier,
-        ),
+        modifier = modifier.fillMaxHeight(),
         sheetState = sheetState,
         containerColor = if (containerBrush != null) Color.Transparent else containerColor,
         contentColor = contentColor,
-        content = content,
-    )
+        dragHandle = if (containerBrush == null) ({ BottomSheetDefaults.DragHandle() }) else null,
+    ) {
+        if (containerBrush == null) content()
+        else Column(Modifier.fillMaxSize().background(containerBrush, BottomSheetDefaults.ExpandedShape)) {
+            Box(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {
+                if (sheetState.currentValue == SheetValue.PartiallyExpanded) expand {
+                    scope.launch { sheetState.expand() }; true
+                }
+                if (sheetState.currentValue == SheetValue.Expanded && sheetState.hasPartiallyExpandedState) collapse {
+                    scope.launch { sheetState.partialExpand() }; true
+                }
+                dismiss {
+                    scope.launch { sheetState.hide(); onDismissRequest() }; true
+                }
+            }, contentAlignment = Alignment.Center) { BottomSheetDefaults.DragHandle() }
+            content()
+        }
+    }
 }
