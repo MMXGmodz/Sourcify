@@ -35,7 +35,7 @@ fun ExpandableBottomSheet(
         onDismissRequest = onDismissRequest,
         modifier = modifier.fillMaxHeight(),
         sheetState = sheetState,
-        containerColor = if (containerBrush != null) Color.Transparent else containerColor,
+        containerColor = if (containerBrush != null) containerColor.copy(alpha = 1f) else containerColor,
         contentColor = contentColor,
         dragHandle = if (containerBrush == null) ({ BottomSheetDefaults.DragHandle() }) else null,
     ) {

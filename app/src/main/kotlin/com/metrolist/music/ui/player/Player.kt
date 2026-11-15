@@ -1903,6 +1903,7 @@ fun BottomSheetPlayer(
         if (showQueue && !isFullScreen && !canvasFullscreen) {
             ExpandableBottomSheet(
                 onDismissRequest = { showQueue = false },
+                containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 1f),
                 containerBrush = com.metrolist.music.ui.theme.screenHeaderBrush(),
                 contentColor = MaterialTheme.colorScheme.onSurface,
             ) {
