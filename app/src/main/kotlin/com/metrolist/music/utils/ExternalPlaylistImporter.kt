@@ -24,6 +24,7 @@ internal data class PlaylistImportCollection(
     val title: String,
     val tracks: List<PlaylistImportTrack>,
     val youtubeSongs: List<SongItem>? = null,
+    val skippedCount: Int = 0,
 )
 
 internal data class PlaylistImportMatch(
@@ -38,8 +39,12 @@ internal object ExternalPlaylistImporter {
         install(HttpTimeout) { requestTimeoutMillis = 15_000 }
     }
 
-    suspend fun loadLink(link: String): PlaylistImportCollection = withTimeout(60_000) {
+    suspend fun loadLink(link: String, spotify: com.metrolist.music.spotify.SpotifyPlaylistClient? = null): PlaylistImportCollection = withTimeout(60_000) {
         val source = parsePlaylistImportLink(link)
+        if (source.provider == "spotify") {
+            return@withTimeout (spotify ?: throw com.metrolist.music.spotify.SpotifyImportException(
+                com.metrolist.music.spotify.SpotifyImportFailure.AUTH_REQUIRED)).load(source.id)
+        }
         if (source.provider == "youtube") {
             val page = YouTube.playlist(source.id).getOrThrow()
             val songs = page.songs.toMutableList()
@@ -81,18 +86,30 @@ internal object ExternalPlaylistImporter {
 
     suspend fun match(collection: PlaylistImportCollection, onProgress: (Int, Int) -> Unit): List<PlaylistImportMatch> {
         validateSize(collection.tracks.size)
+        val lookups = mutableMapOf<String, List<SongItem>>()
         return collection.tracks.mapIndexed { index, source ->
             currentCoroutineContext().ensureActive()
             onProgress(index + 1, collection.tracks.size)
             val direct = collection.youtubeSongs?.getOrNull(index)
             if (direct != null) return@mapIndexed PlaylistImportMatch(source, listOf(direct), direct.id)
-            if (index > 0) delay(250)
-            val candidates = withTimeout(15_000) {
-                YouTube.search("${source.artist} ${source.title}".take(1000), YouTube.SearchFilter.FILTER_SONG)
-                    .getOrThrow().items.filterIsInstance<SongItem>().distinctBy { it.id }
-                    .map { it to playlistImportMatchScore(source, it.importTrack()) }
-                    .filter { it.second >= 0.55 }.sortedByDescending { it.second }.take(3)
+            val query = playlistImportSearchQuery(source)
+            val found = lookups[query] ?: run {
+                if (index > 0) delay(250)
+                val result = try {
+                    kotlinx.coroutines.withTimeoutOrNull(15_000) {
+                        val songs = YouTube.search(query, YouTube.SearchFilter.FILTER_SONG).getOrThrow()
+                            .items.filterIsInstance<SongItem>()
+                        if (songs.isNotEmpty()) songs else YouTube.search(query, YouTube.SearchFilter.FILTER_VIDEO)
+                            .getOrThrow().items.filterIsInstance<SongItem>()
+                    }.orEmpty()
+                } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                catch (_: Exception) { emptyList() }
+                lookups[query] = result
+                result
             }
+            val candidates = found.distinctBy { it.id }.filterNot { it.isEpisode }
+                .map { it to playlistImportMatchScore(source, it.importTrack()) }
+                .filter { it.second >= 0.55 }.sortedByDescending { it.second }.take(3)
             val best = candidates.firstOrNull()
             val confident = best != null && best.second >= 0.95 &&
                 (candidates.getOrNull(1)?.second?.let { best.second - it >= 0.1 } ?: true)
@@ -128,5 +145,5 @@ internal object ExternalPlaylistImporter {
         if (size == 0) throw PlaylistImportException(PlaylistImportError.EMPTY)
     }
 
-    private fun SongItem.importTrack() = PlaylistImportTrack(title, artists.joinToString(" ") { it.name }, duration)
+    private fun SongItem.importTrack() = PlaylistImportTrack(title, artists.joinToString(" ") { it.name }, duration, album?.name)
 }

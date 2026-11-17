@@ -50,7 +50,11 @@ class PlaylistImportParserTest {
             "https://deezer.com:123/playlist/1", "https://deezer.com/track/123", "file:///playlist/1", "https://youtube.com/playlist?list=../../etc").forEach {
             assertFailure(PlaylistImportError.UNSUPPORTED) { parsePlaylistImportLink(it) }
         }
-        assertFailure(PlaylistImportError.EXPORT_REQUIRED) { parsePlaylistImportLink("https://open.spotify.com/playlist/id") }
+        val spotify = "37i9dQZF1DXcBWIGoYBM5M"
+        assertEquals(PlaylistImportLink("spotify", spotify), parsePlaylistImportLink("https://open.spotify.com/playlist/$spotify?si=share"))
+        assertEquals(PlaylistImportLink("spotify", spotify), parsePlaylistImportLink("spotify:playlist:$spotify"))
+        assertEquals(PlaylistImportLink("spotify", spotify), parsePlaylistImportLink("https://open.spotify.com/intl-de/playlist/$spotify"))
+        assertFailure(PlaylistImportError.UNSUPPORTED) { parsePlaylistImportLink("https://open.spotify.com/playlist/id") }
         assertFailure(PlaylistImportError.EXPORT_REQUIRED) { parsePlaylistImportLink("https://music.apple.com/de/playlist/name/id") }
     }
 
@@ -62,6 +66,16 @@ class PlaylistImportParserTest {
         assertEquals(0.0, playlistImportMatchScore(source, PlaylistImportTrack("Joga (Live)", "Bjork", 300)), 0.0)
         assertEquals(0.0, playlistImportMatchScore(source, PlaylistImportTrack("Joga", "Bjork", 350)), 0.0)
         assertTrue(playlistImportMatchScore(source, PlaylistImportTrack("Joga remastered", "Bjork", 300)) < 0.95)
+    }
+
+    @Test fun `Spotify query cleanup keeps versions and CSV album aids matching`() {
+        val source = parsePlaylistImportFile("Track Name,Artist Name(s),Album Name,Duration (ms)\nSong,Artist,Album,180000").single()
+        assertEquals("Album", source.album)
+        assertEquals(1.0, playlistImportMatchScore(source, PlaylistImportTrack("Song", "Artist", 180, "Album")), 0.0)
+        assertTrue(playlistImportMatchScore(source, PlaylistImportTrack("Song", "Artist", 180, "Other record")) < 0.95)
+        assertEquals("Artist Guest Song", playlistImportSearchQuery(PlaylistImportTrack("Song (feat. Guest)", "Artist & Guest")))
+        assertEquals("Artist Song (Live)", playlistImportSearchQuery(PlaylistImportTrack("Song (Live)", "Artist")))
+        assertFailure(PlaylistImportError.UNSUPPORTED) { parsePlaylistImportLink("https://open.spotify.com.evil/playlist/37i9dQZF1DXcBWIGoYBM5M") }
     }
 
     private fun assertFailure(reason: PlaylistImportError, block: () -> Unit) {

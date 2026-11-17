@@ -12,17 +12,25 @@ internal enum class PlaylistImportError { UNSUPPORTED, EXPORT_REQUIRED, INVALID_
 
 internal class PlaylistImportException(val reason: PlaylistImportError) : Exception(reason.name)
 
-internal data class PlaylistImportTrack(val title: String, val artist: String, val duration: Int? = null)
+internal data class PlaylistImportTrack(val title: String, val artist: String, val duration: Int? = null, val album: String? = null)
 internal data class PlaylistImportLink(val provider: String, val id: String)
 
 internal fun parsePlaylistImportLink(value: String): PlaylistImportLink {
+    Regex("spotify:playlist:([A-Za-z0-9]{22})").matchEntire(value.trim())?.let {
+        return PlaylistImportLink("spotify", it.groupValues[1])
+    }
     val uri = runCatching { URI(value.trim()) }.getOrNull()
         ?: throw PlaylistImportException(PlaylistImportError.UNSUPPORTED)
     if (uri.scheme != "https" || uri.userInfo != null || uri.port != -1) {
         throw PlaylistImportException(PlaylistImportError.UNSUPPORTED)
     }
     val host = uri.host?.lowercase(Locale.ROOT)?.removePrefix("www.")
-    if (host in setOf("open.spotify.com", "spotify.com", "music.apple.com", "tidal.com", "soundcloud.com")) {
+    if (host in setOf("open.spotify.com", "spotify.com")) {
+        val id = Regex("/(?:intl-[a-z]{2}/)?playlist/([A-Za-z0-9]{22})/?").matchEntire(uri.path.orEmpty())?.groupValues?.get(1)
+        if (id != null) return PlaylistImportLink("spotify", id)
+        throw PlaylistImportException(PlaylistImportError.UNSUPPORTED)
+    }
+    if (host in setOf("music.apple.com", "tidal.com", "soundcloud.com")) {
         throw PlaylistImportException(PlaylistImportError.EXPORT_REQUIRED)
     }
     if (host == "deezer.com") {
@@ -54,17 +62,18 @@ internal fun parsePlaylistImportFile(text: String): List<PlaylistImportTrack> {
         fun column(vararg names: String) = header.indexOfFirst { it in names }
         val title = column("title", "track name", "track title", "name")
         val artist = column("artist", "artists", "artist name", "artist names", "artist name s")
+        val album = column("album", "album name", "album title")
         val duration = column("duration", "duration seconds", "duration ms", "duration milliseconds")
         if (title < 0 || artist < 0) throw PlaylistImportException(PlaylistImportError.INVALID_FILE)
         rows.drop(1).filter { row -> row.any { it.isNotBlank() } }.map { row ->
             val rawDuration = row.getOrNull(duration)?.toDoubleOrNull()
             val seconds = rawDuration?.let { if (header[duration] in setOf("duration ms", "duration milliseconds")) it / 1000 else it }
-            PlaylistImportTrack(row.getOrNull(title).orEmpty().trim(), row.getOrNull(artist).orEmpty().trim(), seconds?.toInt()?.takeIf { it > 0 })
+            PlaylistImportTrack(row.getOrNull(title).orEmpty().trim(), row.getOrNull(artist).orEmpty().trim(), seconds?.toInt()?.takeIf { it > 0 }, row.getOrNull(album)?.trim()?.takeIf { it.isNotBlank() })
         }
     }
     if (tracks.size > PLAYLIST_IMPORT_MAX_TRACKS) throw PlaylistImportException(PlaylistImportError.LIMIT)
     if (tracks.isEmpty()) throw PlaylistImportException(PlaylistImportError.EMPTY)
-    if (tracks.any { it.title.isBlank() || it.artist.isBlank() || it.title.length > 500 || it.artist.length > 500 }) {
+    if (tracks.any { it.title.isBlank() || it.artist.isBlank() || it.title.length > 500 || it.artist.length > 500 || (it.album?.length ?: 0) > 500 }) {
         throw PlaylistImportException(PlaylistImportError.INVALID_FILE)
     }
     return tracks
@@ -107,7 +116,7 @@ internal fun normalizeImportText(value: String): String = Normalizer.normalize(v
 internal fun playlistImportMatchScore(source: PlaylistImportTrack, candidate: PlaylistImportTrack): Double {
     val sourceTitle = normalizeImportText(source.title)
     val candidateTitle = normalizeImportText(candidate.title)
-    val versions = setOf("live", "remix", "acoustic", "instrumental", "karaoke", "sped", "slowed")
+    val versions = setOf("live", "remix", "acoustic", "instrumental", "karaoke", "sped", "slowed", "remastered", "remaster")
     if (sourceTitle.split(' ').toSet().intersect(versions) != candidateTitle.split(' ').toSet().intersect(versions)) return 0.0
     if (source.duration != null && candidate.duration != null && abs(source.duration - candidate.duration) > maxOf(8, source.duration / 10)) return 0.0
     fun overlap(left: String, right: String): Double {
@@ -117,5 +126,18 @@ internal fun playlistImportMatchScore(source: PlaylistImportTrack, candidate: Pl
     }
     val titleScore = overlap(sourceTitle, candidateTitle)
     val artistScore = overlap(normalizeImportText(source.artist), normalizeImportText(candidate.artist))
-    return if (titleScore < 0.5 || artistScore == 0.0) 0.0 else 0.7 * titleScore + 0.3 * artistScore
+    if (titleScore < 0.5 || artistScore == 0.0) return 0.0
+    if (!source.album.isNullOrBlank() && !candidate.album.isNullOrBlank() && source.duration != null && candidate.duration != null) {
+        // Adapted from spotify_to_ytmusic (MIT): use album and give duration extra weight.
+        val durationScore = if (abs(source.duration - candidate.duration) <= 2) 1.0
+            else (1.0 - abs(source.duration - candidate.duration) * 2.0 / source.duration.coerceAtLeast(1)).coerceIn(0.0, 1.0)
+        val albumScore = overlap(normalizeImportText(source.album), normalizeImportText(candidate.album))
+        return (titleScore + artistScore + durationScore * 5 + albumScore) / 8
+    }
+    return 0.7 * titleScore + 0.3 * artistScore
+}
+
+internal fun playlistImportSearchQuery(track: PlaylistImportTrack): String {
+    val title = track.title.replace(Regex("""\s*\((?:feat\.?|ft\.?).*?\)""", RegexOption.IGNORE_CASE), "")
+    return "${track.artist} $title".replace(" &", "").take(1000)
 }
