@@ -103,7 +103,7 @@ import com.metrolist.music.viewmodels.TopPlaylistViewModel
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun TopPlaylistScreen(
+private fun TopPlaylistScreenContent(
     navController: NavController,
     viewModel: TopPlaylistViewModel = hiltViewModel(),
 ) {
@@ -730,5 +730,15 @@ private fun TopPlaylistHeader(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun TopPlaylistScreen(navController: NavController, viewModel: TopPlaylistViewModel = hiltViewModel()) {
+    val accent = com.metrolist.music.utils.rememberPlaylistColor("auto:top")
+    val songs by viewModel.topSongs.collectAsStateWithLifecycle(null)
+    com.metrolist.music.ui.component.ArtworkPage(songs?.firstOrNull()?.song?.thumbnailUrl,
+        colorOverride = accent?.let { androidx.compose.ui.graphics.Color(it) }) {
+        TopPlaylistScreenContent(navController, viewModel)
     }
 }

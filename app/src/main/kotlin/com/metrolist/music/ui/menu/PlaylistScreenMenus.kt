@@ -10,6 +10,10 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -62,6 +66,7 @@ fun LocalPlaylistMenu(
     onDownload: () -> Unit,
     onQueue: () -> Unit,
     onDismiss: () -> Unit,
+    onEditCover: (() -> Unit)? = null,
 ) {
     val listenTogetherManager = LocalListenTogetherManager.current
     val isGuest = listenTogetherManager?.isInRoom == true && !listenTogetherManager.isHost
@@ -130,23 +135,21 @@ fun LocalPlaylistMenu(
 
     val menuItems =
         buildList {
+            add(playlistColorMenuItem(playlist.playlist.browseId ?: playlist.id))
             add(coverStyleItem)
-            add(
-                Material3MenuItemData(
+            if (playlist.playlist.isEditable) {
+                add(Material3MenuItemData(
                     title = { Text(stringResource(R.string.edit)) },
                     description = { Text(stringResource(R.string.edit_playlist)) },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.edit),
-                            contentDescription = null,
-                        )
-                    },
-                    onClick = {
-                        onEdit()
-                        onDismiss()
-                    },
-                ),
-            )
+                    icon = { Icon(painterResource(R.drawable.edit), null) },
+                    onClick = { onEdit(); onDismiss() },
+                ))
+                if (onEditCover != null) add(Material3MenuItemData(
+                    title = { Text(stringResource(R.string.edit_playlist_cover)) },
+                    icon = { Icon(painterResource(R.drawable.insert_photo), null) },
+                    onClick = { onDismiss(); onEditCover() },
+                ))
+            }
 
             // Show sync button only for YouTube playlists
             if (isYouTubePlaylist) {
@@ -251,7 +254,7 @@ fun LocalPlaylistMenu(
             )
         }
 
-    Material3MenuGroup(items = menuItems)
+    PlaylistActionGroup(items = menuItems)
 
     if (showExportDialog) {
         ExportDialog(
@@ -391,9 +394,10 @@ fun AutoPlaylistMenu(
             }
         }
 
-    Material3MenuGroup(
+    PlaylistActionGroup(
         items =
             listOfNotNull(
+                playlistColorMenuItem("auto:$playlistId"),
                 coverStyleItem,
                 if (!isGuest) {
                     Material3MenuItemData(
@@ -638,4 +642,12 @@ fun CachePlaylistMenu(
         songs = songs,
         playlistName = playlistName,
     )
+}
+
+@Composable
+private fun PlaylistActionGroup(items: List<Material3MenuItemData>) {
+    Column(Modifier.fillMaxWidth().heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.72f)
+        .verticalScroll(rememberScrollState())) {
+        Material3MenuGroup(items = items)
+    }
 }

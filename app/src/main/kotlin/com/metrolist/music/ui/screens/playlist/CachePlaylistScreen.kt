@@ -103,7 +103,7 @@ import java.time.LocalDateTime
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun CachePlaylistScreen(
+private fun CachePlaylistScreenContent(
     navController: NavController,
     viewModel: CachePlaylistViewModel = hiltViewModel(),
 ) {
@@ -653,5 +653,15 @@ private fun CachePlaylistHeader(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun CachePlaylistScreen(navController: NavController, viewModel: CachePlaylistViewModel = hiltViewModel()) {
+    val accent = com.metrolist.music.utils.rememberPlaylistColor("auto:cache")
+    val songs by viewModel.cachedSongs.collectAsStateWithLifecycle()
+    com.metrolist.music.ui.component.ArtworkPage(songs.firstOrNull()?.song?.thumbnailUrl,
+        colorOverride = accent?.let { androidx.compose.ui.graphics.Color(it) }) {
+        CachePlaylistScreenContent(navController, viewModel)
     }
 }

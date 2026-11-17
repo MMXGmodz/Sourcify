@@ -409,7 +409,7 @@ fun YouTubePlaylistMenu(
             ),
     ) {
         item {
-            Material3MenuGroup(items = listOf(coverStyleItem))
+            Material3MenuGroup(items = listOf(playlistColorMenuItem(playlist.id), coverStyleItem))
             Spacer(modifier = Modifier.height(12.dp))
         }
         item {

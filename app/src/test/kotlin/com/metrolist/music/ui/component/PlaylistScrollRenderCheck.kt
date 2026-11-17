@@ -53,6 +53,7 @@ internal class PlaylistScrollRenderCheck {
         var contentY = 0f
         var barBottom = 128f
         var scale = 2f
+        var moreCalls = 0
         var expectedBar = 0
         val cover = Color(0xFF304BB8)
         try {
@@ -67,7 +68,7 @@ internal class PlaylistScrollRenderCheck {
                                 barBottom = WindowInsets.statusBars.getTop(density) + with(density) { 64.dp.toPx() }
                                 expectedBar = lerp(MaterialTheme.colorScheme.background, cover, 0.52f).toArgb()
                                 PlaylistCollapsingContainer(list, "Lieblingssongs", true, {}, { searchCalls++ },
-                                    onPlay = { playCalls++ }, modifier = Modifier.onGloballyPositioned { contentY = it.positionInWindow().y }) {
+                                    onMore = { moreCalls++ }, onPlay = { playCalls++ }, modifier = Modifier.onGloballyPositioned { contentY = it.positionInWindow().y }) {
                                     LazyColumn(state = list, contentPadding = PaddingValues(top = 64.dp)) {
                                         item(key = "playlist_header") {
                                             Column(Modifier.fillMaxWidth().playlistHeaderAnchor()) {
@@ -130,6 +131,8 @@ internal class PlaylistScrollRenderCheck {
             assertTrue("Header must actually leave the lazy viewport", list.firstVisibleItemIndex > 0)
             assertEquals("Opaque bar must use the playlist color", expectedBar, collapsed.getPixel(400, (contentY + barBottom - 6 * scale).toInt()))
             collapsed.recycle()
+            tap(824f - 84 * scale, contentY + barBottom - 32 * scale)
+            assertEquals("Playlist options remain reachable after scrolling", 1, moreCalls)
             tap(824f - 49 * scale, contentY + barBottom)
             assertEquals("Docked play must still work when header is disposed", 1, playCalls)
             runBlocking { list.scrollToItem(0) }

@@ -112,7 +112,8 @@ internal fun EnsureSongLyrics(song: MediaMetadata): Boolean? {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SongLyricsCard(song: MediaMetadata, position: Long, onSeekRequested: ((Long) -> Unit)? = null, lyricsAvailable: Boolean? = null) {
+fun SongLyricsCard(song: MediaMetadata, position: Long, onSongOptions: (MediaMetadata) -> Unit,
+    onSeekRequested: ((Long) -> Unit)? = null, lyricsAvailable: Boolean? = null) {
     if (!rememberSongLyricsVisible(song.id)) return
     val connection = LocalPlayerConnection.current ?: return
     val lyrics by connection.currentLyrics.collectAsStateWithLifecycle()
@@ -222,7 +223,12 @@ fun SongLyricsCard(song: MediaMetadata, position: Long, onSeekRequested: ((Long)
                 androidx.compose.runtime.key(song.id) {
                     com.metrolist.music.ui.menu.LyricsMenu(lyricsProvider = { lyrics?.takeIf { it.id == song.id } },
                         songProvider = { currentSong?.song?.takeIf { it.id == song.id } }, mediaMetadataProvider = { song },
-                        onDismiss = { lyricsOptions = false }, onShowOffsetDialog = { offsetEditor = true }, initiallySearch = searchLyrics)
+                        onDismiss = { lyricsOptions = false }, onShowOffsetDialog = { offsetEditor = true }, initiallySearch = searchLyrics,
+                        onSongOptions = {
+                            lyricsOptions = false
+                            fullScreen = false
+                            onSongOptions(song)
+                        })
                 }
             }
         }
