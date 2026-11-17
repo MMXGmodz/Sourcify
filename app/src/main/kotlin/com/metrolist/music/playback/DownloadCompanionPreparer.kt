@@ -37,7 +37,7 @@ internal class DownloadCompanionPreparer(
     private val storage = DownloadStorage.get(context)
     private val lyrics by lazy { EntryPointAccessors.fromApplication(context.applicationContext, LyricsHelperEntryPoint::class.java).lyricsHelper() }
 
-    suspend fun prepare(id: String, force: Boolean) = withContext(Dispatchers.IO) {
+    suspend fun prepare(id: String, force: Boolean, wifiSync: Boolean = false) = withContext(Dispatchers.IO) {
         val download = lookup(id)?.takeIf { it.state == Download.STATE_COMPLETED } ?: return@withContext true
         val song = database.getSongByIdBlocking(id) ?: return@withContext true
         val metadata = song.toMediaMetadata()
@@ -58,8 +58,11 @@ internal class DownloadCompanionPreparer(
                 }
             }
         })
-        if (!hasDownloadInternet(context) || (!force && System.currentTimeMillis() - store.lastAttempt(id) < 86_400_000)) return@withContext true
-        val completed = DownloadNetworkPolicy.get(context).runAllowed {
+        if (!hasDownloadInternet(context) || (!force && System.currentTimeMillis() - store.lastAttempt(id, wifiSync) < 86_400_000)) return@withContext true
+        val policy = DownloadNetworkPolicy.get(context)
+        val allowed = if (wifiSync) policy.offlineSyncAllowed else policy.allowed
+        if (!(if (wifiSync) policy.maySyncOfflineData() else policy.mayDownload())) return@withContext false
+        val completed = runDownloadWork(allowed) {
         runOptionalDownloadTasks(
             {
                 if (store.info(id) == null) withTimeoutOrNull(12_000) {
@@ -107,7 +110,8 @@ internal class DownloadCompanionPreparer(
             },
         )
         kotlinx.coroutines.currentCoroutineContext().ensureActive()
-        store.markAttempt(id)
+        if (wifiSync && !policy.maySyncOfflineData()) return@runDownloadWork false
+        store.markAttempt(id, wifiSync)
         true
         }
         completed ?: false

@@ -60,9 +60,9 @@ internal class DownloadCompanionStore(private val directory: File) {
     }
 
     @Synchronized fun remove(id: String) { folder(id).deleteRecursively(); changes.value++ }
-    @Synchronized fun lastAttempt(id: String): Long = readDownloadJson(File(folder(id), "attempt.json"))?.optLong("time") ?: 0
-    @Synchronized fun markAttempt(id: String) {
-        if (retained(id)) writeDownloadJson(File(folder(id), "attempt.json"), JSONObject().put("time", System.currentTimeMillis()))
+    @Synchronized fun lastAttempt(id: String, wifiSync: Boolean = false): Long = readDownloadJson(File(folder(id), if (wifiSync) "attempt-wifi.json" else "attempt.json"))?.optLong("time") ?: 0
+    @Synchronized fun markAttempt(id: String, wifiSync: Boolean = false) {
+        if (retained(id)) writeDownloadJson(File(folder(id), if (wifiSync) "attempt-wifi.json" else "attempt.json"), JSONObject().put("time", System.currentTimeMillis()))
     }
 
     @Synchronized fun saveInfo(id: String, info: MediaInfo) {

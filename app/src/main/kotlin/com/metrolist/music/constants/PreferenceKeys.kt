@@ -733,6 +733,7 @@ val StreamingMobileQualityKey = stringPreferencesKey("streamingMobileQuality")
 val CanvasWifiHeightKey = intPreferencesKey("canvasWifiHeight")
 val CanvasMobileHeightKey = intPreferencesKey("canvasMobileHeight")
 
+val AutoOfflineDataWifiKey = booleanPreferencesKey("autoOfflineDataWifi")
 val DataSaverKey = booleanPreferencesKey("dataSaver")
 val StrictDataDefaultsMigratedKey = booleanPreferencesKey("strictDataDefaultsMigratedV1")
 val DownloadMobileAllowedKey = booleanPreferencesKey("downloadMobileAllowed")

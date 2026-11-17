@@ -41,10 +41,12 @@ import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.safeDataStoreEdit
 import com.metrolist.music.utils.reportException
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -67,6 +69,8 @@ class App :
     @Inject
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
+
+    internal val settingsReady = CompletableDeferred<Unit>()
 
     override fun onCreate() {
         super.onCreate()
@@ -103,6 +107,12 @@ class App :
         applicationScope.launch {
             // Apply settings, including proxy configuration, before building extraction transport.
             initializeSettings()
+            settingsReady.complete(Unit)
+            launch(Dispatchers.IO) {
+                dataStore.data.map { it[AutoOfflineDataWifiKey] == true }.distinctUntilChanged().collect { enabled ->
+                    com.metrolist.music.playback.OfflineDataSyncScheduler.configure(this@App, enabled)
+                }
+            }
 
             // Warm player config, cipher, and optional PO-token state off the first-play path.
             launch(Dispatchers.IO) {
