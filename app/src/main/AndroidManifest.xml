@@ -207,6 +207,18 @@
         </activity-alias>
 
         <activity
+            android:name=".spotify.SpotifyOAuthActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Metrolist">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="sourcifyspotify" android:host="oauth" android:path="/callback" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".discord.DiscordOAuthActivity"
             android:exported="true"
             android:launchMode="singleTask"

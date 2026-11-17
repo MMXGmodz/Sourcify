@@ -29,6 +29,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.metrolist.music.spotify.*
 import androidx.compose.ui.window.DialogProperties
 import com.metrolist.music.LocalDatabase
 import com.metrolist.music.R
@@ -57,6 +59,12 @@ fun ExternalPlaylistImportDialog(onDismiss: () -> Unit, onImported: (String) -> 
     val database = LocalDatabase.current
     val scope = rememberCoroutineScope()
     val defaultTitle = stringResource(R.string.import_playlist)
+    val spotify = remember(context) { SpotifyAccount.get(context) }
+    val spotifyClient = remember(spotify) { SpotifyPlaylistClient(spotify) }
+    val spotifyConnected by spotify.connected.collectAsStateWithLifecycle()
+    var showSpotify by remember { mutableStateOf(false) }
+    var skipped by remember { mutableStateOf(0) }
+    if (showSpotify) SpotifyImportSetupDialog(spotify) { showSpotify = false }
     var link by remember { mutableStateOf("") }
     var name by remember { mutableStateOf(defaultTitle) }
     var matches by remember { mutableStateOf<List<PlaylistImportMatch>?>(null) }
@@ -70,15 +78,27 @@ fun ExternalPlaylistImportDialog(onDismiss: () -> Unit, onImported: (String) -> 
         busy = true
         error = null
         progress = null
+        skipped = 0
         job = scope.launch {
             try {
                 val collection = withContext(Dispatchers.IO) { load() }
+                skipped = collection.skippedCount
                 name = collection.title.ifBlank { defaultTitle }
                 matches = ExternalPlaylistImporter.match(collection) { current, total -> progress = current to total }
             } catch (_: TimeoutCancellationException) {
                 error = R.string.playlist_import_failed
             } catch (cancelled: CancellationException) {
                 throw cancelled
+            } catch (spotifyError: SpotifyImportException) {
+                error = when (spotifyError.reason) {
+                    SpotifyImportFailure.SETUP, SpotifyImportFailure.AUTH_REQUIRED -> R.string.spotify_auth_required
+                    SpotifyImportFailure.ACCESS_DENIED -> R.string.spotify_access_denied
+                    SpotifyImportFailure.NOT_FOUND -> R.string.spotify_playlist_not_found
+                    SpotifyImportFailure.RATE_LIMIT -> R.string.spotify_rate_limited
+                    SpotifyImportFailure.LIMIT -> R.string.playlist_import_limit
+                    else -> R.string.spotify_import_failed
+                }
+                if (spotifyError.reason in setOf(SpotifyImportFailure.SETUP, SpotifyImportFailure.AUTH_REQUIRED)) showSpotify = true
             } catch (exception: Exception) {
                 error = when ((exception as? PlaylistImportException)?.reason) {
                     PlaylistImportError.UNSUPPORTED -> R.string.playlist_import_unsupported
@@ -134,6 +154,9 @@ fun ExternalPlaylistImportDialog(onDismiss: () -> Unit, onImported: (String) -> 
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    TextButton(enabled = !busy, onClick = { showSpotify = true }) {
+                        Text(stringResource(if (spotifyConnected) R.string.spotify_oauth_connected else R.string.spotify_connect))
+                    }
                     TextButton(enabled = !busy, onClick = {
                         filePicker.launch(arrayOf("text/*", "audio/x-mpegurl", "audio/mpegurl", "application/vnd.apple.mpegurl", "application/vnd.ms-excel", "application/octet-stream"))
                     }) { Text(stringResource(R.string.playlist_import_file)) }
@@ -170,6 +193,7 @@ fun ExternalPlaylistImportDialog(onDismiss: () -> Unit, onImported: (String) -> 
                         }
                     }
                 }
+                if (skipped > 0) Text(stringResource(R.string.spotify_skipped_tracks, skipped), style = MaterialTheme.typography.bodySmall)
                 if (busy) {
                     LinearProgressIndicator(Modifier.fillMaxWidth())
                     Text(progress?.let { stringResource(R.string.playlist_import_progress, it.first, it.second) }
@@ -180,7 +204,7 @@ fun ExternalPlaylistImportDialog(onDismiss: () -> Unit, onImported: (String) -> 
         },
         confirmButton = {
             TextButton(enabled = !busy && if (matches == null) link.isNotBlank() else selected.isNotEmpty() && name.isNotBlank(), onClick = {
-                if (matches == null) preview { ExternalPlaylistImporter.loadLink(link) }
+                if (matches == null) preview { ExternalPlaylistImporter.loadLink(link, spotifyClient) }
                 else {
                     busy = true
                     saving = true
