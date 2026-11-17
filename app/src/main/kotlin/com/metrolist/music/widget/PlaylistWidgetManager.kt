@@ -21,6 +21,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.RemoteViews
 import coil3.imageLoader
+import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.request.crossfade
@@ -54,13 +55,10 @@ class PlaylistWidgetManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: MusicDatabase,
     @ApplicationScope private val applicationScope: CoroutineScope,
+    private val artworkCache: WidgetArtworkCache,
 ) {
     private val imageLoader
         get() = context.imageLoader
-    @Volatile
-    private var cachedArtworkUri: String? = null
-    @Volatile
-    private var cachedAlbumArt: Bitmap? = null
     @Volatile
     private var cachedRoundedAlbumArt: Bitmap? = null
     @Volatile
@@ -101,7 +99,8 @@ class PlaylistWidgetManager @Inject constructor(
     ) {
         val appWidgetManager = AppWidgetManager.getInstance(context)
         val state = lastWidgetState
-        val albumArt = getCachedAlbumArt(state.artworkUri)
+        val artwork = artworkCache.get(state.artworkUri)
+        val albumArt = artwork.bitmap
         val quickPicks = buildQuickPicks()
         val views = createRemoteViews(
             options = options,
@@ -114,6 +113,7 @@ class PlaylistWidgetManager @Inject constructor(
             currentPosition = state.currentPosition,
             quickPicks = quickPicks,
         )
+        applyColors(views, artwork.colors)
         appWidgetManager.updateAppWidget(appWidgetId, views)
     }
 
@@ -154,7 +154,8 @@ class PlaylistWidgetManager @Inject constructor(
         val widgetIds = appWidgetManager.getAppWidgetIds(componentName)
         if (widgetIds.isEmpty()) return
 
-        val albumArt = getCachedAlbumArt(artworkUri)
+        val artwork = artworkCache.get(artworkUri)
+        val albumArt = artwork.bitmap
         val quickPicks = buildQuickPicks()
 
         widgetIds.forEach { widgetId ->
@@ -170,6 +171,7 @@ class PlaylistWidgetManager @Inject constructor(
                 currentPosition = currentPosition,
                 quickPicks = quickPicks,
             )
+            applyColors(views, artwork.colors)
             appWidgetManager.updateAppWidget(widgetId, views)
         }
     }
@@ -313,6 +315,15 @@ class PlaylistWidgetManager @Inject constructor(
 
         bindQuickPicks(views, options, quickPicks)
         return views
+    }
+
+    private fun applyColors(views: RemoteViews, colors: WidgetColors) {
+        colors.applyTo(views, R.layout.widget_playlist)
+        cardSlots.forEach { slot ->
+            views.setTextColor(slot.titleId, colors.foreground)
+            views.setInt(slot.playIconId, "setColorFilter", colors.onAccent)
+            views.setInt(slot.playBackgroundId, "setColorFilter", colors.accent)
+        }
     }
 
     private suspend fun bindQuickPicks(
@@ -511,26 +522,6 @@ class PlaylistWidgetManager @Inject constructor(
         )
     }
 
-    private suspend fun getCachedAlbumArt(artworkUri: String?): Bitmap? {
-        if (artworkUri == null) {
-            cachedArtworkUri = null
-            cachedAlbumArt = null
-            cachedRoundedAlbumArt = null
-            cachedRoundedSource = null
-            return null
-        }
-
-        if (artworkUri != cachedArtworkUri) {
-            val loaded = loadBitmap(artworkUri, 240)
-            cachedAlbumArt = loaded
-            cachedRoundedAlbumArt = null
-            cachedRoundedSource = null
-            cachedArtworkUri = artworkUri.takeIf { loaded != null }
-        }
-
-        return cachedAlbumArt
-    }
-
     private fun getRoundedAlbumArt(albumArt: Bitmap): Bitmap {
         val cached = cachedRoundedAlbumArt
         if (cached != null && cachedRoundedSource === albumArt) return cached
@@ -548,6 +539,7 @@ class PlaylistWidgetManager @Inject constructor(
                 .size(size, size)
                 .allowHardware(false)
                 .crossfade(false)
+                .networkCachePolicy(CachePolicy.DISABLED)
                 .build()
             imageLoader.execute(request).image?.toBitmap()
         } catch (e: CancellationException) {
@@ -733,6 +725,7 @@ class PlaylistWidgetManager @Inject constructor(
         val playContainerId: Int,
         val playIconId: Int,
         val titleId: Int,
+        val playBackgroundId: Int,
     )
 
     private data class FallbackArtworkKey(
@@ -742,13 +735,13 @@ class PlaylistWidgetManager @Inject constructor(
     )
 
     private val cardSlots = listOf(
-        CardSlot(R.id.widget_playlist_card_1, R.id.widget_playlist_card_1_art, R.id.widget_playlist_card_1_play_container, R.id.widget_playlist_card_1_play, R.id.widget_playlist_card_1_title),
-        CardSlot(R.id.widget_playlist_card_2, R.id.widget_playlist_card_2_art, R.id.widget_playlist_card_2_play_container, R.id.widget_playlist_card_2_play, R.id.widget_playlist_card_2_title),
-        CardSlot(R.id.widget_playlist_card_3, R.id.widget_playlist_card_3_art, R.id.widget_playlist_card_3_play_container, R.id.widget_playlist_card_3_play, R.id.widget_playlist_card_3_title),
-        CardSlot(R.id.widget_playlist_card_4, R.id.widget_playlist_card_4_art, R.id.widget_playlist_card_4_play_container, R.id.widget_playlist_card_4_play, R.id.widget_playlist_card_4_title),
-        CardSlot(R.id.widget_playlist_card_5, R.id.widget_playlist_card_5_art, R.id.widget_playlist_card_5_play_container, R.id.widget_playlist_card_5_play, R.id.widget_playlist_card_5_title),
-        CardSlot(R.id.widget_playlist_card_6, R.id.widget_playlist_card_6_art, R.id.widget_playlist_card_6_play_container, R.id.widget_playlist_card_6_play, R.id.widget_playlist_card_6_title),
-        CardSlot(R.id.widget_playlist_card_7, R.id.widget_playlist_card_7_art, R.id.widget_playlist_card_7_play_container, R.id.widget_playlist_card_7_play, R.id.widget_playlist_card_7_title),
-        CardSlot(R.id.widget_playlist_card_8, R.id.widget_playlist_card_8_art, R.id.widget_playlist_card_8_play_container, R.id.widget_playlist_card_8_play, R.id.widget_playlist_card_8_title),
+        CardSlot(R.id.widget_playlist_card_1, R.id.widget_playlist_card_1_art, R.id.widget_playlist_card_1_play_container, R.id.widget_playlist_card_1_play, R.id.widget_playlist_card_1_title, R.id.widget_playlist_card_1_play_background),
+        CardSlot(R.id.widget_playlist_card_2, R.id.widget_playlist_card_2_art, R.id.widget_playlist_card_2_play_container, R.id.widget_playlist_card_2_play, R.id.widget_playlist_card_2_title, R.id.widget_playlist_card_2_play_background),
+        CardSlot(R.id.widget_playlist_card_3, R.id.widget_playlist_card_3_art, R.id.widget_playlist_card_3_play_container, R.id.widget_playlist_card_3_play, R.id.widget_playlist_card_3_title, R.id.widget_playlist_card_3_play_background),
+        CardSlot(R.id.widget_playlist_card_4, R.id.widget_playlist_card_4_art, R.id.widget_playlist_card_4_play_container, R.id.widget_playlist_card_4_play, R.id.widget_playlist_card_4_title, R.id.widget_playlist_card_4_play_background),
+        CardSlot(R.id.widget_playlist_card_5, R.id.widget_playlist_card_5_art, R.id.widget_playlist_card_5_play_container, R.id.widget_playlist_card_5_play, R.id.widget_playlist_card_5_title, R.id.widget_playlist_card_5_play_background),
+        CardSlot(R.id.widget_playlist_card_6, R.id.widget_playlist_card_6_art, R.id.widget_playlist_card_6_play_container, R.id.widget_playlist_card_6_play, R.id.widget_playlist_card_6_title, R.id.widget_playlist_card_6_play_background),
+        CardSlot(R.id.widget_playlist_card_7, R.id.widget_playlist_card_7_art, R.id.widget_playlist_card_7_play_container, R.id.widget_playlist_card_7_play, R.id.widget_playlist_card_7_title, R.id.widget_playlist_card_7_play_background),
+        CardSlot(R.id.widget_playlist_card_8, R.id.widget_playlist_card_8_art, R.id.widget_playlist_card_8_play_container, R.id.widget_playlist_card_8_play, R.id.widget_playlist_card_8_title, R.id.widget_playlist_card_8_play_background),
     )
 }

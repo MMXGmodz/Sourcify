@@ -45,7 +45,7 @@ import java.time.Duration
 @Config(sdk = [33], application = android.app.Application::class)
 class CanvasNetworkProfileTest {
     @Suppress("DEPRECATION")
-    @Test fun switchingFromWifiToMobilePublishesTheMobileLimitEvenWhenBothAreAllowed() = runBlocking {
+    @Test fun switchingFromWifiToMobileBlocksRemoteCanvasAndPreservesLocalSource() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val previousPrefs = context.dataStore.data.first()
         try {
@@ -102,21 +102,19 @@ class CanvasNetworkProfileTest {
                 val initialLastIndex = observed.lastIndex
                 val beforeMobile = observed.size
                 connect(ConnectivityManager.TYPE_MOBILE, NetworkCapabilities.TRANSPORT_CELLULAR)
-                assertEquals(CanvasNetworkProfile(true, 240), withTimeout(3_000) {
+                assertEquals(CanvasNetworkProfile(false, 240), withTimeout(3_000) {
                     policy.profile.first { it.maxVideoHeight == 240 }
                 })
                 composeFrame()
                 composeFrame()
                 assertTrue("Composition must observe the mobile profile", observed.size > beforeMobile)
                 assertSame("A local Canvas must keep its source when the network profile changes", localSource, observed.last())
-                val beforeWifiRestriction = observed.size
                 context.dataStore.edit { it[CanvasWifiOnlyKey] = true }
                 assertEquals(CanvasNetworkProfile(false, 240), withTimeout(3_000) {
                     policy.profile.first { !it.remoteAllowed }
                 })
                 composeFrame()
                 composeFrame()
-                assertTrue("Composition must observe the Wi-Fi-only restriction", observed.size > beforeWifiRestriction)
                 assertSame("Wi-Fi-only restrictions must keep local Canvas available", localSource, observed.last())
                 assertTrue("Network changes must never clear a local Canvas", observed.drop(initialLastIndex + 1).none { it == null })
             } finally {

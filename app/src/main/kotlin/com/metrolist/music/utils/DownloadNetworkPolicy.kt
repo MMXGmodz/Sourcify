@@ -9,7 +9,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
-import com.metrolist.music.constants.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
@@ -36,12 +35,10 @@ internal class DownloadNetworkPolicy private constructor(private val context: Co
     private val manager = context.getSystemService<ConnectivityManager>()!!
     private val lifecycle = ProcessLifecycleOwner.get().lifecycle
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private fun connection() = (manager.getNetworkCapabilities(manager.activeNetwork)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true) to manager.isActiveNetworkMetered
-    private fun initial(): Boolean {
-        val prefs = context.dataStore.get(DownloadMobileAllowedKey, true) to context.dataStore.get(DownloadBackgroundAllowedKey, true)
-        val network = connection()
-        return downloadNetworkAllowed(prefs.first, prefs.second, lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED), network.first, network.second)
-    }
+    private fun connection() = (manager.getNetworkCapabilities(manager.activeNetwork)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true) to networkUsesMobileQuality(manager)
+    private val initialPrefs = runBlocking(Dispatchers.IO) { context.dataStore.data.first() }
+    @Volatile private var mobileAllowed = mobileDownloadsAllowed(initialPrefs)
+    @Volatile private var backgroundAllowed = backgroundDownloadsAllowed(initialPrefs)
     val allowed: StateFlow<Boolean> = combine(context.dataStore.data, lifecycle.currentStateFlow, callbackFlow {
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) { trySend(connection()) }
@@ -51,12 +48,21 @@ internal class DownloadNetworkPolicy private constructor(private val context: Co
         manager.registerDefaultNetworkCallback(callback)
         trySend(connection())
         awaitClose { manager.unregisterNetworkCallback(callback) }
-    }) { prefs, state, network -> downloadNetworkAllowed(prefs[DownloadMobileAllowedKey] ?: true, prefs[DownloadBackgroundAllowedKey] ?: true,
-        state.isAtLeast(Lifecycle.State.STARTED), network.first, network.second)
-    }.stateIn(scope, SharingStarted.Eagerly, initial())
+    }) { prefs, state, network ->
+        mobileAllowed = mobileDownloadsAllowed(prefs)
+        backgroundAllowed = backgroundDownloadsAllowed(prefs)
+        downloadNetworkAllowed(mobileAllowed, backgroundAllowed, state.isAtLeast(Lifecycle.State.STARTED), network.first, network.second)
+    }.stateIn(scope, SharingStarted.Eagerly, mayDownload())
 
-    suspend fun <T> runAllowed(block: suspend CoroutineScope.() -> T): T? = runDownloadWork(allowed, block)
-    fun guard(factory: DataSource.Factory) = guardedDownloadSource(factory) { allowed.value }
+    suspend fun <T> runAllowed(block: suspend CoroutineScope.() -> T): T? {
+        if (!mayDownload()) return null
+        return runDownloadWork(allowed, block)
+    }
+    fun mayDownload(): Boolean {
+        val network = connection()
+        return downloadNetworkAllowed(mobileAllowed, backgroundAllowed, lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED), network.first, network.second)
+    }
+    fun guard(factory: DataSource.Factory) = guardedDownloadSource(factory, ::mayDownload)
     companion object {
         @Volatile private var instance: DownloadNetworkPolicy? = null
         fun get(context: Context): DownloadNetworkPolicy = instance ?: synchronized(this) {

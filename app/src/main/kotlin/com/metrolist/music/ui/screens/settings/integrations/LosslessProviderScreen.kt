@@ -34,6 +34,7 @@ internal fun LosslessProviderScreen(provider: LosslessProvider, navController: N
     val connection = LocalPlayerConnection.current
     val repository = remember(context) { LosslessRepository(context.applicationContext) }
     val scope = rememberCoroutineScope()
+    var advanced by rememberSaveable(provider) { mutableStateOf(false) }
     var endpoint by rememberSaveable(provider) { mutableStateOf(repository.endpoint(provider)) }
     var query by rememberSaveable(provider) { mutableStateOf("") }
     var best by rememberSaveable(provider) { mutableStateOf(false) }
@@ -50,7 +51,7 @@ internal fun LosslessProviderScreen(provider: LosslessProvider, navController: N
         job = scope.launch {
             try { work() }
             catch (error: CancellationException) { status = context.getString(R.string.lossless_cancelled); throw error }
-            catch (_: Exception) { status = errorText }
+            catch (_: Exception) { status = if (!DownloadNetworkPolicy.get(context).mayDownload()) context.getString(R.string.lossless_data_paused) else errorText }
             finally { busy = false }
         }
     }
@@ -63,18 +64,22 @@ internal fun LosslessProviderScreen(provider: LosslessProvider, navController: N
                 Text(stringResource(if (provider == LosslessProvider.DEEZER) R.string.lossless_deezer_setup else R.string.lossless_api_setup), style = MaterialTheme.typography.bodyMedium)
             }
             item {
+                FilledTonalButton(onClick = { navController.navigate("local_audio") }) {
+                    Icon(painterResource(R.drawable.music_note), null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.local_audio_import_action))
+                }
+                TextButton(onClick = { advanced = !advanced }) { Text(stringResource(R.string.lossless_advanced_connection)) }
+            }
+            if (advanced) item {
                 OutlinedTextField(endpoint, { endpoint = it; status = null; results = emptyList() }, enabled = !busy,
                     modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text(stringResource(R.string.lossless_api_address)) })
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(enabled = !busy, onClick = {
-                        try { repository.saveEndpoint(provider, endpoint); status = context.getString(R.string.lossless_saved) }
-                        catch (_: Exception) { status = context.getString(R.string.lossless_invalid_url) }
-                    }) { Text(stringResource(R.string.lossless_save)) }
                     TextButton(enabled = !busy && endpoint.isNotBlank(), onClick = { runWork {
                         repository.test(provider, endpoint)
                         repository.saveEndpoint(provider, endpoint)
                         status = context.getString(R.string.lossless_verified)
-                    } }) { Text(stringResource(R.string.lossless_test)) }
+                    } }) { Text(stringResource(R.string.lossless_connect)) }
                     TextButton(enabled = !busy, onClick = {
                         endpoint = provider.defaultEndpoint; repository.saveEndpoint(provider, endpoint); results = emptyList(); status = null
                     }) { Text(stringResource(R.string.lossless_reset)) }
@@ -86,7 +91,6 @@ internal fun LosslessProviderScreen(provider: LosslessProvider, navController: N
                     Switch(best, { best = it }, enabled = !busy)
                 }
                 Text(stringResource(R.string.lossless_download_description), style = MaterialTheme.typography.bodySmall)
-                TextButton(onClick = { navController.navigate("local_audio") }) { Text(stringResource(R.string.local_audio_title)) }
             }
             item {
                 OutlinedTextField(query, { query = it }, enabled = !busy, singleLine = true, modifier = Modifier.fillMaxWidth(),

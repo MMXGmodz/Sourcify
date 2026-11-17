@@ -42,7 +42,7 @@ val Context.dataStore: DataStore<Preferences>
             // deep sleep, causing IOException in FileStorageConnection.writeScope()
             // that crashes the process and triggers a soft reboot.
             File(filesDir, "datastore").mkdirs()
-            return preferencesDataStore(name = "settings")
+            return preferencesDataStore(name = "settings", produceMigrations = { listOf(StrictDataDefaultsMigration) })
                 .getValue(this, ::dataStore)
                 .also { dataStoreInstance = it }
         }

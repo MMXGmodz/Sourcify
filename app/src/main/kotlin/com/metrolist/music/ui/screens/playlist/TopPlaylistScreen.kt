@@ -684,6 +684,8 @@ private fun TopPlaylistHeader(
                 onClick = {
                     menuState.show {
                         TopPlaylistMenu(
+                            songs = songs,
+                            playlistName = name,
                             downloadState = downloadState,
                             onQueue = {
                                 playerConnection.addToQueue(

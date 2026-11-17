@@ -4,12 +4,19 @@
     android:id="@android:id/background"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_background"
-    android:padding="12dp"
     android:theme="@style/Theme.Widget.Metrolist">
+
+    <ImageView
+        android:id="@+id/widget_surface"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_background"
+        android:scaleType="fitXY"
+        android:importantForAccessibility="no" />
 
     <!-- Album Art Container -->
     <FrameLayout
+        android:padding="12dp"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
@@ -27,8 +34,14 @@
             android:layout_width="56dp"
             android:layout_height="56dp"
             android:layout_gravity="bottom|center_horizontal"
-            android:layout_marginBottom="8dp"
-            android:background="@drawable/widget_play_button_circular">
+            android:layout_marginBottom="8dp">
+            <ImageView
+                android:id="@+id/widget_compact_play_background"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/widget_play_button_circular"
+                android:scaleType="fitXY"
+                android:importantForAccessibility="no" />
 
             <ImageView
                 android:id="@+id/widget_compact_play_pause"

@@ -56,6 +56,7 @@ internal fun MediaQualityContent(
             ),
         ))
         QualityNote(stringResource(R.string.s8_audio_note))
+        QualityNote(stringResource(R.string.data_saver_quality_note))
         com.metrolist.music.ui.component.Material3SettingsGroup(
             title = stringResource(R.string.s8_audio_streaming),
             items = listOf(
@@ -81,7 +82,6 @@ internal fun MediaQualityContent(
             title = stringResource(R.string.s8_video_quality),
             items = listOf(
                 VideoQualitySetting(stringResource(R.string.s8_wifi_stream), wifiHeight, onWifiVideo),
-                VideoQualitySetting(stringResource(R.string.s8_mobile_stream), mobileHeight, onMobileVideo),
             ),
         )
     }

@@ -621,6 +621,8 @@ private fun CachePlaylistHeader(
                 onClick = {
                     menuState.show {
                         CachePlaylistMenu(
+                            songs = songs,
+                            playlistName = context.getString(R.string.cache),
                             downloadState = Download.STATE_STOPPED,
                             onQueue = {
                                 playerConnection.addToQueue(

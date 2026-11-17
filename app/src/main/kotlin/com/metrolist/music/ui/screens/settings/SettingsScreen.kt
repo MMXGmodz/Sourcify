@@ -72,6 +72,35 @@ fun SettingsScreen(
             )
         )
 
+        // Storage & Data Section
+        Material3SettingsGroup(
+            title = stringResource(R.string.data_quality_storage),
+            items = listOf(
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.wifi_proxy),
+                    title = { Text(stringResource(R.string.data_saver)) },
+                    onClick = { navController.navigate("settings/data_saver") }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.graphic_eq),
+                    title = { Text(stringResource(R.string.s8_media_quality)) },
+                    onClick = { navController.navigate("settings/media_quality") }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.storage),
+                    title = { Text(stringResource(R.string.s9_data)) },
+                    onClick = { navController.navigate("settings/storage") }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.restore),
+                    title = { Text(stringResource(R.string.backup_restore)) },
+                    onClick = { navController.navigate("settings/backup_restore") }
+                )
+            )
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // User Interface Section
         Material3SettingsGroup(
             title = stringResource(R.string.settings_section_ui),
@@ -105,11 +134,6 @@ fun SettingsScreen(
                     icon = painterResource(R.drawable.slow_motion_video),
                     title = { Text(stringResource(R.string.sourcify_canvas)) },
                     onClick = { navController.navigate("settings/canvas") }
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.graphic_eq),
-                    title = { Text(stringResource(R.string.s8_media_quality)) },
-                    onClick = { navController.navigate("settings/media_quality") }
                 ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.play),
@@ -151,25 +175,6 @@ fun SettingsScreen(
                     icon = painterResource(R.drawable.security),
                     title = { Text(stringResource(R.string.privacy)) },
                     onClick = { navController.navigate("settings/privacy") }
-                )
-            )
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Storage & Data Section
-        Material3SettingsGroup(
-            title = stringResource(R.string.settings_section_storage),
-            items = listOf(
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.storage),
-                    title = { Text(stringResource(R.string.s9_data)) },
-                    onClick = { navController.navigate("settings/storage") }
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.restore),
-                    title = { Text(stringResource(R.string.backup_restore)) },
-                    onClick = { navController.navigate("settings/backup_restore") }
                 )
             )
         )

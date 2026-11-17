@@ -61,6 +61,7 @@ object InnerTubeXPlayer {
     }
 
     internal suspend fun videoStreamForCanvas(videoId: String, maxVideoHeight: Int? = null): ExtractedStream? {
+        applicationContext?.let { if (!CanvasNetworkPolicy.get(it).mayLoadRemote()) return null }
         val selectedHeight = normalizedCanvasHeight(maxVideoHeight ?: currentCanvasVideoHeight())
         return bundle().extractor.extract(
             videoId = videoId,
@@ -75,6 +76,7 @@ object InnerTubeXPlayer {
     }
 
     internal suspend fun fullMusicVideoStream(videoId: String, maxVideoHeight: Int? = null): ExtractedStream? {
+        applicationContext?.let { if (!DataSaverPolicy.get(it).mayStreamVideo()) return null }
         val selectedHeight = (maxVideoHeight ?: currentCanvasVideoHeight()).coerceIn(240, 1080)
         return bundle().extractor.extract(
             videoId = videoId,

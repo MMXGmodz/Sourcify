@@ -51,7 +51,6 @@ fun CanvasSettings(navController: NavController) {
     val selection = rememberCanvasSelection(metadata?.id)
     val enabledForSong = rememberCanvasEnabled(metadata?.id)
     val (enabled, setEnabled) = rememberPreference(CanvasEnabledKey, true)
-    val (wifiOnly, setWifiOnly) = rememberPreference(CanvasWifiOnlyKey, false)
     val (automatic, setAutomatic) = rememberPreference(AutomaticCanvasKey, true)
     val (brightness, setBrightness) = rememberPreference(CanvasBrightnessKey, 0.65f)
     val (zoom, setZoom) = rememberPreference(CanvasZoomKey, com.metrolist.music.ui.player.DefaultCanvasZoom)
@@ -104,7 +103,7 @@ fun CanvasSettings(navController: NavController) {
                         trailingContent = { Switch(enabled, setEnabled) }, onClick = { setEnabled(!enabled) }),
                     Material3SettingsItem(icon = painterResource(R.drawable.offline), title = { Text(stringResource(R.string.canvas_wifi_only)) },
                         description = { Text(stringResource(R.string.canvas_wifi_only_description)) },
-                        trailingContent = { Switch(wifiOnly, setWifiOnly) }, onClick = { setWifiOnly(!wifiOnly) }),
+                        onClick = { navController.navigate("settings/data_saver") }),
                     Material3SettingsItem(icon = painterResource(R.drawable.search), title = { Text(stringResource(R.string.sourcify_canvas_automatic)) },
                         description = { Text(stringResource(R.string.sourcify_canvas_automatic_description)) },
                         trailingContent = { Switch(automatic, setAutomatic) }, onClick = { setAutomatic(!automatic) }),
