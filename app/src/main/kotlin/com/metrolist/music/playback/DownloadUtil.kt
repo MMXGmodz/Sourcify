@@ -71,6 +71,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import okhttp3.OkHttpClient
@@ -118,6 +120,9 @@ constructor(
     private val downloadPreparations = Semaphore(3)
     private val removalTasks = java.util.concurrent.ConcurrentHashMap<String, CompletableDeferred<Unit>>()
     private val companionStore = DownloadCompanionStore.get(context)
+    private val companionMutex = Mutex()
+    private val companionPreparer by lazy { DownloadCompanionPreparer(context, database, downloadCache) { downloadManager.downloadIndex.getDownload(it) } }
+    @Volatile private var syncingOfflineId: String? = null
     private val audioStorage = DownloadStorage.get(context)
     private val companionSignal = Channel<Unit>(Channel.CONFLATED)
     private val companionQueue = java.util.concurrent.ConcurrentLinkedDeque<String>()
@@ -402,20 +407,19 @@ constructor(
             companionStore.retainOnly(result.keys)
             result.keys.forEach(companionStore::retain)
             result.values.filter { it.state == Download.STATE_COMPLETED }.forEach { enqueueCompanions(it.request.id, false) }
-            val preparer = DownloadCompanionPreparer(context, database, downloadCache) { downloadManager.downloadIndex.getDownload(it) }
             for (ignored in companionSignal) {
                 while (true) {
                     val id = companionQueue.pollFirst() ?: break
                     var deferred = false
                     try {
-                        deferred = !preparer.prepare(id, companionForced.remove(id))
+                        deferred = !companionMutex.withLock { companionPreparer.prepare(id, companionForced.remove(id)) }
                     } catch (error: kotlinx.coroutines.CancellationException) { throw error }
                     catch (_: Exception) { Timber.tag(TAG).w("Could not finish optional download files") }
                     finally {
                         companionPending.remove(id)
                         if (companionForced.contains(id)) enqueueCompanions(id, true)
                         else if (deferred && extraDownloadPolicy.allowed.value) enqueueCompanions(id, false)
-                        extraDownloads.value = companionPending.toSet()
+                        updateExtraDownloads()
                     }
                 }
             }
@@ -535,9 +539,40 @@ constructor(
     private fun enqueueCompanions(id: String, urgent: Boolean) {
         if (id.startsWith("local:") || !companionPending.add(id)) return
         if (urgent) companionQueue.addFirst(id) else companionQueue.addLast(id)
-        extraDownloads.value = companionPending.toSet()
+        updateExtraDownloads()
         companionSignal.trySend(Unit)
     }
+
+    private fun updateExtraDownloads() {
+        extraDownloads.value = companionPending.toSet() + listOfNotNull(syncingOfflineId)
+    }
+
+    suspend fun syncOfflineDataOnWifi(): Boolean = extraDownloadPolicy.runOfflineSync {
+        val saved = downloads.value.values.filter { it.state == Download.STATE_COMPLETED }
+            .sortedBy { companionStore.lastAttempt(it.request.id, wifiSync = true) }
+        for (download in saved) {
+            currentCoroutineContext().ensureActive()
+            val id = download.request.id
+            if (System.currentTimeMillis() - companionStore.lastAttempt(id, wifiSync = true) < 86_400_000) continue
+            companionMutex.withLock {
+                if (!extraDownloadPolicy.maySyncOfflineData()) return@runOfflineSync false
+                if (downloadManager.downloadIndex.getDownload(id)?.state != Download.STATE_COMPLETED) return@withLock
+                companionStore.retain(id)
+                syncingOfflineId = id
+                updateExtraDownloads()
+                try {
+                    database.getSongByIdBlocking(id)?.let { song ->
+                        storeDownloadArtwork(id, downloadArtworkUrls(song.thumbnailUrl, song.album?.thumbnailUrl), wifiSync = true)
+                    }
+                    if (!companionPreparer.prepare(id, false, wifiSync = true)) return@runOfflineSync false
+                } finally {
+                    syncingOfflineId = null
+                    updateExtraDownloads()
+                }
+            }
+        }
+        true
+    } ?: false
 
     fun release() {
         if (artworkNetworkCallbackRegistered) {
@@ -549,25 +584,33 @@ constructor(
         scope.cancel()
     }
 
-    private fun hasArtworkNetwork(): Boolean = extraDownloadPolicy.allowed.value
+    private fun hasArtworkNetwork(wifiSync: Boolean = false): Boolean =
+        if (wifiSync) extraDownloadPolicy.maySyncOfflineData() else extraDownloadPolicy.mayDownload()
 
-    private suspend fun storeDownloadArtwork(songId: String, urls: List<String>) {
+    private suspend fun storeDownloadArtwork(songId: String, urls: List<String>, wifiSync: Boolean = false) {
         artworkStore.retain(songId, urls)
-        extraDownloadPolicy.runAllowed {
+        val allowed = if (wifiSync) extraDownloadPolicy.offlineSyncAllowed else extraDownloadPolicy.allowed
+        com.metrolist.music.utils.runDownloadWork(allowed) {
         for (url in urls) {
             currentCoroutineContext().ensureActive()
-            if (artworkStore.fileFor(url) != null || !hasArtworkNetwork()) continue
+            if (artworkStore.fileFor(url) != null || !hasArtworkNetwork(wifiSync)) continue
             artworkRequests.withPermit {
                 if (artworkStore.fileFor(url) != null) return@withPermit
                 runCatching {
                     val request = okhttp3.Request.Builder().url(url).get().build()
                     val call = artworkHttpClient.newCall(request)
                     kotlinx.coroutines.coroutineScope {
-                    val watcher = launch { try { extraDownloadPolicy.allowed.first { !it } } finally { call.cancel() } }
+                    val watcher = launch { try { allowed.first { !it } } finally { call.cancel() } }
                     try { call.execute().use { response ->
                         if (response.isSuccessful) {
                             response.body?.let { body ->
-                                artworkStore.save(url, body.contentType()?.toString(), body.contentLength(), body.byteStream())
+                                val guarded = object : java.io.FilterInputStream(body.byteStream()) {
+                                    override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+                                        if (!hasArtworkNetwork(wifiSync)) throw IOException("Offline data paused by network settings")
+                                        return super.read(buffer, offset, length)
+                                    }
+                                }
+                                artworkStore.save(url, body.contentType()?.toString(), body.contentLength(), guarded)
                             }
                         }
                     } } finally { watcher.cancel(); call.cancel() }

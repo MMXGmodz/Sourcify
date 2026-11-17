@@ -17,6 +17,20 @@ import java.io.IOException
 class DownloadCompanionStoreTest {
     @get:Rule val temporary = TemporaryFolder()
 
+    @Test fun wifiAttemptsAreSeparateSoAForegroundAttemptCannotDelayWifiCompletion() {
+        val directory = temporary.newFolder()
+        val store = DownloadCompanionStore(directory)
+        store.retain("song")
+        store.markAttempt("song")
+        assertTrue(store.lastAttempt("song") > 0)
+        assertEquals(0L, store.lastAttempt("song", wifiSync = true))
+        store.markAttempt("song", wifiSync = true)
+        val restarted = DownloadCompanionStore(directory)
+        assertTrue(restarted.lastAttempt("song", wifiSync = true) > 0)
+        restarted.remove("song")
+        assertEquals(0L, restarted.lastAttempt("song", wifiSync = true))
+    }
+
     @Test fun songInfoAndCreditsRemainReadableAfterRestartAndOwnerRemovalCleansThem() {
         val directory = temporary.newFolder()
         val store = DownloadCompanionStore(directory)

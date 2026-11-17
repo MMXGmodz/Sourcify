@@ -28,6 +28,7 @@ fun DataSaverSettings(navController: NavController) {
 internal fun DataSaverPreferences() {
     val (enabled, setEnabled) = rememberPreference(DataSaverKey, true)
     val (mobile, setMobile) = rememberPreference(DownloadMobileAllowedKey, false)
+    val (offlineWifi, setOfflineWifi) = rememberPreference(AutoOfflineDataWifiKey, false)
     val (background, setBackground) = rememberPreference(DownloadBackgroundAllowedKey, false)
     Material3SettingsGroup(items = listOf(Material3SettingsItem(
         icon = painterResource(R.drawable.wifi_proxy),
@@ -38,6 +39,13 @@ internal fun DataSaverPreferences() {
     )))
     Text(stringResource(R.string.data_saver_download_note))
     Material3SettingsGroup(title = stringResource(R.string.s9_downloads), items = listOf(
+        Material3SettingsItem(
+            icon = painterResource(R.drawable.wifi_proxy),
+            title = { Text(stringResource(R.string.offline_data_wifi)) },
+            description = { Text(stringResource(R.string.offline_data_wifi_description)) },
+            trailingContent = { Switch(offlineWifi, setOfflineWifi) },
+            onClick = { setOfflineWifi(!offlineWifi) },
+        ),
         Material3SettingsItem(
             icon = painterResource(R.drawable.download),
             title = { Text(stringResource(R.string.s9_mobile_downloads)) },
