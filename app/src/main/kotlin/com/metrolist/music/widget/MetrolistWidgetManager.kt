@@ -18,17 +18,10 @@ import android.graphics.RectF
 import android.graphics.Shader
 import android.os.Bundle
 import android.widget.RemoteViews
-import coil3.ImageLoader
-import coil3.request.ImageRequest
-import coil3.request.allowHardware
-import coil3.request.crossfade
-import coil3.toBitmap
 import com.metrolist.music.MainActivity
 import com.metrolist.music.R
 import com.metrolist.music.db.MusicDatabase
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -37,15 +30,9 @@ class MetrolistWidgetManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: MusicDatabase,
     private val playlistWidgetManager: PlaylistWidgetManager,
+    private val artworkCache: WidgetArtworkCache,
 ) {
-    private val imageLoader by lazy {
-        ImageLoader.Builder(context)
-            .crossfade(false)
-            .build()
-    }
-
     // Cache for album art to avoid reloading
-    private var cachedArtworkUri: String? = null
     private var cachedAlbumArt: Bitmap? = null
     private var cachedCircularAlbumArt: Bitmap? = null
 
@@ -57,24 +44,17 @@ class MetrolistWidgetManager @Inject constructor(
         isLiked: Boolean,
         duration: Long = 0,
         currentPosition: Long = 0
-    ) {
+    ): Boolean {
         val appWidgetManager = AppWidgetManager.getInstance(context)
 
-        // Use cached album art if URI hasn't changed, otherwise load new one
-        val albumArt: Bitmap?
-        val circularAlbumArt: Bitmap?
-        
-        if (artworkUri != null && artworkUri == cachedArtworkUri && cachedAlbumArt != null) {
-            albumArt = cachedAlbumArt
-            circularAlbumArt = cachedCircularAlbumArt
-        } else {
-            albumArt = artworkUri?.let { loadAlbumArt(it, 300) }
-            circularAlbumArt = albumArt?.let { getCircularBitmap(it) }
-            // Update cache
-            cachedArtworkUri = artworkUri
+        val artwork = artworkCache.get(artworkUri)
+        val albumArt = artwork.bitmap
+        if (cachedAlbumArt !== albumArt) {
             cachedAlbumArt = albumArt
-            cachedCircularAlbumArt = circularAlbumArt
+            cachedCircularAlbumArt = albumArt?.let { getCircularBitmap(it) }
         }
+        val circularAlbumArt = cachedCircularAlbumArt
+        val colors = artwork.colors
 
         // Update main music player widgets
         val componentName = ComponentName(context, MusicWidgetReceiver::class.java)
@@ -92,6 +72,7 @@ class MetrolistWidgetManager @Inject constructor(
                     duration,
                     currentPosition
                 )
+                colors.applyTo(views, views.layoutId)
                 appWidgetManager.updateAppWidget(widgetId, views)
             }
         }
@@ -105,6 +86,7 @@ class MetrolistWidgetManager @Inject constructor(
                 isPlaying,
                 isLiked
             )
+            colors.applyTo(turntableViews, R.layout.widget_turntable)
             turntableWidgetIds.forEach { widgetId ->
                 appWidgetManager.updateAppWidget(widgetId, turntableViews)
             }
@@ -119,6 +101,7 @@ class MetrolistWidgetManager @Inject constructor(
             duration = duration,
             currentPosition = currentPosition,
         )
+        return artworkUri == null || albumArt != null
     }
 
     fun updateProgress(
@@ -226,23 +209,6 @@ class MetrolistWidgetManager @Inject constructor(
         views.setOnClickPendingIntent(R.id.widget_like_button, getLikeIntent())
 
         return views
-    }
-
-    private suspend fun loadAlbumArt(artworkUri: String, size: Int = 200): Bitmap? {
-        return withContext(Dispatchers.IO) {
-            try {
-                val request = ImageRequest.Builder(context)
-                    .data(artworkUri)
-                    .size(size, size)
-                    .allowHardware(false)
-                    .crossfade(300)
-                    .build()
-                val result = imageLoader.execute(request)
-                result.image?.toBitmap()
-            } catch (e: Exception) {
-                null
-            }
-        }
     }
 
     private fun getRoundedCornerBitmap(bitmap: Bitmap, cornerRadius: Float): Bitmap {

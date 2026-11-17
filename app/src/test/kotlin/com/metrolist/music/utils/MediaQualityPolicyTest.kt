@@ -45,7 +45,7 @@ class MediaQualityPolicyTest {
         assertEquals(AudioQuality.HIGH, streamingAudioQuality(prefs, false))
         prefs[StreamingWifiQualityKey] = "unknown"
         assertEquals(AudioQuality.HIGH, streamingAudioQuality(prefs, false))
-        assertEquals(AudioQuality.AUTO, streamingAudioQuality(mutablePreferencesOf(), true))
+        assertEquals(AudioQuality.LOW, streamingAudioQuality(mutablePreferencesOf(), true))
     }
     @Test fun canvasVideoLimitUsesTheCurrentNetworkAndRejectsInvalidValues() {
         val prefs = mutablePreferencesOf(CanvasWifiHeightKey to 720, CanvasMobileHeightKey to 240)

@@ -95,7 +95,7 @@ constructor(
     private val TAG = "DownloadUtil"
     private val connectivityManager = context.getSystemService<ConnectivityManager>()!!
     private val initialDownloadPolicy = runBlocking(Dispatchers.IO) {
-        context.dataStore.data.first().let { (it[DownloadMobileAllowedKey] ?: true) to (it[DownloadBackgroundAllowedKey] ?: true) }
+        context.dataStore.data.first().let { com.metrolist.music.utils.mobileDownloadsAllowed(it) to com.metrolist.music.utils.backgroundDownloadsAllowed(it) }
     }
     @Volatile private var backgroundAllowed = initialDownloadPolicy.second
     @Volatile private var appForeground = ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
@@ -159,7 +159,7 @@ constructor(
                 .setCache(playerCache)
                 .setCacheWriteDataSinkFactory(null)
                 .setUpstreamDataSourceFactory(
-                    OkHttpDataSource.Factory(streamHttpClient),
+                    extraDownloadPolicy.guard(OkHttpDataSource.Factory(streamHttpClient)),
                 ),
         ) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
@@ -168,6 +168,8 @@ constructor(
             if (playerCache.isCached(mediaId, dataSpec.position, length)) {
                 return@Factory dataSpec
             }
+
+            if (!extraDownloadPolicy.mayDownload()) throw java.io.IOException("Download paused by data/background settings")
 
             songUrlCache[mediaId]?.let { cachedStream ->
                 return@Factory dataSpec.withResolvedStream(cachedStream)
@@ -201,6 +203,7 @@ constructor(
                         }
                         .header("Range", "bytes=0-0")
                         .build()
+                    if (!extraDownloadPolicy.mayDownload()) throw IOException("Download paused by data/background settings")
                     try {
                         streamHttpClient.newCall(request).execute().use { response ->
                             downloadContentLength(
@@ -381,7 +384,7 @@ constructor(
         }
         scope.launch(Dispatchers.Main.immediate) {
             combine(context.dataStore.data, ProcessLifecycleOwner.get().lifecycle.currentStateFlow) { prefs, state ->
-                Triple(prefs[DownloadMobileAllowedKey] ?: true, prefs[DownloadBackgroundAllowedKey] ?: true, state.isAtLeast(Lifecycle.State.STARTED))
+                Triple(com.metrolist.music.utils.mobileDownloadsAllowed(prefs), com.metrolist.music.utils.backgroundDownloadsAllowed(prefs), state.isAtLeast(Lifecycle.State.STARTED))
             }.distinctUntilChanged().collect { (mobile, background, foreground) ->
                 backgroundAllowed = background; appForeground = foreground
                 downloadManager.setRequirements(Requirements(downloadNetworkRequirements(mobile)))

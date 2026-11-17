@@ -540,7 +540,7 @@ class MusicService :
         casting = castConnectionHandler?.isCasting?.value == true,
         inOnlineRoom = listenTogetherManager.isInRoom,
         connected = musicVideoUsesLocal || connectivityManager.activeNetwork != null,
-        remoteAllowed = musicVideoUsesLocal || com.metrolist.music.utils.CanvasNetworkPolicy.get(this).mayLoadRemote(),
+        remoteAllowed = musicVideoUsesLocal || com.metrolist.music.utils.DataSaverPolicy.get(this).mayStreamVideo(),
     )
 
     private fun replaceMusicVideoCurrentItem(item: MediaItem, durationMs: Long) {
@@ -607,7 +607,7 @@ class MusicService :
                 else YouTube.proxyAuth?.let { response.request.newBuilder().header("Proxy-Authorization", it).build() }
             }.build()
         // Direct video/audio requests never enter the song/download cache or reuse its keys.
-        val upstream = com.metrolist.music.utils.CanvasNetworkPolicy.get(this).guard(
+        val upstream = com.metrolist.music.utils.DataSaverPolicy.get(this).guardVideo(
             DefaultDataSource.Factory(this, OkHttpDataSource.Factory(client)))
         return ResolvingDataSource.Factory(upstream) { it.withResolvedStream(stream) }
     }
@@ -1046,11 +1046,7 @@ class MusicService :
         // Watch for audio quality setting changes
         var isFirstQualityEmit = true
         scope.launch {
-            dataStore.data
-                .map {
-                    com.metrolist.music.utils.streamingAudioQuality(it,
-                        com.metrolist.music.utils.networkUsesMobileQuality(connectivityManager))
-                }.distinctUntilChanged()
+            com.metrolist.music.utils.DataSaverPolicy.get(this@MusicService).audioQuality
                 .collect { newQuality ->
                     val oldQuality = audioQuality
                     audioQuality = newQuality
@@ -1058,7 +1054,7 @@ class MusicService :
                     if (isFirstQualityEmit) {
                         isFirstQualityEmit = false
                         Timber.tag(TAG).i("QUALITY INIT: $newQuality")
-                        return@collect
+                        if (oldQuality == newQuality) return@collect
                     }
 
                     Timber.tag(TAG).i("QUALITY CHANGED: $oldQuality -> $newQuality")
@@ -5022,6 +5018,11 @@ class MusicService :
     /**
      * Updates all app widgets with current playback state
      */
+    private var widgetArtworkSongId: String? = null
+    private var widgetArtworkUri: String? = null
+    private var widgetArtworkReady = false
+    private var widgetArtworkRetried = false
+    private var widgetArtworkRetryJob: Job? = null
     private var widgetUpdateInFlight = false
     private var pendingWidgetUpdate: Pair<Boolean, Boolean?>? = null
 
@@ -5045,7 +5046,7 @@ class MusicService :
                     val artistName = songData?.artists?.joinToArtistString(getArtistSeparator(this@MusicService)) { it.name } ?: getString(R.string.sourcify_tap_to_open)
                     val resolvedIsLiked = isLikedRequested == true
 
-                    widgetManager.updateWidgets(
+                    val hasArtwork = widgetManager.updateWidgets(
                         title = songTitle,
                         artist = artistName,
                         artworkUri = song?.thumbnailUrl,
@@ -5054,6 +5055,25 @@ class MusicService :
                         duration = if (player.duration != C.TIME_UNSET) player.duration else 0,
                         currentPosition = player.currentPosition,
                     )
+                    widgetArtworkReady = hasArtwork
+                    if (widgetArtworkSongId != song?.id || widgetArtworkUri != song?.thumbnailUrl) {
+                        widgetArtworkRetryJob?.cancel()
+                        widgetArtworkSongId = song?.id
+                        widgetArtworkUri = song?.thumbnailUrl
+                        widgetArtworkRetried = false
+                    }
+                    if (!hasArtwork && !widgetArtworkRetried && song != null) {
+                        widgetArtworkRetried = true
+                        val retryId = song.id
+                        val retryUri = song.thumbnailUrl
+                        widgetArtworkRetryJob = scope.launch {
+                            for (waitMs in listOf(1000L, 2000L)) {
+                                delay(waitMs)
+                                if (currentSong.value?.song?.id != retryId || currentSong.value?.song?.thumbnailUrl != retryUri || widgetArtworkReady) break
+                                updateWidgetUI(player.isPlaying)
+                            }
+                        }
+                    }
                 }
             } catch (e: Exception) {
             } finally {

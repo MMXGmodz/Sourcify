@@ -40,6 +40,8 @@ import com.metrolist.music.db.entities.Song
 import com.metrolist.music.ui.component.DefaultDialog
 import com.metrolist.music.ui.component.Material3MenuGroup
 import com.metrolist.music.ui.component.Material3MenuItemData
+import com.metrolist.music.utils.PlaylistArchiveTrack
+import com.metrolist.music.utils.toArchiveTrack
 import com.metrolist.music.utils.PlaylistExporter
 import com.metrolist.music.utils.getExportFileUri
 import com.metrolist.music.utils.saveToPublicDocuments
@@ -253,6 +255,8 @@ fun LocalPlaylistMenu(
 
     if (showExportDialog) {
         ExportDialog(
+            playlistName = playlist.playlist.name,
+            archiveTracks = { songs.map { it.song.toArchiveTrack() } },
             onDismiss = { setShowExportDialog(false) },
             onShare = { format ->
                 coroutineScope.launch {
@@ -331,7 +335,7 @@ fun AutoPlaylistMenu(
 
     val (showExportDialog, setShowExportDialog) = remember { mutableStateOf(false) }
 
-    val coverStyleItem = playlistCoverStyleMenuItem("auto:$playlistId")
+    val coverStyleItem = playlistCoverStyleMenuItem("auto:$playlistId", defaultClassic = playlistId == "top" || playlistId == "cache")
 
     val downloadMenuItem =
         when (downloadState) {
@@ -443,6 +447,8 @@ fun AutoPlaylistMenu(
             }
 
         ExportDialog(
+            playlistName = playlistName,
+            archiveTracks = { songs.map { it.toArchiveTrack() } },
             onDismiss = { setShowExportDialog(false) },
             onShare = { format ->
                 coroutineScope.launch {
@@ -510,89 +516,17 @@ fun TopPlaylistMenu(
     onQueue: () -> Unit,
     onDownload: () -> Unit,
     onDismiss: () -> Unit,
+    songs: List<Song> = emptyList(),
+    playlistName: String = "Playlist",
 ) {
-    val listenTogetherManager = LocalListenTogetherManager.current
-    val isGuest = listenTogetherManager?.isInRoom == true && !listenTogetherManager.isHost
-    val coverStyleItem = playlistCoverStyleMenuItem("auto:top", defaultClassic = true)
-
-    val downloadMenuItem =
-        when (downloadState) {
-            Download.STATE_COMPLETED -> {
-                Material3MenuItemData(
-                    title = { Text(stringResource(R.string.remove_download)) },
-                    description = { Text(stringResource(R.string.remove_download_playlist_desc)) },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.offline),
-                            contentDescription = null,
-                        )
-                    },
-                    onClick = {
-                        onDownload()
-                        onDismiss()
-                    },
-                )
-            }
-
-            Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> {
-                Material3MenuItemData(
-                    title = { Text(stringResource(R.string.downloading)) },
-                    description = { Text(stringResource(R.string.download_in_progress_desc)) },
-                    icon = {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp,
-                        )
-                    },
-                    onClick = {
-                        onDownload()
-                        onDismiss()
-                    },
-                )
-            }
-
-            else -> {
-                Material3MenuItemData(
-                    title = { Text(stringResource(R.string.action_download)) },
-                    description = { Text(stringResource(R.string.download_playlist_desc)) },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.download),
-                            contentDescription = null,
-                        )
-                    },
-                    onClick = {
-                        onDownload()
-                        onDismiss()
-                    },
-                )
-            }
-        }
-
-    Material3MenuGroup(
-        items =
-            listOfNotNull(
-                coverStyleItem,
-                if (!isGuest) {
-                    Material3MenuItemData(
-                        title = { Text(stringResource(R.string.add_to_queue)) },
-                        description = { Text(stringResource(R.string.add_to_queue_desc)) },
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.queue_music),
-                                contentDescription = null,
-                            )
-                        },
-                        onClick = {
-                            onQueue()
-                            onDismiss()
-                        },
-                    )
-                } else {
-                    null
-                },
-                downloadMenuItem,
-            ),
+    AutoPlaylistMenu(
+        playlistId = "top",
+        downloadState = downloadState,
+        onQueue = onQueue,
+        onDownload = onDownload,
+        onDismiss = onDismiss,
+        songs = songs,
+        playlistName = playlistName,
     )
 }
 
@@ -616,7 +550,14 @@ fun ExportDialog(
     initialFormat: String = "csv",
     onShare: (format: String) -> Unit,
     onSave: (format: String) -> Unit,
+    playlistName: String = "Playlist",
+    archiveTracks: (suspend () -> List<PlaylistArchiveTrack>)? = null,
 ) {
+    val (showArchive, setShowArchive) = remember { mutableStateOf(false) }
+    if (showArchive && archiveTracks != null) {
+        PlaylistArchiveDialog(playlistName, archiveTracks, onDismiss)
+        return
+    }
     val (selected, setSelected) = remember { mutableStateOf(initialFormat) }
 
     DefaultDialog(
@@ -626,16 +567,25 @@ fun ExportDialog(
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(android.R.string.cancel))
             }
-            TextButton(onClick = { onSave(selected) }) {
+            TextButton(onClick = { if (selected == "zip") setShowArchive(true) else onSave(selected) }) {
                 Text(text = stringResource(R.string.export_option_save))
             }
-            TextButton(onClick = { onShare(selected) }) {
+            TextButton(enabled = selected != "zip", onClick = { onShare(selected) }) {
                 Text(text = stringResource(R.string.export_option_share))
             }
         },
         horizontalAlignment = Alignment.Start,
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
+            if (archiveTracks != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().clickable { setSelected("zip") }.padding(8.dp),
+                ) {
+                    RadioButton(selected = selected == "zip", onClick = null)
+                    Text(stringResource(R.string.export_as_zip), modifier = Modifier.padding(start = 12.dp))
+                }
+            }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier =
@@ -676,88 +626,16 @@ fun CachePlaylistMenu(
     onQueue: () -> Unit,
     onDownload: () -> Unit,
     onDismiss: () -> Unit,
+    songs: List<Song> = emptyList(),
+    playlistName: String = "Playlist",
 ) {
-    val listenTogetherManager = LocalListenTogetherManager.current
-    val isGuest = listenTogetherManager?.isInRoom == true && !listenTogetherManager.isHost
-    val coverStyleItem = playlistCoverStyleMenuItem("auto:cache", defaultClassic = true)
-
-    val downloadMenuItem =
-        when (downloadState) {
-            Download.STATE_COMPLETED -> {
-                Material3MenuItemData(
-                    title = { Text(stringResource(R.string.remove_download)) },
-                    description = { Text(stringResource(R.string.remove_download_playlist_desc)) },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.offline),
-                            contentDescription = null,
-                        )
-                    },
-                    onClick = {
-                        onDownload()
-                        onDismiss()
-                    },
-                )
-            }
-
-            Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> {
-                Material3MenuItemData(
-                    title = { Text(stringResource(R.string.downloading)) },
-                    description = { Text(stringResource(R.string.download_in_progress_desc)) },
-                    icon = {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp,
-                        )
-                    },
-                    onClick = {
-                        onDownload()
-                        onDismiss()
-                    },
-                )
-            }
-
-            else -> {
-                Material3MenuItemData(
-                    title = { Text(stringResource(R.string.action_download)) },
-                    description = { Text(stringResource(R.string.download_playlist_desc)) },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.download),
-                            contentDescription = null,
-                        )
-                    },
-                    onClick = {
-                        onDownload()
-                        onDismiss()
-                    },
-                )
-            }
-        }
-
-    Material3MenuGroup(
-        items =
-            listOfNotNull(
-                coverStyleItem,
-                if (!isGuest) {
-                    Material3MenuItemData(
-                        title = { Text(stringResource(R.string.add_to_queue)) },
-                        description = { Text(stringResource(R.string.add_to_queue_desc)) },
-                        icon = {
-                            Icon(
-                                painter = painterResource(R.drawable.queue_music),
-                                contentDescription = null,
-                            )
-                        },
-                        onClick = {
-                            onQueue()
-                            onDismiss()
-                        },
-                    )
-                } else {
-                    null
-                },
-                downloadMenuItem,
-            ),
+    AutoPlaylistMenu(
+        playlistId = "cache",
+        downloadState = downloadState,
+        onQueue = onQueue,
+        onDownload = onDownload,
+        onDismiss = onDismiss,
+        songs = songs,
+        playlistName = playlistName,
     )
 }

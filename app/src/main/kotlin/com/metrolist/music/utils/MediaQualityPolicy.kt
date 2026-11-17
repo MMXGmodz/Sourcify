@@ -7,7 +7,7 @@ internal fun readAudioQuality(value: String?): AudioQuality? =
     if (value == "VERY_HIGH") AudioQuality.HIGH else AudioQuality.entries.find { it.name == value }
 
 internal fun streamingAudioQuality(prefs: Preferences, metered: Boolean): AudioQuality =
-    readAudioQuality(prefs[if (metered) StreamingMobileQualityKey else StreamingWifiQualityKey])
+    if (metered && dataSaverEnabled(prefs)) AudioQuality.LOW else readAudioQuality(prefs[if (metered) StreamingMobileQualityKey else StreamingWifiQualityKey])
         ?: readAudioQuality(prefs[AudioQualityKey]) ?: AudioQuality.AUTO
 
 internal const val DefaultCanvasWifiHeight = 1080
@@ -26,5 +26,4 @@ internal fun networkUsesMobileQuality(manager: android.net.ConnectivityManager):
     networkUsesMobileQuality(manager.getNetworkCapabilities(manager.activeNetwork), manager.isActiveNetworkMetered)
 
 internal fun networkUsesMobileQuality(capabilities: android.net.NetworkCapabilities?, metered: Boolean): Boolean =
-    capabilities?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) != true &&
-        (capabilities?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) == true || metered)
+    metered || capabilities?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) == true

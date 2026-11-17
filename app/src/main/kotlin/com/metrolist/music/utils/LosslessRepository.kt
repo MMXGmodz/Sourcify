@@ -109,6 +109,7 @@ internal class LosslessRepository(private val context: Context,
     }
 
     suspend fun test(provider: LosslessProvider, endpoint: String): Unit = withContext(Dispatchers.IO) {
+        if (!DownloadNetworkPolicy.get(context).mayDownload()) throw IOException("Download paused by data/background settings")
         val track = search(provider, endpoint, "Daft Punk Get Lucky").firstOrNull() ?: throw IOException("Keine Katalogantwort")
         val source = stream(track, endpoint, false)
         withResponse(audio, Request.Builder().url(source.url).header("Range", "bytes=0-41").build()) { response ->
@@ -127,20 +128,26 @@ internal class LosslessRepository(private val context: Context,
 
     suspend fun acquire(track: LosslessTrack, endpoint: String, best: Boolean, progress: (Long, Long) -> Unit): LocalAudioTrack = withContext(Dispatchers.IO) {
         saved(track)?.let { return@withContext it }
+        val policy = DownloadNetworkPolicy.get(context)
+        if (!policy.mayDownload()) throw IOException("Download paused by data/background settings")
         val file = File(context.cacheDir, "lossless-${UUID.randomUUID()}.flac")
         try {
-            val source = stream(track, endpoint, best)
-            withResponse(audio, Request.Builder().url(source.url).build()) { response ->
-                if (response.code != 200) throw IOException("Audiodownload nicht verfügbar (HTTP ${response.code})")
-                val body = response.body ?: throw IOException("Keine Audiodaten")
-                FileOutputStream(file).use { out ->
-                    body.byteStream().use { copyLosslessOriginal(it, out, body.contentLength(), track.duration) { read, length ->
-                        if (context.cacheDir.usableSpace < 64L * 1024 * 1024) throw IOException("Not enough free storage")
-                        progress(read, length)
-                    } }
-                    out.fd.sync()
+            policy.runAllowed {
+                val source = stream(track, endpoint, best)
+                withResponse(audio, Request.Builder().url(source.url).build()) { response ->
+                    if (response.code != 200) throw IOException("Audiodownload nicht verfügbar (HTTP ${response.code})")
+                    val body = response.body ?: throw IOException("Keine Audiodaten")
+                    FileOutputStream(file).use { out ->
+                        body.byteStream().use { copyLosslessOriginal(it, out, body.contentLength(), track.duration) { read, length ->
+                            if (!policy.mayDownload()) throw IOException("Download paused by data/background settings")
+                            if (context.cacheDir.usableSpace < 64L * 1024 * 1024) throw IOException("Not enough free storage")
+                            progress(read, length)
+                        } }
+                        out.fd.sync()
+                    }
                 }
-            }
+                true
+            } ?: throw IOException("Download paused by data/background settings")
             validateCompleteFlac(file, track.duration)
             // The existing importer validates this with Android's extractor and commits it atomically.
             withContext(NonCancellable) {

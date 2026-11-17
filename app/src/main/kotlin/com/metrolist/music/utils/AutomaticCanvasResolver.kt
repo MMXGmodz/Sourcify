@@ -85,11 +85,13 @@ internal class AutomaticCanvasResolver(
 ) {
     private data class Entry(val source: CanvasVideoSource?, val expiresAt: Long)
     private val cache = LruCache<String, Entry>(30)
+    private val recentSources = LruCache<String, CanvasVideoSource>(30)
 
     private val mutex = Mutex()
 
-    suspend fun resolve(song: MediaMetadata, maxVideoHeight: Int? = null): CanvasVideoSource? = mutex.withLock {
+    suspend fun resolve(song: MediaMetadata, maxVideoHeight: Int? = null, remoteAllowed: Boolean = true): CanvasVideoSource? = mutex.withLock {
         if (song.isEpisode || LocalAudioStore.isLocalId(song.id)) return@withLock null
+        if (!remoteAllowed) return@withLock recentSources.get(song.id)
         val selectedHeight = normalizedCanvasHeight(maxVideoHeight ?: videoHeight())
         val cacheKey = "${song.id}:$selectedHeight"
         cache.get(cacheKey)?.takeIf { it.expiresAt > now() }?.let { return@withLock it.source }
@@ -120,6 +122,7 @@ internal class AutomaticCanvasResolver(
         val expiry = source?.stream?.expiresAt?.toEpochMilliseconds()?.minus(30_000)
             ?: (now() + if (source == null) 60_000 else 5 * 60_000)
         cache.put(cacheKey, Entry(source, expiry))
+        if (source != null) recentSources.put(song.id, source)
         source
     }
 
@@ -134,11 +137,11 @@ internal fun rememberAutomaticCanvas(song: MediaMetadata?, enabled: Boolean): Ca
     val resolver = sharedCanvasResolver
     val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
     val profile by CanvasNetworkPolicy.get(LocalContext.current).profile.collectAsStateWithLifecycle()
-    val active = enabled && profile.remoteAllowed && lifecycleState.isAtLeast(Lifecycle.State.RESUMED)
+    val active = enabled && lifecycleState.isAtLeast(Lifecycle.State.RESUMED)
     val result by produceState<Triple<String, CanvasNetworkProfile, CanvasVideoSource?>?>(null, song?.id, active, profile) {
         value = null
         if (song != null && active) {
-            val source = withContext(Dispatchers.IO) { resolver.resolve(song, profile.maxVideoHeight) }
+            val source = withContext(Dispatchers.IO) { resolver.resolve(song, profile.maxVideoHeight, profile.remoteAllowed) }
             value = Triple(song.id, profile, source)
         }
     }
@@ -151,14 +154,14 @@ internal fun rememberSelectedCanvas(selection: CanvasSelection?, enabled: Boolea
     val profile by CanvasNetworkPolicy.get(LocalContext.current).profile.collectAsStateWithLifecycle()
     val ownVideo = selection?.uri?.scheme in listOf("content", "file")
     val requestProfile = profile.takeUnless { ownVideo }
-    val active = enabled && (ownVideo || profile.remoteAllowed) && state.isAtLeast(Lifecycle.State.RESUMED)
+    val active = enabled && state.isAtLeast(Lifecycle.State.RESUMED)
     val source by produceState<Triple<CanvasSelection, CanvasNetworkProfile?, CanvasVideoSource?>?>(null, selection, active, requestProfile) {
         value = null
         if (active && selection != null) {
             val resolved = if (selection.uri != null) CanvasVideoSource(selection.uri, selection.startMs, selection.endMs)
             else withContext(Dispatchers.IO) {
                 try {
-                    resolveSelectedCanvasVideo(requireNotNull(selection.videoId), profile.maxVideoHeight)?.copy(clipStartMs = selection.startMs, clipEndMs = selection.endMs)
+                    resolveSelectedCanvasVideo(requireNotNull(selection.videoId), profile.maxVideoHeight, profile.remoteAllowed)?.copy(clipStartMs = selection.startMs, clipEndMs = selection.endMs)
                 } catch (error: CancellationException) { throw error }
                 catch (_: Exception) { null }
             }
@@ -170,6 +173,6 @@ internal fun rememberSelectedCanvas(selection: CanvasSelection?, enabled: Boolea
 
 private val manualCanvasResolver by lazy { AutomaticCanvasResolver(search = { emptyList() }) }
 
-internal suspend fun resolveSelectedCanvasVideo(id: String, maxVideoHeight: Int? = null): CanvasVideoSource? = manualCanvasResolver.resolve(
-    MediaMetadata(id, "", emptyList(), -1, musicVideoType = "MUSIC_VIDEO_TYPE_OMV"), maxVideoHeight,
+internal suspend fun resolveSelectedCanvasVideo(id: String, maxVideoHeight: Int? = null, remoteAllowed: Boolean = true): CanvasVideoSource? = manualCanvasResolver.resolve(
+    MediaMetadata(id, "", emptyList(), -1, musicVideoType = "MUSIC_VIDEO_TYPE_OMV"), maxVideoHeight, remoteAllowed,
 )

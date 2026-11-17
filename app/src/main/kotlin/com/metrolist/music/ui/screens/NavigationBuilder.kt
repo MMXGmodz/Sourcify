@@ -401,6 +401,10 @@ fun NavGraphBuilder.navigationBuilder(
         com.metrolist.music.ui.screens.settings.CanvasSettings(navController)
     }
 
+    composable("settings/data_saver") {
+        com.metrolist.music.ui.screens.settings.DataSaverSettings(navController)
+    }
+
     composable("settings/media_quality") {
         com.metrolist.music.ui.screens.settings.MediaQualitySettings(navController)
     }

@@ -60,18 +60,12 @@ fun ContentDisplaySettings(nav: NavController) {
 
 @Composable
 internal fun ContentDisplayPreferences(nav: NavController) {
-    val (canvas, setCanvas) = rememberPreference(CanvasEnabledKey, true)
-    val (auto, setAuto) = rememberPreference(AutomaticCanvasKey, true)
-    val (wifi, setWifi) = rememberPreference(CanvasWifiOnlyKey, false)
     val (explicit, setExplicit) = rememberPreference(HideExplicitKey, false)
     val (videos, setVideos) = rememberPreference(HideVideoSongsKey, false)
     val (shorts, setShorts) = rememberPreference(HideYoutubeShortsKey, false)
     com.metrolist.music.ui.component.Material3SettingsGroup(
         title = stringResource(R.string.s9_videos),
         items = listOf(
-            displaySwitch(R.drawable.slow_motion_video, stringResource(R.string.sourcify_canvas), stringResource(R.string.s9_canvas_desc), canvas, setCanvas),
-            displaySwitch(R.drawable.slow_motion_video, stringResource(R.string.s9_auto_canvas), stringResource(R.string.s9_auto_desc), auto, setAuto),
-            displaySwitch(R.drawable.wifi_proxy, stringResource(R.string.canvas_wifi_only), stringResource(R.string.canvas_wifi_only_description), wifi, setWifi),
             displaySwitch(R.drawable.play, stringResource(R.string.s9_music_titles), stringResource(R.string.s9_music_desc), !videos) { setVideos(!it) },
             displaySwitch(R.drawable.play, stringResource(R.string.s9_shorts), stringResource(R.string.s9_shorts_desc), !shorts) { setShorts(!it) },
             com.metrolist.music.ui.component.Material3SettingsItem(
@@ -104,9 +98,6 @@ private fun displaySwitch(icon: Int, title: String, description: String, checked
 fun DataOfflineSettings(nav: NavController) {
     val context = LocalContext.current
     val connection = LocalPlayerConnection.current
-    val (mobile, setMobile) = rememberPreference(DownloadMobileAllowedKey, true)
-    val (background, setBackground) = rememberPreference(DownloadBackgroundAllowedKey, true)
-    val (wifiCanvas, setWifiCanvas) = rememberPreference(CanvasWifiOnlyKey, false)
     val util = if (connection != null) LocalDownloadUtil.current else null
     val scope = rememberCoroutineScope()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -136,11 +127,7 @@ fun DataOfflineSettings(nav: NavController) {
     val usage = snapshot?.first
     fun bytes(value: Long) = Formatter.formatFileSize(context, value)
     ReferencePage(stringResource(R.string.s9_data), nav) {
-        Text(stringResource(R.string.s9_downloads), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge)
-        SettingSwitch(stringResource(R.string.s9_mobile_downloads), stringResource(R.string.s9_mobile_desc), mobile, setMobile)
-        SettingSwitch(stringResource(R.string.s9_background_downloads), stringResource(R.string.s9_background_desc), background, setBackground)
-        SettingSwitch(stringResource(R.string.canvas_wifi_only), stringResource(R.string.canvas_wifi_only_description), wifiCanvas, setWifiCanvas)
-        Text(stringResource(R.string.s9_audio_only), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        SettingLink(stringResource(R.string.data_saver)) { nav.navigate("settings/data_saver") }
         SettingLink(stringResource(R.string.s9_saved_songs)) { nav.navigate("auto_playlist/downloaded") }
         HorizontalDivider()
         Text(stringResource(R.string.s9_storage), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge)

@@ -42,7 +42,7 @@ fun LibraryScreen() {
     val filterContent = @Composable {
         Column {
             TextButton(onClick = { navController.navigate("local_audio") }) {
-                Text(stringResource(R.string.local_audio_title) + " · FLAC / WAV")
+                Text(stringResource(R.string.local_audio_import_action))
             }
             Row {
                 ChipsRow(

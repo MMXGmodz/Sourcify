@@ -18,6 +18,19 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33], application = android.app.Application::class)
 class AutomaticCanvasResolverTest {
+    @Test fun meteredNetworkReusesKnownCanvasWithoutSearchingOrResolvingAnotherSource() = runBlocking {
+        val selected = song.copy(musicVideoType = "MUSIC_VIDEO_TYPE_OMV")
+        var calls = 0
+        val expected = CanvasVideoSource(Uri.parse("https://example.com/cached.mp4"))
+        val resolver = AutomaticCanvasResolver(search = { calls++; emptyList() }, resolveVideo = { _, _ -> calls++; expected })
+        assertNull(resolver.resolve(selected, 240, remoteAllowed = false))
+        assertEquals(0, calls)
+        assertEquals(expected, resolver.resolve(selected, 1080))
+        val afterWifi = calls
+        assertEquals(expected, resolver.resolve(selected, 240, remoteAllowed = false))
+        assertEquals(afterWifi, calls)
+    }
+
     @Test fun upgradingToFullHdDoesNotReuseTheCachedLowerResolutionSource() = runBlocking {
         val requests = mutableListOf<Int>()
         val resolver = AutomaticCanvasResolver(search = { emptyList() }, resolveVideo = { _, height ->

@@ -87,6 +87,7 @@ import com.metrolist.music.ui.component.NewAction
 import com.metrolist.music.ui.component.NewActionGrid
 import com.metrolist.music.ui.component.SongListItem
 import com.metrolist.music.ui.menu.ExportDialog
+import com.metrolist.music.utils.toArchiveTrack
 import com.metrolist.music.utils.PlaylistExporter
 import com.metrolist.music.utils.getExportFileUri
 import com.metrolist.music.utils.saveToPublicDocuments
@@ -567,6 +568,8 @@ fun AlbumMenu(
 
             if (showExportDialog) {
                 ExportDialog(
+                    playlistName = album.album.title,
+                    archiveTracks = { songs.map { it.toArchiveTrack() } },
                     onDismiss = { showExportDialog = false },
                     onShare = { format ->
                         val playlistSongs =

@@ -84,6 +84,7 @@ import com.metrolist.music.ui.component.NewActionGrid
 import com.metrolist.music.ui.component.YouTubeListItem
 import com.metrolist.music.ui.utils.resize
 import com.metrolist.music.utils.ArtistNameAliases
+import com.metrolist.music.utils.PlaylistArchiveTrack
 import com.metrolist.music.utils.exportYouTubePlaylistAsCSV
 import com.metrolist.music.utils.exportYouTubePlaylistAsM3U
 import com.metrolist.music.utils.getExportFileUri
@@ -713,6 +714,16 @@ fun YouTubePlaylistMenu(
 
     if (showExportDialog) {
         ExportDialog(
+            playlistName = playlist.title,
+            archiveTracks = {
+                val archiveSongs = if (songs.isEmpty()) {
+                    YouTube.playlist(playlist.id).completed().getOrThrow().songs
+                } else songs
+                archiveSongs.map { song ->
+                    PlaylistArchiveTrack(song.id, song.title,
+                        song.artists.joinToString("; ") { it.name }, song.duration ?: -1)
+                }
+            },
             onDismiss = { showExportDialog = false },
             onShare = { format ->
                 coroutineScope.launch {
