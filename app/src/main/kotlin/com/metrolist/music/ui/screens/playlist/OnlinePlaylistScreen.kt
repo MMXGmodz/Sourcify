@@ -713,7 +713,8 @@ private fun OnlinePlaylistHeader(
 @Composable
 fun OnlinePlaylistScreen(navController: NavController, viewModel: OnlinePlaylistViewModel = hiltViewModel()) {
     val item by viewModel.playlist.collectAsStateWithLifecycle(null)
-    com.metrolist.music.ui.component.ArtworkPage(item?.thumbnail) {
+    val accent = com.metrolist.music.utils.rememberPlaylistColor(item?.id.orEmpty())
+    com.metrolist.music.ui.component.ArtworkPage(item?.thumbnail, colorOverride = accent?.let { androidx.compose.ui.graphics.Color(it) }) {
         OnlinePlaylistScreenContent(navController, viewModel)
     }
 }

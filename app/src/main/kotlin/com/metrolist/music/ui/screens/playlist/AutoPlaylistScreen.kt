@@ -1028,7 +1028,8 @@ enum class PlaylistType {
 @Composable
 fun AutoPlaylistScreen(navController: NavController, viewModel: AutoPlaylistViewModel = hiltViewModel()) {
     val item by viewModel.likedSongs.collectAsStateWithLifecycle(null)
-    com.metrolist.music.ui.component.ArtworkPage(item?.firstOrNull()?.song?.thumbnailUrl) {
+    val accent = com.metrolist.music.utils.rememberPlaylistColor("auto:${viewModel.playlist}")
+    com.metrolist.music.ui.component.ArtworkPage(item?.firstOrNull()?.song?.thumbnailUrl, colorOverride = accent?.let { androidx.compose.ui.graphics.Color(it) }) {
         AutoPlaylistScreenContent(navController, viewModel)
     }
 }

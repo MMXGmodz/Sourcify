@@ -476,13 +476,45 @@ private fun LocalPlaylistScreenContent(
         }
     }
 
+    val openPlaylistOptions: () -> Unit = {
+        playlist?.let { selected ->
+            menuState.show {
+                LocalPlaylistMenu(
+                    playlist = selected, songs = songs, context = context, downloadState = downloadState,
+                    onEdit = { showEditDialog = true },
+                    onEditCover = coverEditor?.onEdit?.takeIf { editable },
+                    onSync = {
+                        selected.playlist.browseId?.let { browseId ->
+                            coroutineScope.launch(Dispatchers.IO) {
+                                syncUtils.syncPlaylistSuspend(browseId, selected.id)
+                                withContext(Dispatchers.Main) { snackbarHostState.showSnackbar(context.getString(R.string.playlist_synced)) }
+                            }
+                        }
+                    },
+                    onDelete = { showDeletePlaylistDialog = true },
+                    onDownload = {
+                        when (downloadState) {
+                            Download.STATE_COMPLETED -> showRemoveDownloadDialog = true
+                            Download.STATE_DOWNLOADING -> songs.forEach { song ->
+                                DownloadService.sendRemoveDownload(context, ExoDownloadService::class.java, song.song.id, false)
+                            }
+                            else -> songs.forEach { downloadUtil.download(it.song) }
+                        }
+                    },
+                    onQueue = { playerConnection.addToQueue(items = songs.map { it.song.toMediaItem() }) },
+                    onDismiss = menuState::dismiss,
+                )
+            }
+        }
+    }
+
     PlaylistCollapsingContainer(
         listState = lazyListState, title = playlist?.playlist?.name.orEmpty(),
         enabled = !isSearching && !inSelectMode && playlist != null && songs.isNotEmpty(),
         onBack = { navController.navigateUp() },
         onBackLongClick = { navController.backToMain() },
         onSearch = { isSearching = true },
-        onEditCover = coverEditor?.onEdit?.takeIf { editable },
+        onMore = openPlaylistOptions,
         onPlay = { if (songs.isNotEmpty()) {
             playerConnection.playQueue(ListQueue(title = playlist?.playlist?.name.orEmpty(), items = songs.map { it.song.toMediaItem() }))
         } },
@@ -517,12 +549,8 @@ private fun LocalPlaylistScreenContent(
                                 playlist = playlist,
                                 songs = songs,
                                 onlinePlaylist = onlinePlaylist,
-                                onShowEditDialog = { showEditDialog = true },
                                 onShowRemoveDownloadDialog = { showRemoveDownloadDialog = true },
-                                onshowDeletePlaylistDialog = { showDeletePlaylistDialog = true },
-                                onStartSearch = { isSearching = true },
                                 coverThumbnail = coverEditor?.thumbnail,
-                                snackbarHostState = snackbarHostState,
                                 modifier = Modifier.animateItem(),
                             )
                         }
@@ -861,7 +889,9 @@ private fun LocalPlaylistScreenContent(
                         )
                     }
                 } else if (!isSearching) {
-                    // Only search button remains in TopAppBar
+                    IconButton(onClick = openPlaylistOptions, enabled = playlist != null) {
+                        Icon(painterResource(R.drawable.more_vert), stringResource(R.string.more_options))
+                    }
                     IconButton(
                         onClick = { isSearching = true },
                     ) {
@@ -889,23 +919,13 @@ fun LocalPlaylistHeader(
     playlist: Playlist,
     songs: List<PlaylistSong>,
     onlinePlaylist: PlaylistItem?,
-    onShowEditDialog: () -> Unit,
     onShowRemoveDownloadDialog: () -> Unit,
-    onshowDeletePlaylistDialog: () -> Unit,
-    onStartSearch: () -> Unit,
     coverThumbnail: String?,
-    snackbarHostState: SnackbarHostState,
     modifier: Modifier,
 ) {
     val navController = LocalNavController.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
-    val database = LocalDatabase.current
-    val menuState = LocalMenuState.current
-    val syncUtils = LocalSyncUtils.current
-    val scope = rememberCoroutineScope()
-    val editPlaylistCoverStr = stringResource(R.string.edit_playlist_cover)
-    val playlistSyncedStr = stringResource(R.string.playlist_synced)
 
     val playlistLength =
         remember(songs) {
@@ -917,8 +937,6 @@ fun LocalPlaylistHeader(
         mutableIntStateOf(Download.STATE_STOPPED)
     }
 
-    val liked = playlist.playlist.bookmarkedAt != null
-    val editable: Boolean = playlist.playlist.isEditable
 
     LaunchedEffect(songs) {
         if (songs.isEmpty()) return@LaunchedEffect
@@ -1117,54 +1135,6 @@ fun LocalPlaylistHeader(
                     )
                 }
 
-                IconButton(
-                    onClick = {
-                        menuState.show {
-                            LocalPlaylistMenu(
-                                playlist = playlist,
-                                songs = songs,
-                                context = context,
-                                downloadState = downloadState,
-                                onEdit = onShowEditDialog,
-                                onSync = {
-                                    scope.launch(Dispatchers.IO) {
-                                        syncUtils.syncPlaylistSuspend(
-                                            playlist.playlist.browseId!!,
-                                            playlist.id,
-                                        )
-                                        withContext(Dispatchers.Main) {
-                                            snackbarHostState.showSnackbar(playlistSyncedStr)
-                                        }
-                                    }
-                                },
-                                onDelete = onshowDeletePlaylistDialog,
-                                onDownload = {
-                                    when (downloadState) {
-                                        Download.STATE_COMPLETED -> onShowRemoveDownloadDialog()
-                                        Download.STATE_DOWNLOADING -> songs.forEach { song ->
-                                            DownloadService.sendRemoveDownload(
-                                                context,
-                                                ExoDownloadService::class.java,
-                                                song.song.id,
-                                                false,
-                                            )
-                                        }
-                                        else -> songs.forEach { song -> downloadUtil.download(song.song) }
-                                    }
-                                },
-                                onQueue = { playerConnection.addToQueue(items = songs.map { it.song.toMediaItem() }) },
-                                onDismiss = menuState::dismiss,
-                            )
-                        }
-                    },
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.more_horiz),
-                        contentDescription = null,
-                        tint = Color(0xFFB3B3B3),
-                        modifier = Modifier.size(27.dp),
-                    )
-                }
 
                 Spacer(modifier = Modifier.weight(1f))
 
@@ -1232,7 +1202,8 @@ fun uriToByteArray(
 @Composable
 fun LocalPlaylistScreen(navController: NavController, viewModel: LocalPlaylistViewModel = hiltViewModel()) {
     val item by viewModel.playlist.collectAsStateWithLifecycle(null)
-    com.metrolist.music.ui.component.ArtworkPage(item?.thumbnails?.firstOrNull()) {
+    val accent = com.metrolist.music.utils.rememberPlaylistColor(item?.playlist?.browseId ?: viewModel.playlistId)
+    com.metrolist.music.ui.component.ArtworkPage(item?.thumbnails?.firstOrNull(), colorOverride = accent?.let { androidx.compose.ui.graphics.Color(it) }) {
         LocalPlaylistScreenContent(navController, viewModel)
     }
 }

@@ -744,6 +744,14 @@ fun BottomSheetPlayer(
     }
 
     var showQueue by rememberSaveable { mutableStateOf(false) }
+    fun showSongOptions(song: MediaMetadata) {
+        showPlayerSettings = false
+        menuState.show {
+            PlayerMenu(mediaMetadata = song, playerBottomSheetState = state,
+                onShowDetailsDialog = { bottomSheetPageState.show { ShowMediaInfo(song.id) } },
+                onDismiss = menuState::dismiss, onOpenQueue = { showQueue = true })
+        }
+    }
 
     val bottomSheetBackgroundColor =
         when (playerBackground) {
@@ -1808,7 +1816,7 @@ fun BottomSheetPlayer(
                             transitionSpec = { fadeIn() togetherWith fadeOut() },
                         ) { showLyrics ->
                             if (showLyrics) {
-                                mediaMetadata?.let { SongLyricsCard(it, effectivePosition, onSeekRequested = onLyricsSeek, lyricsAvailable = lyricsAvailable) }
+                                mediaMetadata?.let { SongLyricsCard(it, effectivePosition, onSongOptions = ::showSongOptions, onSeekRequested = onLyricsSeek, lyricsAvailable = lyricsAvailable) }
                             } else if (showCanvas) {
                                 Box(Modifier.fillMaxSize().clickable(onClickLabel = stringResource(R.string.s7_canvas_fullscreen)) { canvasFullscreen = true }) {
                                     IconButton(onClick = { canvasFullscreen = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
@@ -1835,7 +1843,7 @@ fun BottomSheetPlayer(
 
                     Spacer(Modifier.height(mediaControlsSpacing))
                     mediaMetadata?.let { song ->
-                        SongLyricsCard(song, effectivePosition, onSeekRequested = onLyricsSeek, lyricsAvailable = lyricsAvailable)
+                        SongLyricsCard(song, effectivePosition, onSongOptions = ::showSongOptions, onSeekRequested = onLyricsSeek, lyricsAvailable = lyricsAvailable)
                     }
                     if (canvasEnabled && canvasFailed) {
                         androidx.compose.material3.TextButton(onClick = { canvasFailed = false; canvasAttempt++ }) {
@@ -1881,15 +1889,7 @@ fun BottomSheetPlayer(
             PlayerSettingsSheet(mediaMetadata!!, onDismiss = { showPlayerSettings = false },
                 onCanvasSettings = { showPlayerSettings = false; state.collapseSoft(); navController.navigate("settings/canvas") },
                 onQueue = { showPlayerSettings = false; showQueue = true },
-                onSongOptions = {
-                    showPlayerSettings = false
-                    val menuSong = mediaMetadata!!
-                    menuState.show {
-                        PlayerMenu(mediaMetadata = menuSong, playerBottomSheetState = state,
-                            onShowDetailsDialog = { bottomSheetPageState.show { ShowMediaInfo(menuSong.id) } },
-                            onDismiss = menuState::dismiss, onOpenQueue = { showQueue = true })
-                    }
-                })
+                onSongOptions = { showSongOptions(mediaMetadata!!) })
         }
         AnimatedVisibility(visible = canvasFullscreen && showCanvas,
             enter = fadeIn(tween(250)), exit = fadeOut(tween(180))) {

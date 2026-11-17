@@ -153,7 +153,7 @@ fun PlaylistMenu(
 
     if (autoPlaylist == true) {
         PlaylistListItem(playlist = playlist, autoPlaylist = true, isPinned = isPinned)
-        Material3MenuGroup(items = listOf(pinAction))
+        Material3MenuGroup(items = listOf(playlistColorMenuItem(playlist.playlist.browseId ?: playlist.id), pinAction))
         return
     }
 
@@ -442,6 +442,7 @@ fun PlaylistMenu(
             Material3MenuGroup(
                 items =
                     buildList {
+                        add(playlistColorMenuItem(playlist.playlist.browseId ?: playlist.id))
                         if (!isGuest) {
                             playlist.playlist.browseId?.let { browseId ->
                                 add(

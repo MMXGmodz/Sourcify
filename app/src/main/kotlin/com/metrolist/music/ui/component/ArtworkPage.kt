@@ -21,11 +21,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 @Composable
-fun ArtworkPage(url: String?, content: @Composable () -> Unit) {
+fun ArtworkPage(url: String?, colorOverride: Color? = null, content: @Composable () -> Unit) {
     val context = LocalContext.current
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    val resolved by produceState<Pair<String?, Color>?>(null, url) {
+    val resolved by produceState<Pair<String?, Color>?>(null, url, colorOverride) {
         value = null
+        if (colorOverride != null) return@produceState
         val color = withContext(Dispatchers.IO) {
             try {
                 if (url == null) Color.Gray else {
@@ -39,7 +40,7 @@ fun ArtworkPage(url: String?, content: @Composable () -> Unit) {
         }
         value = url to color
     }
-    val color = resolved?.takeIf { it.first == url }?.second ?: Color.Gray
+    val color = colorOverride ?: resolved?.takeIf { it.first == url }?.second ?: Color.Gray
     MetrolistTheme(darkTheme = dark, themeColor = color) {
         CompositionLocalProvider(LocalSongColor provides color) {
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(songBackdropColors(color, MaterialTheme.colorScheme.background)))) {

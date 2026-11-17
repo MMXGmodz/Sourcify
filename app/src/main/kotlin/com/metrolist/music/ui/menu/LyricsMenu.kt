@@ -100,6 +100,7 @@ fun LyricsMenu(
     onShowOffsetDialog: () -> Unit = {},
     viewModel: LyricsMenuViewModel = hiltViewModel(),
     initiallySearch: Boolean = false,
+    onSongOptions: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val database = LocalDatabase.current
@@ -688,6 +689,17 @@ fun LyricsMenu(
                     )
                 }
             )
+        }
+        if (onSongOptions != null) {
+            item {
+                Material3MenuGroup(
+                    items = listOf(Material3MenuItemData(
+                        title = { Text(stringResource(R.string.s16_song_options)) },
+                        icon = { Icon(painterResource(R.drawable.more_horiz), null) },
+                        onClick = onSongOptions,
+                    )),
+                )
+            }
         }
     }
 }

@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -44,12 +45,16 @@ internal fun LyricsTranslationControls(songId: String, entries: List<LyricsEntry
         LyricsTranslationHelper.loadTranslationsFromDatabase(entries, entity, language, identity)
     }
     val busy = status is LyricsTranslationHelper.TranslationStatus.Translating
-    Row(Modifier.fillMaxWidth()) {
+    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         TextButton(enabled = entries.isNotEmpty() && !busy, onClick = {
             missingKey = (if (provider == "DeepL") deepLKey else key).isBlank()
             if (!missingKey) LyricsTranslationHelper.translateLyrics(entries, language, key, url, model, mode,
                 scope, context, provider, deepLKey, formality, true, songId, database, prompt)
-        }) { Text(stringResource(R.string.s813_translate_lyrics), color = Color.White) }
+        }) {
+            Icon(painterResource(R.drawable.translate), null, tint = Color.White)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.s813_translate_lyrics), color = Color.White)
+        }
         if (busy) TextButton(onClick = { LyricsTranslationHelper.cancelTranslation() }) {
             Text(stringResource(android.R.string.cancel), color = Color.White)
         }

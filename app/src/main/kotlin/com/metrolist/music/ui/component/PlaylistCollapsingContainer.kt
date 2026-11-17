@@ -74,7 +74,7 @@ internal fun PlaylistCollapsingContainer(
     enabled: Boolean,
     onBack: () -> Unit,
     onSearch: () -> Unit,
-    onEditCover: (() -> Unit)? = null,
+    onMore: (() -> Unit)? = null,
     onBackLongClick: () -> Unit = onBack,
     onPlay: () -> Unit,
     modifier: Modifier = Modifier,
@@ -141,8 +141,8 @@ internal fun PlaylistCollapsingContainer(
                                 })
                         }
                     }
-                    if (onEditCover != null) IconButton(onClick = onEditCover, modifier = Modifier.size(48.dp)) {
-                        Icon(painterResource(R.drawable.edit), stringResource(R.string.edit_playlist_cover), tint = ink)
+                    if (onMore != null) IconButton(onClick = onMore, modifier = Modifier.size(48.dp)) {
+                        Icon(painterResource(R.drawable.more_vert), stringResource(R.string.more_options), tint = ink)
                     }
                     if (!frame.docked) {
                         IconButton(onClick = onSearch, modifier = Modifier.size(48.dp)) {
