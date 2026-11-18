@@ -98,7 +98,7 @@ fun HistoryScreen(
     navController: NavController,
     viewModel: HistoryViewModel = hiltViewModel(),
 ) {
-    val backdrop = screenHeaderBrush()
+    val backdrop = screenHeaderBrush(tintStrength = 0.3f)
     ExpandableBottomSheet(
         onDismissRequest = { navController.navigateUp() },
         containerBrush = backdrop,
@@ -238,8 +238,8 @@ private fun HistoryContent(
     }
 
     val lazyListState = rememberLazyListState()
-    val sectionColor = LocalSongColor.current.copy(alpha = 0.12f)
-        .compositeOver(MaterialTheme.colorScheme.surfaceContainer)
+    val sectionColor = LocalSongColor.current.copy(alpha = 0.04f)
+        .compositeOver(MaterialTheme.colorScheme.background)
 
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
@@ -465,7 +465,6 @@ private fun HistoryContent(
     }
 
     TopAppBar(
-        modifier = Modifier.background(screenHeaderBrush()),
         windowInsets = WindowInsets(0),
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = Color.Transparent,
