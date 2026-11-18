@@ -19,6 +19,18 @@ class SongBackdropTest {
     }
 
     @Test
+    fun historyRetainsTheCoverHueWithAMutedContinuousBackdrop() {
+        for (base in listOf(Color.Black, Color.White)) {
+            val normal = songBackdropColors(Color.Red, base)
+            val muted = songBackdropColors(Color.Red, base, 0.3f)
+            assertEquals(base, muted.last())
+            assertTrue(kotlin.math.abs(muted.first().green - base.green) < kotlin.math.abs(normal.first().green - base.green)
+                || kotlin.math.abs(muted.first().red - base.red) < kotlin.math.abs(normal.first().red - base.red))
+            assertTrue(muted.first().red > muted.first().blue)
+        }
+    }
+
+    @Test
     fun backdropUsesCoverHueAndFadesIntoOneContinuousBase() {
         val red = songBackdropColors(Color.Red, Color.Black)
         val blue = songBackdropColors(Color.Blue, Color.Black)

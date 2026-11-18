@@ -94,6 +94,7 @@ import com.metrolist.music.ui.menu.AlbumMenu
 import com.metrolist.music.ui.menu.ArtistMenu
 import com.metrolist.music.ui.menu.SongMenu
 import com.metrolist.music.ui.theme.screenHeaderBrush
+import com.metrolist.music.ui.utils.fadingEdge
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.utils.joinByBullet
 import com.metrolist.music.utils.makeTimeString
@@ -425,6 +426,7 @@ fun StatsScreen(
         )
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
             LazyColumn(
+                modifier = Modifier.fillMaxSize().fadingEdge(top = 28.dp),
                 state = lazyListState,
                 contentPadding =
                     LocalPlayerAwareWindowInsets.current
