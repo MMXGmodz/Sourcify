@@ -48,7 +48,7 @@ class SpotifyAccountTest {
         key = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
     }
 
-    private fun account(preferences: SharedPreferences = prefs): SpotifyAccount {
+    private fun account(preferences: SharedPreferences = prefs, configuredClientId: String = ""): SpotifyAccount {
         val client = OkHttpClient.Builder().addInterceptor(Interceptor { chain ->
             calls++
             assertEquals("https://accounts.spotify.com/api/token", chain.request().url.toString())
@@ -59,12 +59,47 @@ class SpotifyAccountTest {
             Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1)
                 .message("Response").code(status).body(body.toResponseBody()).build()
         }).build()
-        return SpotifyAccount(preferences, { key }, client) { clock }
+        return SpotifyAccount(preferences, { key }, client, configuredClientId) { clock }
     }
 
     private fun callback(authorization: Uri): Uri = Uri.parse(SPOTIFY_REDIRECT_URI).buildUpon()
         .appendQueryParameter("state", authorization.getQueryParameter("state"))
         .appendQueryParameter("code", "private-authorization-code").build()
+
+    @Test
+    fun publisherClientIdOpensAuthorizationWithoutManualSetup() = runBlocking {
+        val account = account(configuredClientId = clientId)
+        val authorization = account.beginAuthorization()
+        assertEquals("https", authorization.scheme)
+        assertEquals("accounts.spotify.com", authorization.host)
+        assertEquals("/authorize", authorization.path)
+        assertEquals(clientId, authorization.getQueryParameter("client_id"))
+        account.completeAuthorization(callback(authorization))
+        assertTrue(account.connected.value)
+        assertEquals(clientId, requests.single()["client_id"])
+    }
+
+    @Test
+    fun savedPersonalClientIdWinsAndReconnectKeepsIt() = runBlocking {
+        val personalId = "b".repeat(32)
+        prefs.edit().putString("client_id", personalId).commit()
+        val account = account(configuredClientId = clientId)
+        account.completeAuthorization(callback(account.beginAuthorization()))
+        account.disconnect()
+        assertFalse(account.connected.value)
+        assertEquals(personalId, account.beginAuthorization().getQueryParameter("client_id"))
+    }
+
+    @Test
+    fun invalidSavedIdFallsBackToPublisherAndMissingSetupMakesNoRequest() = runBlocking {
+        prefs.edit().putString("client_id", "invalid").commit()
+        val configured = account(configuredClientId = clientId)
+        assertEquals(clientId, configured.clientId)
+        val missing = account()
+        expect(SpotifyImportFailure.SETUP) { missing.beginAuthorization() }
+        assertFalse(prefs.contains("pending"))
+        assertEquals(0, calls)
+    }
 
     @Test
     fun pkceSurvivesRestartAndSecretsStayEncrypted() = runBlocking {

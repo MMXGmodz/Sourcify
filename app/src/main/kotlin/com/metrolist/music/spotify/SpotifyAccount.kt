@@ -6,6 +6,7 @@ import android.net.Uri
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import com.metrolist.music.BuildConfig
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +38,7 @@ internal class SpotifyAccount internal constructor(
     private val prefs: SharedPreferences,
     private val key: () -> SecretKey = ::spotifyKey,
     client: OkHttpClient = OkHttpClient(),
+    private val configuredClientId: String = BuildConfig.SPOTIFY_CLIENT_ID,
     private val now: () -> Long = System::currentTimeMillis,
 ) : SpotifyTokens {
     private val http = client.newBuilder()
@@ -48,9 +50,10 @@ internal class SpotifyAccount internal constructor(
     private val mutex = Mutex()
     private val mutableConnected = MutableStateFlow(runCatching { read("session") != null }.getOrDefault(false))
     val connected: StateFlow<Boolean> = mutableConnected.asStateFlow()
-    val clientId: String get() = prefs.getString("client_id", "").orEmpty()
+    val clientId: String get() = listOf(prefs.getString("client_id", "").orEmpty(), configuredClientId)
+        .map(String::trim).firstOrNull { it.matches(Regex("[a-fA-F0-9]{32}")) }.orEmpty()
 
-    suspend fun beginAuthorization(clientId: String): Uri = withContext(Dispatchers.IO) {
+    suspend fun beginAuthorization(clientId: String = this.clientId): Uri = withContext(Dispatchers.IO) {
         mutex.withLock {
             val id = clientId.trim()
             if (!id.matches(Regex("[a-fA-F0-9]{32}"))) fail(SpotifyImportFailure.SETUP)

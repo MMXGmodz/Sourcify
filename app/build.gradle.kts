@@ -23,6 +23,16 @@ val debugKeyPassword = System.getenv("METROLIST_DEBUG_KEY_PASSWORD")?.takeIf { i
 val persistentDebugKeystoreFile = file("persistent-debug.keystore")
 val workflowDebugKeystoreFile = debugKeystorePathOverride?.let(::file)
 
+val spotifyAppProperties = Properties()
+val spotifyAppFile = rootProject.file("config/spotify-app.properties")
+if (spotifyAppFile.isFile) spotifyAppFile.inputStream().use { spotifyAppProperties.load(it) }
+val spotifyClientId = (System.getenv("SOURCIFY_SPOTIFY_CLIENT_ID")
+    ?: localProperties.getProperty("SPOTIFY_CLIENT_ID")
+    ?: spotifyAppProperties.getProperty("clientId", "")).trim()
+require(spotifyClientId.isBlank() || spotifyClientId.matches(Regex("[a-fA-F0-9]{32}"))) {
+    "Spotify client ID must be empty or 32 hexadecimal characters. Never configure a client secret."
+}
+
 plugins {
     id("com.android.application")
     alias(libs.plugins.hilt)
@@ -47,6 +57,7 @@ android {
         minSdk = 26
         targetSdk = 36
         buildConfigField("Boolean", "TV_INTERFACE", "false")
+        buildConfigField("String", "SPOTIFY_CLIENT_ID", "\"$spotifyClientId\"")
         versionCode = 193
         versionName = "13.8.25"
         val baseVersionName = requireNotNull(versionName)
