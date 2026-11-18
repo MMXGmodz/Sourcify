@@ -2,6 +2,7 @@ package com.metrolist.music.ui.menu
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -154,7 +155,26 @@ fun ExternalPlaylistImportDialog(onDismiss: () -> Unit, onImported: (String) -> 
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    TextButton(enabled = !busy, onClick = { showSpotify = true }) {
+                    TextButton(enabled = !busy, onClick = {
+                        if (spotifyConnected || spotify.clientId.isBlank()) {
+                            showSpotify = true
+                        } else {
+                            busy = true
+                            error = null
+                            job = scope.launch {
+                                try {
+                                    val url = spotify.beginAuthorization()
+                                    CustomTabsIntent.Builder().build().launchUrl(context, url)
+                                } catch (cancelled: CancellationException) {
+                                    throw cancelled
+                                } catch (_: Exception) {
+                                    error = R.string.spotify_oauth_failed
+                                } finally {
+                                    busy = false
+                                }
+                            }
+                        }
+                    }) {
                         Text(stringResource(if (spotifyConnected) R.string.spotify_oauth_connected else R.string.spotify_connect))
                     }
                     TextButton(enabled = !busy, onClick = {

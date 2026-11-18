@@ -1563,7 +1563,11 @@
     <string name="playlist_main_color">Hauptfarbe der Playlist</string>
     <string name="playlist_main_color_description">Eigene Farbe für diese Playlist auf diesem Gerät oder automatisch vom Cover.</string>
     <string name="playlist_color_save_failed">Die Playlist-Farbe konnte nicht gespeichert werden. Bitte erneut versuchen.</string>
-    <string name="spotify_import_title">Spotify-Import einrichten</string>
+    <string name="spotify_import_title">Spotify verbinden</string>
+    <string name="spotify_login_description">Melde dich auf der offiziellen Spotify-Seite an und erlaube den Playlist-Zugriff. Danach kehrst du automatisch zu Sourcify zurück. Dein Spotify-Passwort bleibt bei Spotify.</string>
+    <string name="spotify_publisher_setup_missing">Für diese Sourcify-Version ist noch keine gemeinsame Spotify-App eingerichtet. Eine Anmeldung allein kann diese Registrierung nicht ersetzen. Mit einer eigenen Spotify-App kannst du die erweiterte Einrichtung nutzen; alternativ eine CSV-/M3U-Datei importieren.</string>
+    <string name="spotify_advanced_setup">Erweiterte Einrichtung</string>
+    <string name="spotify_reconnect">Erneut mit Spotify verbinden</string>
     <string name="spotify_setup_description">Erstelle einmalig eine eigene Spotify-Entwickler-App. Trage ihre öffentliche Client-ID ein und melde dich anschließend im Browser bei Spotify an. Ein Client-Secret wird nicht benötigt.</string>
     <string name="spotify_dashboard">Spotify-Entwicklerportal öffnen</string>
     <string name="spotify_client_id">Spotify Client-ID</string>

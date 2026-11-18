@@ -33,6 +33,20 @@ internal fun SpotifyImportSetupDialog(account: SpotifyAccount, onDismiss: () -> 
     var busy by remember { mutableStateOf(false) }
     var failed by remember { mutableStateOf(false) }
     var copied by remember { mutableStateOf(false) }
+    var advanced by rememberSaveable { mutableStateOf(false) }
+
+    fun connect() {
+        busy = true
+        failed = false
+        scope.launch {
+            try {
+                val url = account.beginAuthorization(clientId)
+                CustomTabsIntent.Builder().build().launchUrl(context, url)
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { failed = true }
+            finally { busy = false }
+        }
+    }
     AlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
         title = { Text(stringResource(R.string.spotify_import_title)) },
@@ -41,6 +55,9 @@ internal fun SpotifyImportSetupDialog(account: SpotifyAccount, onDismiss: () -> 
                 verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (connected) {
                     Text(stringResource(R.string.spotify_oauth_connected))
+                    TextButton(enabled = !busy, onClick = ::connect) {
+                        Text(stringResource(R.string.spotify_reconnect))
+                    }
                     TextButton(enabled = !busy, onClick = {
                         busy = true
                         scope.launch {
@@ -51,36 +68,36 @@ internal fun SpotifyImportSetupDialog(account: SpotifyAccount, onDismiss: () -> 
                         }
                     }) { Text(stringResource(R.string.spotify_disconnect)) }
                 } else {
-                    Text(stringResource(R.string.spotify_setup_description), style = MaterialTheme.typography.bodySmall)
-                    TextButton(onClick = { try { uriHandler.openUri("https://developer.spotify.com/dashboard") } catch (_: Exception) { failed = true } }) {
-                        Text(stringResource(R.string.spotify_dashboard))
+                    Text(stringResource(R.string.spotify_login_description))
+                    if (account.clientId.isBlank()) {
+                        Text(stringResource(R.string.spotify_publisher_setup_missing), style = MaterialTheme.typography.bodySmall)
                     }
-                    OutlinedTextField(clientId, { clientId = it.trim(); failed = false }, enabled = !busy,
-                        modifier = Modifier.fillMaxWidth(), singleLine = true,
-                        label = { Text(stringResource(R.string.spotify_client_id)) })
-                    Text(stringResource(R.string.spotify_redirect_description), style = MaterialTheme.typography.bodySmall)
-                    Text(SPOTIFY_REDIRECT_URI, style = MaterialTheme.typography.bodySmall)
-                    TextButton(onClick = {
-                        (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
-                            .setPrimaryClip(ClipData.newPlainText("Spotify redirect", SPOTIFY_REDIRECT_URI))
-                        copied = true
-                    }) {
-                        Icon(painterResource(if (copied) R.drawable.check else R.drawable.content_copy), null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.spotify_copy_redirect))
+                    TextButton(enabled = !busy, onClick = { advanced = !advanced }) {
+                        Text(stringResource(R.string.spotify_advanced_setup))
                     }
-                    Button(enabled = !busy && Regex("[a-fA-F0-9]{32}").matches(clientId), onClick = {
-                        busy = true
-                        failed = false
-                        scope.launch {
-                            try {
-                                val url = account.beginAuthorization(clientId)
-                                CustomTabsIntent.Builder().build().launchUrl(context, url)
-                            } catch (cancelled: CancellationException) { throw cancelled }
-                            catch (_: Exception) { failed = true }
-                            finally { busy = false }
+                    if (advanced) {
+                        Text(stringResource(R.string.spotify_setup_description), style = MaterialTheme.typography.bodySmall)
+                        TextButton(onClick = { try { uriHandler.openUri("https://developer.spotify.com/dashboard") } catch (_: Exception) { failed = true } }) {
+                            Text(stringResource(R.string.spotify_dashboard))
                         }
-                    }) { Text(stringResource(R.string.spotify_connect)) }
+                        OutlinedTextField(clientId, { clientId = it.trim(); failed = false }, enabled = !busy,
+                            modifier = Modifier.fillMaxWidth(), singleLine = true,
+                            label = { Text(stringResource(R.string.spotify_client_id)) })
+                        Text(stringResource(R.string.spotify_redirect_description), style = MaterialTheme.typography.bodySmall)
+                        Text(SPOTIFY_REDIRECT_URI, style = MaterialTheme.typography.bodySmall)
+                        TextButton(onClick = {
+                            (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
+                                .setPrimaryClip(ClipData.newPlainText("Spotify redirect", SPOTIFY_REDIRECT_URI))
+                            copied = true
+                        }) {
+                            Icon(painterResource(if (copied) R.drawable.check else R.drawable.content_copy), null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.spotify_copy_redirect))
+                        }
+                    }
+                    Button(enabled = !busy && Regex("[a-fA-F0-9]{32}").matches(clientId), onClick = ::connect) {
+                        Text(stringResource(R.string.spotify_connect))
+                    }
                 }
                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                 if (failed) Text(stringResource(R.string.spotify_oauth_failed), color = MaterialTheme.colorScheme.error)
