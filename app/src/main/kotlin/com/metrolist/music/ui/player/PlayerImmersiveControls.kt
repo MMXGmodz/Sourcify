@@ -83,11 +83,13 @@ internal fun CanvasFullscreenControls(song: MediaMetadata, liked: Boolean, playi
 }
 
 @Composable
-internal fun PlayerTransportActions(newDesign: Boolean, onOpenQueue: () -> Unit, content: @Composable () -> Unit) {
+internal fun PlayerTransportActions(newDesign: Boolean, onOpenQueue: () -> Unit, connect: @Composable RowScope.() -> Unit = {}, content: @Composable () -> Unit) {
     Column(Modifier.fillMaxWidth()) {
         content()
         Row(Modifier.fillMaxWidth().padding(horizontal = com.metrolist.music.constants.PlayerHorizontalPadding),
             horizontalArrangement = if (newDesign) Arrangement.End else Arrangement.Start) {
+            connect()
+            if (newDesign) Spacer(Modifier.weight(1f))
             IconButton(onClick = onOpenQueue, modifier = Modifier.size(40.dp)) {
                 Icon(painterResource(R.drawable.queue_music), stringResource(R.string.queue), tint = Color.White)
             }

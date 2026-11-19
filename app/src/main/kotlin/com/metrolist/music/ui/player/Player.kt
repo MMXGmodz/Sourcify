@@ -744,6 +744,8 @@ fun BottomSheetPlayer(
     }
 
     var showQueue by rememberSaveable { mutableStateOf(false) }
+    var showConnect by rememberSaveable { mutableStateOf(false) }
+    val connectState by playerConnection.service.connectController.state.collectAsStateWithLifecycle()
     fun showSongOptions(song: MediaMetadata) {
         showPlayerSettings = false
         menuState.show {
@@ -1484,13 +1486,19 @@ fun BottomSheetPlayer(
                     onPrevious = playerConnection::seekToPrevious, onPlay = onMainPlay,
                     onNext = playerConnection::seekToNext, onRepeat = { playerConnection.player.toggleRepeatMode() },
                     playModifier = Modifier.focusRequester(focusRequester))
+                Row(Modifier.fillMaxWidth().padding(horizontal = controlsHorizontalPadding), verticalAlignment = Alignment.CenterVertically) {
+                    ConnectButton(connectState, { showConnect = true }, Modifier.weight(1f))
+                    IconButton(onClick = { showQueue = true }) { Icon(painterResource(R.drawable.queue_music), stringResource(R.string.queue), tint = Color.White) }
+                }
             } else
             AnimatedVisibility(
                 visible = !isFullScreen,
                 enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                 exit = shrinkVertically(shrinkTowards = Alignment.Top) + slideOutVertically(targetOffsetY = { it }) + fadeOut(),
             ) {
-                PlayerTransportActions(useNewPlayerDesign, { showQueue = true }) {
+                PlayerTransportActions(useNewPlayerDesign, { showQueue = true }, connect = {
+                    ConnectButton(connectState, { showConnect = true }, Modifier.weight(1f))
+                }) {
                     if (useNewPlayerDesign) {
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1885,6 +1893,10 @@ fun BottomSheetPlayer(
                     }, landscape = landscapePlayer)
             }
         }
+        if (showConnect) ConnectSheet(playerConnection.service.connectController,
+            mediaMetadata?.let { it.title + " — " + it.artists.joinToString { artist -> artist.name } }.orEmpty(),
+            onDismiss = { showConnect = false })
+
         if (showPlayerSettings && mediaMetadata != null) {
             PlayerSettingsSheet(mediaMetadata!!, onDismiss = { showPlayerSettings = false },
                 onCanvasSettings = { showPlayerSettings = false; state.collapseSoft(); navController.navigate("settings/canvas") },

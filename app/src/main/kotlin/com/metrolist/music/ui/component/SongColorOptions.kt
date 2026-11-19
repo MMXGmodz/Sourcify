@@ -23,7 +23,7 @@ import com.metrolist.music.ui.theme.LocalSongColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun SongColorOptions(color: Int?, onChange: (Int?) -> Unit, enabled: Boolean = true, titleRes: Int = R.string.s811_song_color) {
+internal fun SongColorOptions(color: Int?, onChange: (Int?) -> Unit, enabled: Boolean = true, titleRes: Int = R.string.s811_song_color, automaticLabelRes: Int = R.string.s811_color_automatic) {
     val automaticColor = LocalSongColor.current.toArgb()
     val initial = remember { FloatArray(3).also { android.graphics.Color.colorToHSV(color ?: automaticColor, it) } }
     var hue by remember { mutableFloatStateOf(initial[0]) }
@@ -47,7 +47,7 @@ internal fun SongColorOptions(color: Int?, onChange: (Int?) -> Unit, enabled: Bo
         Row(Modifier.fillMaxWidth().toggleable(color == null, enabled = enabled, role = Role.Switch,
             onValueChange = { automatic -> if (automatic) emit(null) else change() }).heightIn(min = 48.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.s811_color_automatic), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(automaticLabelRes), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
             Switch(checked = color == null, onCheckedChange = null, enabled = enabled)
         }
         AnimatedVisibility(visible = color != null) {

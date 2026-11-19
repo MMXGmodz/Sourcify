@@ -295,6 +295,9 @@ class MusicService :
     @Inject
     lateinit var listenTogetherManager: com.metrolist.music.listentogether.ListenTogetherManager
 
+    private val connectDelegate = lazy { com.metrolist.music.connect.ConnectController(this, scope) }
+    internal val connectController by connectDelegate
+
     private lateinit var audioManager: AudioManager
     private var audioFocusRequest: AudioFocusRequest? = null
     private var lastAudioFocusState = AudioManager.AUDIOFOCUS_NONE
@@ -937,6 +940,7 @@ class MusicService :
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         setupAudioFocusRequest()
+        connectController.setPlaying(player.isPlaying)
 
         mediaLibrarySessionCallback.apply {
             service = this@MusicService
@@ -3017,6 +3021,7 @@ class MusicService :
         }
 
         if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
+            connectController.setPlaying(player.isPlaying && castConnectionHandler?.isCasting?.value != true)
             updateWidgetUI(player.isPlaying)
             if (player.isPlaying) {
                 discordIntentionalDisconnect = false
@@ -4546,6 +4551,7 @@ class MusicService :
         }
 
     override fun onDestroy() {
+        if (connectDelegate.isInitialized()) connectController.close()
         if (jamDelegate.isInitialized()) jam.stop()
         isRunning = false
 
